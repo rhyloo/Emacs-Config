@@ -1,0 +1,1247 @@
+#+TITLE: EMACS CONFIGURATION
+#+AUTHOR: Rhyloo
+#+OPTIONS: broken-links:t
+After all this time... I think is the moment for write a good emacs configuration for the future and for sharing with others.
+
+* Table  of Contents
+ :PROPERTIES:
+ :TOC:      :include all :ignore (this)
+ :CUSTOM_ID: table-of-contents
+ :END:
+ :CONTENTS:
+- [[#startup-performance][Startup Performance]]
+- [[#package-management][Package Management]]
+  - [[#packages][Packages]]
+- [[#packages][Packages]]
+  - [[#benchmakr][Benchmakr]]
+  - [[#org-make-toc][Org-make-toc]]
+  - [[#matlab-mode][Matlab-mode]]
+  - [[#magit][Magit]]
+  - [[#ivyswiper][Ivy/Swiper]]
+  - [[#auctex][Auctex]]
+  - [[#company][Company]]
+  - [[#pdftoosl][Pdf.toosl]]
+  - [[#simple-httpd][Simple-httpd]]
+  - [[#impatient-mode][Impatient-mode]]
+  - [[#hledger][Hledger]]
+  - [[#language][Language]]
+  - [[#snippets][Snippets]]
+  - [[#dashboard][Dashboard]]
+  - [[#org-superstar][Org-superstar]]
+  - [[#super-save][Super-save]]
+- [[#personal-information][Personal information]]
+- [[#custom-functions][Custom functions]]
+  - [[#links][Links]]
+  - [[#image-edition][Image edition]]
+  - [[#configurations][Configurations]]
+  - [[#themes-config][Themes config]]
+  - [[#utilities][Utilities]]
+  - [[#org-mode][Org Mode]]
+- [[#general-configuration][General Configuration]]
+  - [[#user-interface][User Interface]]
+  - [[#theme][Theme]]
+  - [[#font][Font]]
+    - [[#emojis-in-buffers][Emojis in buffers]]
+  - [[#mode-line][Mode Line]]
+    - [[#basic-customization][Basic Customization]]
+    - [[#enable-mode-diminishing][Enable Mode Diminishing]]
+    - [[#smart-mode-line][Smart Mode Line]]
+    - [[#doom-modeline][Doom Modeline]]
+- [[#keyboard-bindings][Keyboard Bindings]]
+  - [[#pdf-tools][Pdf tools]]
+  - [[#org-mode][Org Mode]]
+  - [[#interaction-with-emacs][Interaction with emacs]]
+- [[#editing-configuration][Editing Configuration]]
+  - [[#tab-widths][Tab Widths]]
+  - [[#use-spaces-instead-of-tabs-for-indentation][Use spaces instead of tabs for indentation]]
+  - [[#automatically-clean-whitespace][Automatically clean whitespace]]
+- [[#org-mode][Org Mode]]
+- [[#hooks][Hooks]]
+ :END:
+* Startup Performance
+  :PROPERTIES:
+  :CUSTOM_ID: startup-performance
+  :END:
+
+Make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time.
+
+#+begin_src emacs-lisp
+  ;; Minimize garbage collection during startup
+  (setq gc-cons-threshold most-positive-fixnum)
+    ;; ;; The default is 800 kilobytes.  Measured in bytes.
+    (setq gc-cons-threshold (* 50 1000 1000))
+    ;; Profile emacs startup
+    (add-hook 'emacs-startup-hook
+              (lambda ()
+                (message "*** Emacs loaded in %s with %d garbage collections."
+                         (format "%.2f seconds"
+                                 (float-time
+                                  (time-subtract after-init-time before-init-time)))
+                         gcs-done)))
+#+end_src
+* Package Management
+  :PROPERTIES:
+  :CUSTOM_ID: package-management
+  :END:
+Set up ELPA, MELPA, and Org package repositories and load =use-package= to manage package configuration.
+#+begin_src emacs-lisp
+  ;; Initialize package sources
+  (require 'package)
+  (setq package-archives
+    '(("org"     .       "https://orgmode.org/elpa/")
+    ("gnu"     .       "https://elpa.gnu.org/packages/")
+    ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
+    ("melpa" . "http://melpa.org/packages/")))
+
+  (package-initialize)
+
+  ;; Use-package for civilized configuration
+  (unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+    (require 'use-package)
+    (setq use-package-always-ensure t)
+#+end_src
+** Packages
+   :PROPERTIES:
+   :CUSTOM_ID: packages
+   :END:
+* Packages
+  :PROPERTIES:
+  :CUSTOM_ID: packages
+  :END:
+** Benchmakr
+   :PROPERTIES:
+   :CUSTOM_ID: benchmakr
+   :END:
+ #+begin_src emacs-lisp
+   (use-package benchmark-init
+    :ensure t
+    :config
+    ;; To disable collection of benchmark data after init is done.
+    (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
+     ;; (use-package ispell-multi
+     ;;   :defer t
+     ;;   :ensure nil
+     ;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
+ #+end_src
+** Org-make-toc
+   :PROPERTIES:
+   :CUSTOM_ID: https-github-com-alphapapa-org-make-toc-org-make-toc
+   :END:
+
+This package makes it easy to have one or more customizable tables of contents in Org files. They can be updated manually, or automatically when the file is saved. Links to headings are created compatible with GitHub’s Org renderer.
+
+
+#+begin_src emacs-lisp
+  (use-package org-make-toc
+  :defer t
+  :hook (org-mode . org-make-toc-mode)
+  )
+#+end_src
+
+** Matlab-mode
+   :PROPERTIES:
+   :CUSTOM_ID: http-matlab-emacs-sourceforge-net-matlab-mode
+   :END:
+
+MATLAB mode for Emacs consists of Emacs Lisp code that implements a major-mode for Emacs that assists in the editing of MATLAB scripts.
+
+This allows Emacs to be used in place of the MATLAB Editor for editing your MATLAB source code, debugging MATLAB code, and syntax/semantic checking of your MATLAB code with mlint.
+
+#+begin_src emacs-lisp
+  (use-package matlab-mode
+      :defer t
+      :mode "\\.m\\'"
+      ;; :interpreter ("matlab -nodesktop -nosplash -r" . matlab-mode)
+      )
+#+end_src
+** Magit
+   :PROPERTIES:
+   :CUSTOM_ID: https-magit-vc-magit
+   :END:
+
+Magit is a complete text-based user interface to Git.
+
+#+begin_src emacs-lisp
+  (use-package magit
+    :defer t
+    :bind ("C-x g" . magit-status))
+#+end_src
+
+** Ivy/Swiper
+   :PROPERTIES:
+   :CUSTOM_ID: https-github-com-abo-abo-swiper-ivy-swiper
+   :END:
+Swiper, an Ivy-enhanced alternative to Isearch.
+
+#+begin_src emacs-lisp
+  (use-package swiper
+  :bind ("C-s" . swiper))
+#+end_src
+
+** Auctex
+   :PROPERTIES:
+   :CUSTOM_ID: auctex
+   :END:
+#+begin_src emacs-lisp
+  ;; ;;Auctex highlight syntax
+  (use-package auctex
+    :defer t)
+#+end_src
+** Company
+   :PROPERTIES:
+   :CUSTOM_ID: company
+   :END:
+#+begin_src emacs-lisp
+  ;; ;;Company-mode
+  (use-package company
+  :config
+  (add-hook 'after-init-hook 'global-company-mode))
+#+end_src
+** Pdf-tools
+   :PROPERTIES:
+   :CUSTOM_ID: pdf-toosl
+   :END:
+#+begin_src emacs-lisp
+  (use-package pdf-tools
+    :config
+    (pdf-loader-install)
+    (setq-default pdf-view-display-size 'fit-page))
+#+end_src
+
+** Simple-httpd
+   :PROPERTIES:
+   :CUSTOM_ID: simple-httpd
+   :END:
+#+begin_src emacs-lisp
+  (use-package simple-httpd
+    :defer t
+    :config
+    (setq httpd-root "~/Documents/Github/Blog/public_html")
+    ;; (setq httpd-port "8080")
+    )
+#+end_src
+** Impatient-mode
+   :PROPERTIES:
+   :CUSTOM_ID: impatient-mode
+   :END:
+#+begin_src emacs-lisp
+  ;; (use-package impatient-mode
+  ;;   :defer t)
+#+end_src
+
+** Hledger
+   :PROPERTIES:
+   :CUSTOM_ID: hledger
+   :END:
+#+begin_src emacs-lisp
+  ;; (use-package hledger-mode
+  ;;   :defer t
+  ;;   :mode ("\\.journal\\'" "\\.hledger\\'")
+  ;;   :commands hledger-enable-reporting
+  ;;   :preface
+  ;;   (defun hledger/next-entry ()
+  ;;     "Move to next entry and pulse."
+  ;;     (interactive)
+  ;;     (hledger-next-or-new-entry)
+  ;;     (hledger-pulse-momentary-current-entry))
+
+  ;;   (defface hledger-warning-face
+  ;;     '((((background dark))
+  ;;        :background "Red" :foreground "White")
+  ;;       (((background light))
+  ;;        :background "Red" :foreground "White")
+  ;;       (t :inverse-video t))
+  ;;     "Face for warning"
+  ;;     :group 'hledger)
+
+  ;;   (defun hledger/prev-entry ()
+  ;;     "Move to last entry and pulse."
+  ;;     (interactive)
+  ;;     (hledger-backward-entry)
+  ;;     (hledger-pulse-momentary-current-entry))
+
+  ;;   :bind (("C-c j" . hledger-run-command)
+  ;;          :map hledger-mode-map
+  ;;          ("C-c e" . hledger-jentry)
+  ;;          ("M-p" . hledger/prev-entry)
+  ;;          ("M-n" . hledger/next-entry))
+  ;;   :init
+  ;;   (setq hledger-jfile "~/finance/2021.journal")
+  ;;   :config
+  ;;   (add-hook 'hledger-view-mode-hook #'hl-line-mode)
+  ;;   (add-hook 'hledger-view-mode-hook #'center-text-for-reading)
+
+  ;;   (add-hook 'hledger-view-mode-hook
+  ;;             (lambda ()
+  ;;               (run-with-timer 1
+  ;;                               nil
+  ;;                               (lambda ()
+  ;;                                 (when (equal hledger-last-run-command
+  ;;                                              "balancesheet")
+  ;;                                   ;; highlight frequently changing accounts
+  ;;                                   (highlight-regexp "^.*\\(savings\\|cash\\).*€")
+  ;;                                   (highlight-regexp "^.*credit-card.*€"
+  ;;                                                     'hledger-warning-face))))))
+
+  ;;   (add-hook 'hledger-mode-hook
+  ;;             (lambda ()
+  ;;               (make-local-variable 'company-backends)
+  ;;               (add-to-list 'company-backends 'hledger-company))))
+#+end_src
+** Language
+   :PROPERTIES:
+   :CUSTOM_ID: language
+   :END:
+#+begin_src emacs-lisp
+  ;; ;; (use-package guess-language         ; Automatically detect language for Flyspell
+  ;; ;;   :ensure t
+  ;; ;;   :defer t
+  ;; ;;   :init (add-hook 'text-mode-hook #'guess-language-mode)
+  ;; ;;   :config
+  ;; ;;   (setq guess-language-langcodes '((en . ("en_GB" "English"))
+  ;; ;;                                    (es . ("es" "Spanish")))
+  ;; ;;         guess-language-languages '(en es)
+  ;; ;;         guess-language-min-paragraph-length 45)
+  ;; ;;   :diminish guess-language-mode)
+
+#+end_src
+** Snippets
+   :PROPERTIES:
+   :CUSTOM_ID: snippets
+   :END:
+   :PROPERTIES:
+
+   :END:
+#+begin_src emacs-lisp
+  ;; (use-package yasnippet                  ; Snippets
+  ;;   :ensure t
+  ;;   :config
+  ;;   ;; (validate-setq
+  ;;   ;;  yas-verbosity 1                      ; No need to be so verbose
+  ;;   ;;  yas-wrap-around-region t)
+  ;;   ;;  (with-eval-after-load 'yasnippet
+  ;;   ;;    (validate-setq yas-snippet-dirs '(yasnippet-snippets-dir)))
+  ;;   (yas-reload-all)
+  ;;   (yas-global-mode))
+
+  ;; (use-package yasnippet-snippets         ; Collection of snippets
+  ;;   :ensure t)
+#+end_src
+** Dashboard
+   :PROPERTIES:
+   :CUSTOM_ID: dashboard
+   :END:
+#+begin_src emacs-lisp
+  ;; (use-package dashboard
+  ;; :ensure t
+  ;; :config
+  ;; (dashboard-setup-startup-hook)
+  ;; (setq dashboard-startup-banner 'logo)
+  ;; (setq dashboard-center-content t)
+  ;; (setq dashboard-banner-logo-title "Bienvenido Rhyloo"))
+#+end_src
+** Org-superstar
+   :PROPERTIES:
+   :CUSTOM_ID: org-superstar
+   :END:
+#+begin_src emacs-lisp
+  (use-package org-superstar
+    :after org
+    :hook (org-mode . org-superstar-mode)
+    :custom
+    (org-superstar-remove-leading-stars t)
+    (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●")))
+    (require 'org-indent)
+
+  ;; Replace list hyphen with dot
+  ;; (font-lock-add-keywords 'org-mode
+  ;;                         '(("^ *\\([-]\\) "
+  ;;                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+  ;; ;; Increase the size of various headings
+  ;; (set-face-attribute 'org-document-title nil :font "Iosevka Aile" :weight 'bold :height 1.3)
+  ;; (dolist (face '((org-level-1 . 1.2)
+  ;;                 (org-level-2 . 1.1)
+  ;;                 (org-level-3 . 1.05)
+  ;;                 (org-level-4 . 1.0)
+  ;;                 (org-level-5 . 1.1)
+  ;;                 (org-level-6 . 1.1)
+  ;;                 (org-level-7 . 1.1)
+  ;;                 (org-level-8 . 1.1)))
+  ;;   (set-face-attribute (car face) nil :font "Iosevka Aile" :weight 'medium :height (cdr face)))
+
+  ;; Make sure org-indent face is available
+
+
+  ;; ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+  ;; (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+  ;; (set-face-attribute 'org-table nil  :inherit 'fixed-pitch)
+  ;; (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch)
+  ;; (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+  ;; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
+  ;; (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+  ;; (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+  ;; (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+  ;; (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+
+  ;; Get rid of the background on column views
+  (set-face-attribute 'org-column nil :background nil)
+  (set-face-attribute 'org-column-title nil :background nil)
+
+  ;; TODO: Others to consider
+  ;; '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+  ;; '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+  ;; '(org-property-value ((t (:inherit fixed-pitch))) t)
+  ;; '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+  ;; '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+  ;; '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+  ;; '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+#+end_src
+** Super-save
+   :PROPERTIES:
+   :CUSTOM_ID: super-save
+   :END:
+#+begin_src emacs-lisp
+(use-package super-save
+  :defer 1
+  :diminish super-save-mode
+  :config
+  (super-save-mode +1)
+  (setq super-save-auto-save-when-idle t))
+#+end_src
+** Ledger
+   :PROPERTIES:
+   :CUSTOM_ID: ledger
+   :END:
+#+begin_src emacs-lisp
+(use-package ledger-mode
+:defer t)
+#+end_src
+
+#+RESULTS:
+** Flymake
+   :PROPERTIES:
+   :CUSTOM_ID: flymake
+   :END:
+#+begin_src emacs-lisp
+(use-package flymake
+:config
+(add-hook 'after-init-hook 'flymake-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; (use-package flymake-ledger
+  ;; :after flymake
+  ;; )
+#+end_src
+** Org
+   :PROPERTIES:
+   :CUSTOM_ID: org
+   :END:
+#+begin_src emacs-lisp
+  ;; (use-package org
+  ;;   :config
+  ;;   (progn
+  ;;   (use-package ob
+  ;;     :config
+      ;; (setq org-src-fontify-natively t)
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((js . t)
+         (org . t)
+         (shell . t)
+         (python . t)
+         (emacs-lisp . t)))
+    ;; (use-package ox-md
+    ;;   :config
+    ;;   (setq org-md-headline-style 'atx)
+    ;;   (use-package ox-gfm
+    ;;     :ensure t))
+    ;; (use-package ox-html
+    ;;   :config
+    ;;   (setq org-html-doctype "html5"
+    ;;         org-html-html5-fancy t
+    ;;         org-html-metadata-timestamp-format "%Y-%m-%d %H:%M"))
+    ;; (use-package org-crypt
+    ;;   :config
+    ;;   (org-crypt-use-before-save-magic)
+    ;;   (setq org-crypt-key "i@l42y.com"
+    ;;         org-tags-exclude-from-inheritance (quote ("crypt"))))
+    ;; (use-package org-agenda
+    ;;   :bind ("C-c a" . org-agenda))
+    ;; (use-package ox
+    ;;   :defer t
+    ;;   :config
+    ;;   (progn
+    ;;   (use-package ox-publish
+    ;;   :config
+      (setq org-publish-project-alist
+      '(("org-notes"
+      :base-directory "~/Documents/Github/Blog/blog/"
+      :base-extension "org"
+      :auto-sitemap t                ; Generate sitemap.org automagically...
+      :sitemap-filename "sitemap.org"  ; ... call it sitemap.org (it's the default)...
+      :sitemap-title "Sitemap"         ; ... with title 'Sitemap'.
+      :publishing-directory "~/Documents/Github/Blog/public_html"
+      :recursive t
+      :publishing-function org-html-publish-to-html
+      :headline-levels 4             ; Just the default for this project.
+      :auto-preamble t
+      )
+      ("org-static"
+      :base-directory "~/Documents/Github/Blog/blog"
+      :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
+      :publishing-directory "~/Documents/Github/Blog/public_html"
+      :recursive t
+      :publishing-function org-publish-attachment
+      )
+      ("org" :components ("org-notes" "org-static"))
+      ))
+;; )
+      ;; ))))
+
+#+end_src
+** Ox-publish
+   :PROPERTIES:
+   :CUSTOM_ID: ox-publish
+   :END:
+#+begin_src emacs-lisp
+  ;; (use-package ox-publish
+  ;;   :config
+  ;;   (setq org-publish-project-alist
+  ;;   '(("org-notes"
+  ;; 	:base-directory "~/Documents/Github/Blog/blog/"
+  ;; 	:base-extension "org"
+  ;; 	:auto-sitemap t                ; Generate sitemap.org automagically...
+  ;; 	:sitemap-filename "sitemap.org"  ; ... call it sitemap.org (it's the default)...
+  ;; 	:sitemap-title "Sitemap"         ; ... with title 'Sitemap'.
+  ;; 	:publishing-directory "~/Documents/Github/Blog/public_html"
+  ;; 	:recursive t
+  ;; 	:publishing-function org-html-publish-to-html
+  ;; 	:headline-levels 4             ; Just the default for this project.
+  ;; 	:auto-preamble t
+  ;; 	)
+  ;; 	("org-static"
+  ;; 	:base-directory "~/Documents/Github/Blog/blog/"
+  ;; 	:base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
+  ;; 	:publishing-directory "~/Documents/Github/blog/public_html"
+  ;; 	:recursive t
+  ;; 	:publishing-function org-publish-attachment
+  ;; 	)
+  ;; 	("org" :components ("org-notes" "org-static"))
+  ;; 	)))
+ #+end_src
+* Personal information
+  :PROPERTIES:
+  :CUSTOM_ID: personal-information
+  :END:
+Mail address and full name for email and metadata.
+#+begin_src emacs-lisp 
+(setq user-full-name "Rhyloo"
+      user-mail-address "rhyloot@gmail.com")
+#+end_src
+* Custom functions
+  :PROPERTIES:
+  :CUSTOM_ID: custom-functions
+  :END:
+** Links
+   :PROPERTIES:
+   :CUSTOM_ID: links
+   :END:
+        #+begin_src emacs-lisp
+          (require 'ol)
+            (org-link-set-parameters "hide-link"
+                                     :follow #'org-hide-link-open
+                                     :export #'org-hide-link-export
+                                     ;; :store #'org-hide-link-store-link
+                   :complete #'org-hide-link-complete-file)
+
+            (defcustom org-hide-link-complete-file 'hide-link
+              "The Emacs command to be used to display a man page."
+              :group 'org-link
+              :type 'string)
+
+            (defun org-hide-link-open (path _)
+              (find-file path))
+
+            (defun org-hide-link-complete-file (&optional arg)
+              "Create a file link using completion."
+              (let ((file (read-file-name "File: "))
+              (pwd (file-name-as-directory (expand-file-name ".")))
+              (pwd1 (file-name-as-directory (abbreviate-file-name
+                           (expand-file-name ".")))))
+                (cond ((equal arg '(16))
+                 (concat "hide-link:"
+                   (abbreviate-file-name (expand-file-name file))))
+                ((string-match
+                  (concat "^" (regexp-quote pwd1) "\\(.+\\)") file)
+                 (concat "hide-link:" (match-string 1 file)))
+                ((string-match
+                  (concat "^" (regexp-quote pwd) "\\(.+\\)")
+                  (expand-file-name file))
+                 (concat "hide-link:"
+                   (match-string 1 (expand-file-name file))))
+                (t (concat "hide-link:" file)))))
+
+            (defun org-hide-link-export (link description format)
+              "Export a man page link from Org files."
+              (let ((path (format "¿Buscas algo?"))
+                    (desc (or description link)))
+                (pcase format
+                  (`html (format "<span class = nolinks><a target=\"_blank\" href=\"%s\">%s</a></span>" path desc))
+                  (`latex (format "\\href{%s}{%s}" path desc))
+                  (`texinfo (format "@uref{%s,%s}" path desc))
+                  (`ascii (format "%s (%s)" desc path))
+                  (t path))))
+
+                   (defun my/blue-color-link (text)
+                     (org-insert-link nil "color:blue" text))
+
+                   (defun my/color-link-region ()
+                     (interactive)
+                     (if (region-active-p)
+                         (my/blue-color-link (buffer-substring-no-properties (region-beginning) (region-end)))
+                       (message "There is no active region.")))
+            (org-add-link-type
+             "color"
+             (lambda (path)
+               (message (concat "color "
+                                (progn (add-text-properties
+                                        0 (length path)
+                                        (list 'face `((t (:foreground ,path))))
+                                        path) path))))
+             (lambda (path desc format)
+               (cond
+                ((eq format 'html)
+                 (format "<span style=\"color:%s;\">%s</span>" path desc))
+                ((eq format 'latex)
+                 (format "\\textcolor{%s}{%s}" path desc)))))
+     #+end_src
+
+     #+RESULTS:
+     : Created color link.
+
+** Image edition
+   :PROPERTIES:
+   :CUSTOM_ID: image-edition
+   :END:
+   #+begin_src emacs-lisp
+     (defun my/svg-to-pdf ()
+       "Get as input an image with svg format for return it as pdf"
+       (interactive)
+       (shell-command (concat "inkscape " (read-file-name "File name: ")  " --export-area-drawing --batch-process --export-type=pdf --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".pdf&")))
+      
+     (defun my/eps-to-pdf ()
+       "Get as input an image with eps format for return it as pdf. It use gs script for do it may be just work in Windows systems."
+       (interactive)
+       (setq filename (read-file-name "File name: "))
+       (setq outputname (read-from-minibuffer (concat "Name output file:")))
+       (shell-command (concat "gswin32 -sDEVICE=pdfwrite -dEPSFitPage -o " outputname ".pdf " filename) ".pdf&"))
+      
+     (defun my/pdf-to-svg ()
+       "Get as input a file with pdf format for return it as svg image"
+       (interactive)
+       (shell-command (concat "pdftocairo -svg " (read-file-name "File name: ") " " (read-from-minibuffer (concat "Name output file:")) ".svg&")))
+     #+end_src
+
+** Configurations
+   :PROPERTIES:
+   :CUSTOM_ID: configurations
+   :END:
+
+   #+begin_src emacs-lisp
+     (defun my/reload-emacs-configuration ()
+       (interactive)
+       (load-file "~/.emacs.d/init.el"))
+
+     (defun my/load-blog-configuration ()
+       (interactive)
+       (load-file "~/.emacs.d/blog.el"))
+
+     (defun my/find-emacs-configuration ()
+       (interactive)
+       (find-file "~/.emacs.d/config.org"))
+   #+end_src               
+
+** Themes config
+   :PROPERTIES:
+   :CUSTOM_ID: themes-config
+   :END:
+
+    #+begin_src emacs-lisp
+    (defun my/theme-configuration ()
+    (set-face-attribute hl-line-face nil :underline nil :background "black")
+    (set-face-attribute 'mode-line-inactive nil :background nil :box nil :foreground "gray" :overline "white")
+    (set-face-attribute 'vertical-border nil :background nil :foreground "white")
+    )
+    #+end_src
+
+    #+begin_src emacs-lisp
+             (defun my/setup-color-theme-dark ()
+               (interactive)
+               (when (display-graphic-p) 
+                 (color-theme-sanityinc-solarized-dark))
+               (set-frame-parameter (selected-frame) 'alpha '(85 85))
+               (add-to-list 'default-frame-alist '(alpha 85 85))
+               ;; (set-foreground-color "white")
+               (set-face-background 'secondary-selection "black")
+               (set-face-background 'font-lock-doc-face "black")
+               (set-face-foreground 'font-lock-comment-face "blue")
+               ;; (set-face-background 'org-indent "black")
+               ;; (set-face-foreground 'org-indent "black")
+               (set-face-background 'org-hide "black")
+               (set-face-foreground 'org-hide "black")
+               (set-face-background 'font-lock-string-face "black")
+               (set-background-color "black")
+               (set-face-background 'hl-line "black"))
+      
+             (defun my/setup-color-theme-light ()
+               (interactive)
+               (when (display-graphic-p) 
+                 (color-theme-sanityinc-solarized-light))
+               ;; set transparency
+               (set-frame-parameter (selected-frame) 'alpha '(95 95))
+               (add-to-list 'default-frame-alist '(alpha 95 95))
+               (set-foreground-color "black")
+               (set-face-background 'secondary-selection "#fdf6e3")
+               (set-face-background 'font-lock-doc-face "black")
+               (set-face-background 'hl-line "lightblue")
+               ;; (set-face-background 'company-tooltip "white")
+               ;; (set-face-background 'org-indent "#fdf6e3")
+               ;; (set-face-foreground 'org-indent "#fdf6e3")
+               ;; (set-face-foreground 'company-preview-common "#b58900")
+               (set-face-attribute 'region nil :background "lightgrey") 
+               (set-face-foreground 'font-lock-comment-face "dark red"))
+      
+             (setq current-theme '(my/setup-color-theme-dark))
+             (defun synchronize-theme ()
+               (interactive)
+               (setq hour (string-to-number (substring (current-time-string)11 13)))
+                 (if (member hour (number-sequence 7 18))
+                     (setq now '(my/setup-color-theme-light))
+                     (setq now '(my/setup-color-theme-dark))) 
+                 (if (equal now current-theme)
+                     nil
+                   (setq current-theme now))
+                   (eval now))
+#+end_src                   
+
+** Utilities
+   :PROPERTIES:
+   :CUSTOM_ID: utilities
+   :END:
+
+   #+begin_src emacs-lisp
+     (defun my/find-file (filename)
+       "Open a file in the background"
+       (interactive "FFind file: ")
+       (set-buffer (find-file-noselect filename)))
+      
+     (defun my/pwd ()
+       "Put the current file name (include directory) on the clipboard"
+       (interactive)
+       (let ((filename (if (equal major-mode 'dired-mode)
+                           default-directory
+                         (buffer-file-name))))
+         (when filename
+           (with-temp-buffer
+             (insert filename)
+             (clipboard-kill-region (point-min) (point-max)))
+           (message filename))))
+   #+end_src
+
+** Org Mode Functions
+   :PROPERTIES:
+   :CUSTOM_ID: org-mode
+   :END:
+#+begin_src emacs-lisp
+;; https://emacs.stackexchange.com/questions/16511/how-can-i-get-a-custom-org-drawer-to-open-close
+;; https://www.emacswiki.org/emacs/ReplaceInString
+;; https://lists.gnu.org/archive/html/emacs-orgmode/2010-11/msg00258.html
+(setq org-export-with-drawers t)
+
+(defun my-org-export-format-drawer (name content)
+"Export :NOTES: and :LOGBOOK: drawers to HTML class
+or LaTeX command"
+(cond
+((string-match "DETAILS" name)
+(setq content (replace-regexp-in-string "<p>" "" content))
+(setq content (replace-regexp-in-string "</p>" "" content))
+(format "<pre class=\"example\">%s</pre>" content))))
+
+(setq org-html-format-drawer-function 'my-org-export-format-drawer)
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun my/org-generate-custom-ids ()
+    "Generate CUSTOM_ID for any headings that are missing one"
+    (let ((existing-ids (org-map-entries
+                       (lambda () (message "test");; (org-entry-get nil "CUSTOM_ID")
+                         ))))
+      (org-map-entries
+       (lambda ()
+         (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+                (heading (org-heading-components))
+                (level (nth 0 heading))
+                (todo (nth 2 heading))
+                (headline (nth 4 heading))
+                (slug (my/title-to-filename headline))
+                (duplicate-id (member slug existing-ids)))
+           (when (and (not custom-id)
+                      (< level 4)
+                      (not todo)
+                      (not duplicate-id))
+             (message "Adding entry %s to %s" slug headline)
+             (org-entry-put nil "CUSTOM_ID" slug)))))))
+
+    (defun my/title-to-filename (title)
+      "Convert TITLE to a reasonable filename."
+      ;; Based on the slug logic in org-roam, but org-roam also uses a
+      ;; timestamp, and I use only the slug. BTW "slug" comes from
+      ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
+      (setq title (s-downcase title))
+      (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
+      (setq title (s-replace-regexp "-+" "-" title))
+      (setq title (s-replace-regexp "^-" "" title))
+      (setq title (s-replace-regexp "-$" "" title))
+      title)
+#+end_src
+* General Configuration
+  :PROPERTIES:
+  :CUSTOM_ID: general-configuration
+  :END:
+** User Interface
+   :PROPERTIES:
+   :CUSTOM_ID: user-interface
+   :END:
+
+Clean up Emacs' user interface, make it more minimal.
+
+#+begin_src emacs-lisp
+  ;; Thanks, but no thanks
+  (setq inhibit-startup-message t)
+  (scroll-bar-mode -1)        ; Disable visible scrollbar
+  (tool-bar-mode -1)          ; Disable the toolbar
+  (tooltip-mode -1)           ; Disable tooltips
+  (set-fringe-mode 10)       ; Give some breathing room
+  (menu-bar-mode -1)            ; Disable the menu bar
+  (show-paren-mode 1)
+  (global-hl-line-mode 1) ;; Highlight lines
+  (global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
+  (setq read-file-name-completion-ignore-case t)
+  (add-hook 'split-window-right-hook 'my/theme-configuration)
+  ;; (setq completion-ignore-case  t);;Tab completion in minibuffer: case insensitive
+  ;; (setq read-buffer-completion-ignore-case t)
+  ;; Set up the visible bell
+  ;; (setq visible-bell t)
+#+end_src
+
+Improve scrolling.
+
+#+begin_src emacs-lisp
+  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+  (setq scroll-step 1) ;; keyboard scroll one line at a time
+  (setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
+#+end_src
+
+Set frame transparency and maximize windows by default.
+
+#+begin_src emacs-lisp
+  (set-frame-parameter (selected-frame) 'alpha '(90 . 90))
+  (add-to-list 'default-frame-alist '(alpha . (90 . 90)))
+  (set-frame-parameter (selected-frame) 'fullscreen 'maximized)
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+end_src
+
+Enable line numbers and customize their format.
+
+#+begin_src emacs-lisp
+  (column-number-mode)
+  ;; Enable line numbers for some modes
+  (dolist (mode '(text-mode-hook
+		  prog-mode-hook
+		  conf-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 1))))
+  ;; Override some modes which derive from the above
+  (dolist (mode '(org-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode -1))))
+#+end_src
+
+Don't warn for large files (shows up when launching videos)
+
+#+begin_src emacs-lisp
+  (setq large-file-warning-threshold nil)
+#+end_src
+
+Don't warn for following symlinked files
+
+#+begin_src emacs-lisp
+  (setq vc-follow-symlinks t)
+#+end_src
+
+Don't warn when advice is added for functions
+
+#+begin_src emacs-lisp
+  (setq ad-redefinition-action 'accept)
+#+end_src
+
+Title format
+
+#+begin_src emacs-lisp
+ (setq-default frame-title-format '("%f [%m]")) ;;title bar name
+#+end_src
+
+y or n?
+#+begin_src emacs-lisp
+(fset 'yes-or-no-p 'y-or-n-p) ;; Replace yes or no for y or n
+#+end_src
+
+#+begin_src emacs-lisp
+(delete-selection-mode 1) ;;Let you select and replace with yank or write
+#+end_src
+** Theme
+   :PROPERTIES:
+   :CUSTOM_ID: theme
+   :END:
+
+These days I bounce around between themes included with [[https://github.com/hlissner/emacs-doom-themes][DOOM Themes]] since they're well-designed and integrate with a lot of Emacs packages.
+A nice gallery of Emacs themes can be found at https://emacsthemes.com/.
+Alternate themes:
+- =doom-snazzy=
+- =doom-vibrant=
+
+#+begin_src emacs-lisp
+  (use-package spacegray-theme :defer t)
+  (use-package doom-themes
+  :defer t
+  :hook
+  (after-init . (lambda () (load-theme 'doom-palenight t))))
+  ;; (doom-themes-visual-bell-config)
+#+end_src
+
+** Font
+   :PROPERTIES:
+   :CUSTOM_ID: font
+   :END:
+*** Emojis in buffers
+    :PROPERTIES:
+    :CUSTOM_ID: emojis-in-buffers
+    :END:
+
+#+begin_src emacs-lisp :tagle no
+  (use-package emojify
+    :hook (erc-mode . emojify-mode)
+    :commands emojify-mode)
+#+end_src
+
+** Mode Line
+   :PROPERTIES:
+   :CUSTOM_ID: mode-line
+   :END:
+*** Basic Customization
+    :PROPERTIES:
+    :CUSTOM_ID: basic-customization
+    :END:
+
+#+begin_src emacs-lisp
+    (setq display-time-format "%l:%M %p %b %y"
+            display-time-default-load-average nil)
+    (setq display-time-day-and-date t
+          display-time-24hr-format t)
+    (display-time)
+    (unless (equal "Battery status not available" (battery)) ;;;Show battery
+  (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+#+end_src
+*** Enable Mode Diminishing
+    :PROPERTIES:
+    :CUSTOM_ID: enable-mode-diminishing
+    :END:
+
+The [[https://github.com/myrjola/diminish.el][diminish]] package hides pesky minor modes from the modelines.
+
+#+begin_src emacs-lisp
+  ;; (use-package diminish)
+#+end_src
+
+*** Smart Mode Line
+    :PROPERTIES:
+    :CUSTOM_ID: smart-mode-line
+    :END:
+Prettify the modeline with [[https://github.com/Malabarba/smart-mode-line/][smart-mode-line]].  Really need to re-evaluate the
+ordering of =mode-line-format=.  Also not sure if =rm-excluded-modes= is needed
+anymore if I set up =diminish= correctly.
+
+#+begin_src emacs-lisp
+  ;; (use-package smart-mode-line
+  ;; :config
+  ;; (smart-mode-line-enable 1)
+  ;;   ;; (sml/apply-theme 'respectful)  ; Respect the theme colors
+  ;;   ;; (sml/setup)
+  ;; ;; :config
+  ;; ;; (setq sml/mode-width 'right
+  ;; ;;         sml/name-width 60)
+  ;; ;; 	(setq-default mode-line-format
+  ;; ;; 	`("%e"
+  ;; ;;         mode-line-front-space
+  ;; ;;         evil-mode-line-tag
+  ;; ;;         mode-line-mule-info
+  ;; ;;         mode-line-client
+  ;; ;;         mode-line-modified
+  ;; ;;         mode-line-remote
+  ;; ;;         mode-line-frame-identification
+  ;; ;;         mode-line-buffer-identification
+  ;; ;;         sml/pos-id-separator
+  ;; ;;         (vc-mode vc-mode)
+  ;; ;;         " "
+  ;; ;;         ;mode-line-position
+  ;; ;;         sml/pre-modes-separator
+  ;; ;;         mode-line-modes
+  ;; ;;         " "
+  ;; ;;         mode-line-misc-info))
+
+  ;; ;;     (setq rm-excluded-modes
+  ;; ;;       (mapconcat
+  ;; ;;         'identity
+  ;; ;;         ; These names must start with a space!
+  ;; ;;         '(" GitGutter" " MRev" " company"
+  ;; ;;         " Helm" " Undo-Tree" " Projectile.*" " Z" " Ind"
+  ;; ;;         " Org-Agenda.*" " ElDoc" " SP/s" " cider.*")
+  ;; ;;         "\\|"))
+  ;;     )
+
+#+end_src
+
+*** Doom Modeline
+    :PROPERTIES:
+    :CUSTOM_ID: doom-modeline
+    :END:
+#+begin_src emacs-lisp
+  ;; You must run (all-the-icons-install-fonts) one time after
+  ;; installing this package!
+  (use-package minions
+    :hook (doom-modeline-mode . minions-mode))
+  (use-package doom-modeline
+  :defer t
+  :hook
+  (after-init . (lambda () (doom-modeline-mode 1) (defvar doom-modeline-icon (display-graphic-p))))
+  :custom-face
+  (mode-line ((t (:height 125))))
+  (mode-line-inactive ((t (:height 110))))
+  :custom
+  ;; (doom-modeline-enable-word-count 1)
+  (doom-modeline-height 20)
+  (doom-modeline-bar-width 6)
+  (doom-modeline-lsp t)
+  (doom-modeline-github nil)
+  (doom-modeline-mu4e nil)
+  (doom-modeline-irc t)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-persp-name nil)
+  (doom-modeline-buffer-file-name-style 'truncate-except-project)
+  (doom-modeline-major-mode-icon t))
+#+end_src
+** Backup
+   :PROPERTIES:
+   :CUSTOM_ID: backup
+   :END:
+#+begin_src emacs-lisp
+(setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
+#+end_src
+** Auto-Reverting Changed Files
+   :PROPERTIES:
+   :CUSTOM_ID: auto-reverting-changed-files
+   :END:
+#+begin_src emacs-lisp
+  ;; Revert Dired and other buffers
+  ;; (setq global-auto-revert-non-file-buffers t)
+
+  ;; Revert buffers when the underlying file has changed
+  (global-auto-revert-mode 1)
+#+end_src
+* Keyboard Bindings
+  :PROPERTIES:
+  :CUSTOM_ID: keyboard-bindings
+  :END:
+** Pdf tools
+   :PROPERTIES:
+   :CUSTOM_ID: pdf-tools
+   :END:
+   #+begin_src emacs-lisp
+     (eval-after-load 'pdf-tools 
+     '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
+   #+end_src
+** Org Mode
+   :PROPERTIES:
+   :CUSTOM_ID: org-mode
+   :END:
+   #+begin_src emacs-lisp
+   (global-set-key (kbd "C-c C-c") 'org-capture)
+   #+end_src
+** Interaction with emacs
+   :PROPERTIES:
+   :CUSTOM_ID: interaction-with-emacs
+   :END:
+   #+begin_src emacs-lisp
+     (global-set-key (kbd "C-c <left>")  'windmove-left)
+     (global-set-key (kbd "C-c <right>") 'windmove-right)
+     (global-set-key (kbd "C-c <up>")    'windmove-up)
+     (global-set-key (kbd "C-c <down>")  'windmove-down)
+     
+     (global-set-key (kbd "C-c l") 'my/svg-to-pdf)
+     (global-set-key (kbd "C-x q") 'compile)
+     
+     (global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
+     (global-set-key (kbd "<f4>") 'org-publish-all)
+     (global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
+     (global-set-key (kbd "<f6>") 'org-publish-current-file)
+     (global-set-key (kbd "<f9>") 'my/pwd)
+   
+   #+end_src
+* Editing Configuration
+  :PROPERTIES:
+  :CUSTOM_ID: editing-configuration
+  :END:
+** Tab Widths
+   :PROPERTIES:
+   :CUSTOM_ID: tab-widths
+   :END:
+
+Default to an indentation size of 2 spaces since it's the norm for pretty much every language I use.
+
+#+begin_src emacs-lisp
+
+  (setq-default tab-width 2)
+  (setq-default evil-shift-width tab-width)
+
+#+end_src
+
+** Use spaces instead of tabs for indentation
+   :PROPERTIES:
+   :CUSTOM_ID: use-spaces-instead-of-tabs-for-indentation
+   :END:
+
+#+begin_src emacs-lisp
+  (setq-default indent-tabs-mode nil)
+#+end_src
+
+** Automatically clean whitespace
+   :PROPERTIES:
+   :CUSTOM_ID: automatically-clean-whitespace
+   :END:
+#+begin_src emacs-lisp
+  (use-package ws-butler
+    :hook ((text-mode . ws-butler-mode)
+           (prog-mode . ws-butler-mode)))
+#+end_src
+
+* Org Mode
+  :PROPERTIES:
+  :CUSTOM_ID: org-mode
+  :END:
+
+#+begin_src emacs-lisp
+(setq org-agenda-files'("~/Documents/Org/agenda.org"))
+  ;; (setq org-agenda-start-with-log-mode t)
+  ;; (setq org-log-done 'time)
+  ;; (setq org-log-into-drawer t)
+  ;; (setq org-image-actual-width 400)
+  ;; ;; (require 'ox-extra)
+  ;; ;; (ox-extras-activate '(ignore-headlines))
+  ;; (setq org-clock-persist 'history)
+  ;; (org-clock-persistence-insinuate)
+  (add-hook 'org-mode-hook 'org-indent-mode)
+  (setq org-startup-folded t)
+  ;; (setq org-latex-listings 'minted
+  ;;       org-latex-packages-alist '(("" "minted"))
+  ;;       org-latex-pdf-process
+  ;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+  ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+  ;; ;; (setq org-latex-listings 'listings)
+  ;; (setq org-src-preserve-indentation 1)
+  (setq org-return-follows-link 1)
+  ;; (org-babel-do-load-languages ;; list of babel languages
+  ;;  'org-babel-load-languages
+  ;;  '((matlab . t)
+  ;;    (ditaa . t)
+  ;;    ;; (spice . t)
+  ;;    (gnuplot . t)
+  ;;    (org . t)
+  ;;    (shell . t)
+  ;;    (latex . t)
+  ;;    (python . t)
+  ;;    (asymptote . t)
+  ;;    ))
+  ;; (org-add-link-type
+  ;;  "color"
+  ;;  (lambda (path)
+  ;;    (message (concat "color "
+  ;;                     (progn (add-text-properties
+  ;;                             0 (length path)
+  ;;                             (list 'face `((t (:foreground ,path))))
+  ;;                             path) path))))
+  ;;  (lambda (path desc format)
+  ;;    (cond
+  ;;     ((eq format 'html)
+  ;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
+  ;;     ((eq format 'latex)
+  ;;      (format "\\textcolor{%s}{%s}" path desc)))))
+#+end_src
+* Hooks
+  :PROPERTIES:
+  :CUSTOM_ID: hooks
+  :END:
+  #+begin_src emacs-lisp
+     (add-hook 'org-mode-hook 'org-make-toc-mode) ;automtically update a file'sTOC with the save
+     (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
+    ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+    ;; (add-hook
+    ;; 'minibuffer-setup-hook
+    ;; (lambda ()
+    ;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
+    ;; (flyspell-mode 1))))
+    ;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+    ;; (dolist (hook '(text-mode-hook))
+    ;;   (add-hook hook (lambda () (flyspell-mode 1))))
+    ;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
+    ;; (add-hook 'org-mode 'display-line-numbers)
+    ;; (add-hook 'dired-find-file 'pdf-tools-install)
+    ;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
+    ;; (add-hook 'after-init-hook 'global-company-mode)
+    ;; (add-hook 'matlab-mode-hook
+    ;;           (lambda ()
+    ;;             (set (make-local-variable 'compile-command)
+    ;;                  (format "matlab -batch %s" (shell-quote-argument
+    ;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
+    ;; (add-hook 'python-mode-hook
+    ;;           (lambda ()
+    ;;             (set (make-local-variable 'compile-command)
+    ;;                  (format "d:/Software/WPy64-3940/python-3.9.4.amd64/python.exe %s" (shell-quote-argument (buffer-name))))))
+
+    ;; (add-hook 'pdf-view-mode-hook
+    ;;           (lambda ()
+    ;;             (display-line-numbers-mode -1)))
+    ;; (add-hook 'org-mode-hook
+    ;;   (lambda ()
+    ;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
+    ;; (add-hook 'text-mode-hook
+    ;;   (lambda ()
+    ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
+    ;; (add-hook 'text-mode-hook
+    ;;   (lambda ()
+    ;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
+
+    ;; (add-hook 'message-mode-hook
+    ;;           (lambda ()
+    ;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
+    ;; (add-hook 'org-mode-hook
+    ;;           (lambda ()
+    ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+#+end_src
+
+#+RESULTS:
