@@ -129,7 +129,7 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
  #+end_src
 ** Org-make-toc
    :PROPERTIES:
-   :CUSTOM_ID: https-github-com-alphapapa-org-make-toc-org-make-toc
+   :CUSTOM_ID: org-make-toc
    :END:
 
 This package makes it easy to have one or more customizable tables of contents in Org files. They can be updated manually, or automatically when the file is saved. Links to headings are created compatible with GitHub’s Org renderer.
@@ -138,13 +138,13 @@ This package makes it easy to have one or more customizable tables of contents i
 #+begin_src emacs-lisp
   (use-package org-make-toc
   :defer t
-  :hook (org-mode . org-make-toc-mode)
+  ;; :hook (org-mode . org-make-toc-mode)
   )
 #+end_src
 
 ** Matlab-mode
    :PROPERTIES:
-   :CUSTOM_ID: http-matlab-emacs-sourceforge-net-matlab-mode
+   :CUSTOM_ID: matlab-mode
    :END:
 
 MATLAB mode for Emacs consists of Emacs Lisp code that implements a major-mode for Emacs that assists in the editing of MATLAB scripts.
@@ -160,7 +160,7 @@ This allows Emacs to be used in place of the MATLAB Editor for editing your MATL
 #+end_src
 ** Magit
    :PROPERTIES:
-   :CUSTOM_ID: https-magit-vc-magit
+   :CUSTOM_ID: magit
    :END:
 
 Magit is a complete text-based user interface to Git.
@@ -173,7 +173,7 @@ Magit is a complete text-based user interface to Git.
 
 ** Ivy/Swiper
    :PROPERTIES:
-   :CUSTOM_ID: https-github-com-abo-abo-swiper-ivy-swiper
+   :CUSTOM_ID: ivy-swiper
    :END:
 Swiper, an Ivy-enhanced alternative to Isearch.
 
@@ -203,7 +203,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 ** Pdf-tools
    :PROPERTIES:
-   :CUSTOM_ID: pdf-toosl
+   :CUSTOM_ID: pdf-tools
    :END:
 #+begin_src emacs-lisp
   (use-package pdf-tools
@@ -429,6 +429,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
    :END:
 #+begin_src emacs-lisp
 (use-package flymake
+:defer t
 :config
 (add-hook 'after-init-hook 'flymake-mode))
 #+end_src
@@ -756,7 +757,7 @@ Mail address and full name for email and metadata.
 
 ** Org Mode Functions
    :PROPERTIES:
-   :CUSTOM_ID: org-mode
+   :CUSTOM_ID: org-mode-functions
    :END:
 #+begin_src emacs-lisp
 ;; https://emacs.stackexchange.com/questions/16511/how-can-i-get-a-custom-org-drawer-to-open-close
@@ -777,38 +778,42 @@ or LaTeX command"
 #+end_src
 
 #+begin_src emacs-lisp
-  (defun my/org-generate-custom-ids ()
+    ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
+    ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
+    (defun my/org-generate-custom-ids ()
     "Generate CUSTOM_ID for any headings that are missing one"
     (let ((existing-ids (org-map-entries
-                       (lambda () (message "test");; (org-entry-get nil "CUSTOM_ID")
-                         ))))
-      (org-map-entries
-       (lambda ()
-         (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
-                (heading (org-heading-components))
-                (level (nth 0 heading))
-                (todo (nth 2 heading))
-                (headline (nth 4 heading))
-                (slug (my/title-to-filename headline))
-                (duplicate-id (member slug existing-ids)))
-           (when (and (not custom-id)
+    (lambda () (org-entry-get nil "CUSTOM_ID")))
+    ))
+              (when (file-exists-p (buffer-file-name (current-buffer)))
+              (org-map-entries
+               (lambda ()
+                 (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+                        (heading (org-heading-components))
+                        (level (nth 0 heading))
+                        (todo (nth 2 heading))
+                        (headline (nth 4 heading))
+                        (slug (my/title-to-filename headline))
+                        (duplicate-id (member slug existing-ids)))
+           (when (and ;; (not custom-id)
                       (< level 4)
-                      (not todo)
-                      (not duplicate-id))
-             (message "Adding entry %s to %s" slug headline)
-             (org-entry-put nil "CUSTOM_ID" slug)))))))
+                      ;; (not todo)
+                      ;; (not duplicate-id)
+                      )
+                     (message "Adding entry %s to %s" slug headline)
+                     (org-entry-put nil "CUSTOM_ID" slug))))))))
 
     (defun my/title-to-filename (title)
-      "Convert TITLE to a reasonable filename."
-      ;; Based on the slug logic in org-roam, but org-roam also uses a
-      ;; timestamp, and I use only the slug. BTW "slug" comes from
-      ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
-      (setq title (s-downcase title))
-      (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
-      (setq title (s-replace-regexp "-+" "-" title))
-      (setq title (s-replace-regexp "^-" "" title))
-      (setq title (s-replace-regexp "-$" "" title))
-      title)
+    "Convert TITLE to a reasonable filename."
+    ;; Based on the slug logic in org-roam, but org-roam also uses a
+    ;; timestamp, and I use only the slug. BTW "slug" comes from
+    ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
+    (setq title (s-downcase title))
+    (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
+    (setq title (s-replace-regexp "-+" "-" title))
+    (setq title (s-replace-regexp "^-" "" title))
+    (setq title (s-replace-regexp "-$" "" title))
+    title)
 #+end_src
 * General Configuration
   :PROPERTIES:
@@ -1197,8 +1202,11 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
   :CUSTOM_ID: hooks
   :END:
   #+begin_src emacs-lisp
-     (add-hook 'org-mode-hook 'org-make-toc-mode) ;automtically update a file'sTOC with the save
-     (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
+  (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+  (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
+  (add-hook 'org-mode-hook
+  (lambda ()
+  (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
     ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
     ;; (add-hook
     ;; 'minibuffer-setup-hook
