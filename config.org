@@ -1,14 +1,14 @@
 #+TITLE: EMACS CONFIGURATION
 #+AUTHOR: Rhyloo
+#+startup: hideblocks
 #+OPTIONS: broken-links:t
 After all this time... I think is the moment for write a good emacs configuration for the future and for sharing with others.
-
 * Table  of Contents
  :PROPERTIES:
  :TOC:      :include all :ignore (this)
  :CUSTOM_ID: table-of-contents
  :END:
- :CONTENTS:
+:CONTENTS:
 - [[#startup-performance][Startup Performance]]
 - [[#package-management][Package Management]]
   - [[#packages][Packages]]
@@ -20,7 +20,7 @@ After all this time... I think is the moment for write a good emacs configuratio
   - [[#ivyswiper][Ivy/Swiper]]
   - [[#auctex][Auctex]]
   - [[#company][Company]]
-  - [[#pdftoosl][Pdf.toosl]]
+  - [[#pdf-tools][Pdf-tools]]
   - [[#simple-httpd][Simple-httpd]]
   - [[#impatient-mode][Impatient-mode]]
   - [[#hledger][Hledger]]
@@ -29,6 +29,18 @@ After all this time... I think is the moment for write a good emacs configuratio
   - [[#dashboard][Dashboard]]
   - [[#org-superstar][Org-superstar]]
   - [[#super-save][Super-save]]
+  - [[#ledger][Ledger]]
+  - [[#flymake][Flymake]]
+  - [[#org][Org]]
+  - [[#ox-publish][Ox-publish]]
+  - [[#json][json]]
+  - [[#org-cal][Org-cal]]
+  - [[#guess-language][Guess-language]]
+  - [[#htmlize][Htmlize]]
+  - [[#auto-complete][Auto-Complete]]
+  - [[#org-present][org-present]]
+  - [[#epresent][epresent]]
+  - [[#org-roam][Org-roam]]
 - [[#personal-information][Personal information]]
 - [[#custom-functions][Custom functions]]
   - [[#links][Links]]
@@ -36,7 +48,9 @@ After all this time... I think is the moment for write a good emacs configuratio
   - [[#configurations][Configurations]]
   - [[#themes-config][Themes config]]
   - [[#utilities][Utilities]]
-  - [[#org-mode][Org Mode]]
+  - [[#org-mode-functions][Org Mode Functions]]
+  - [[#matlab][Matlab]]
+  - [[#flyspell][Flyspell]]
 - [[#general-configuration][General Configuration]]
   - [[#user-interface][User Interface]]
   - [[#theme][Theme]]
@@ -47,6 +61,11 @@ After all this time... I think is the moment for write a good emacs configuratio
     - [[#enable-mode-diminishing][Enable Mode Diminishing]]
     - [[#smart-mode-line][Smart Mode Line]]
     - [[#doom-modeline][Doom Modeline]]
+  - [[#backup][Backup]]
+  - [[#auto-reverting-changed-files][Auto-Reverting Changed Files]]
+  - [[#default-applications][Default applications]]
+  - [[#coding][Coding]]
+  - [[#displaying-world-time][Displaying World Time]]
 - [[#keyboard-bindings][Keyboard Bindings]]
   - [[#pdf-tools][Pdf tools]]
   - [[#org-mode][Org Mode]]
@@ -55,9 +74,9 @@ After all this time... I think is the moment for write a good emacs configuratio
   - [[#tab-widths][Tab Widths]]
   - [[#use-spaces-instead-of-tabs-for-indentation][Use spaces instead of tabs for indentation]]
   - [[#automatically-clean-whitespace][Automatically clean whitespace]]
-- [[#org-mode][Org Mode]]
+- [[#org-mode-settings][Org Mode settings]]
 - [[#hooks][Hooks]]
- :END:
+:END:
 * Startup Performance
   :PROPERTIES:
   :CUSTOM_ID: startup-performance
@@ -209,7 +228,10 @@ Swiper, an Ivy-enhanced alternative to Isearch.
   (use-package pdf-tools
     :config
     (pdf-loader-install)
-    (setq-default pdf-view-display-size 'fit-page))
+    (setq-default pdf-view-display-size 'fit-page)
+    (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t
+        TeX-source-correlate-method 'synctex))
 #+end_src
 
 ** Simple-httpd
@@ -454,8 +476,12 @@ Swiper, an Ivy-enhanced alternative to Isearch.
        'org-babel-load-languages
        '((js . t)
          (org . t)
+         (css . t)
+         (dot . t)
+         (latex . t)
          (shell . t)
          (python . t)
+         (matlab . t)
          (emacs-lisp . t)))
     ;; (use-package ox-md
     ;;   :config
@@ -481,7 +507,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
     ;;   (use-package ox-publish
     ;;   :config
       (setq org-publish-project-alist
-      '(("org-notes"
+      '(("org-content"
       :base-directory "~/Documents/Github/Blog/blog/"
       :base-extension "org"
       :auto-sitemap t                ; Generate sitemap.org automagically...
@@ -493,14 +519,14 @@ Swiper, an Ivy-enhanced alternative to Isearch.
       :headline-levels 4             ; Just the default for this project.
       :auto-preamble t
       )
-      ("org-static"
+      ("org-media"
       :base-directory "~/Documents/Github/Blog/blog"
-      :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
+      :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf\\|svg"
       :publishing-directory "~/Documents/Github/Blog/public_html"
       :recursive t
       :publishing-function org-publish-attachment
       )
-      ("org" :components ("org-notes" "org-static"))
+      ("blog" :components ("org-content" "org-media"))
       ))
 ;; )
       ;; ))))
@@ -536,6 +562,207 @@ Swiper, an Ivy-enhanced alternative to Isearch.
   ;; 	("org" :components ("org-notes" "org-static"))
   ;; 	)))
  #+end_src
+** json
+:PROPERTIES:
+:CUSTOM_ID: json
+:END:
+#+begin_src emacs-lisp
+(use-package json
+:defer t)
+#+end_src
+
+** Org-cal
+:PROPERTIES:
+:CUSTOM_ID: org-cal
+:END:
+#+begin_src emacs-lisp
+  (setq package-check-signature nil)
+
+  (use-package org-gcal
+  :defer t
+  :config
+  (setq org-gcal-client-id (my/get-gcal-config-value 'org-gcal-client-id)
+        org-gcal-client-secret (my/get-gcal-config-value 'org-gcal-client-secret)
+        org-gcal-file-alist '(("jorgebenma@gmail.com" . "~/Documents/Org/agenda.org")))
+  (add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
+  ;; (add-hook 'org-agenda-mode-hook
+  ;;   (lambda ()
+  ;;   (add-hook 'after-save-hook 'org-gcal-sync)))
+  (add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) )))
+#+end_src
+
+** Guess-language
+:PROPERTIES:
+:CUSTOM_ID: guess-language
+:END:
+#+begin_src emacs-lisp
+  ;; (use-package guess-language         ; Automatically detect language for Flyspell
+  ;;   :defer t
+  ;;   :init (add-hook 'text-mode-hook #'guess-language-mode)
+  ;;   :config
+  ;;   (setq guess-language-langcodes '((en . ("en_GB" "English"))
+  ;;                                    (es . ("es" "Spanish")))
+  ;;         guess-language-languages '(en es)
+  ;;         guess-language-min-paragraph-length 45)
+  ;;   :diminish guess-language-mode)
+#+end_src
+** COMMENT Obs-websocket
+:PROPERTIES:
+:CUSTOM_ID: comment-obs-websocket
+:END:
+#+begin_src emacs-lisp
+  ;; (use-package websocket)
+  ;; (defun my/twitch-message (text)
+  ;;   (interactive "MText: ")
+  ;;   (with-current-buffer
+  ;;       (get-buffer-create "Twitch message")
+  ;;     (erase-buffer)
+  ;;     (insert text)
+  ;;     (goto-char (point-min))))
+  ;; (use-package obs-websocket
+  ;; :defer t
+  ;; :ensure nil
+  ;; :load-path "~/.emacs.d/manual/obs-websocket.el"
+  ;; :config
+  ;; (setq obs-websocket-password "picaso_10"))
+  ;;   ;; :config
+  ;;   ;; (defhydra my/obs-websocket (:exit t)
+  ;;   ;;   "Control Open Broadcast Studio"
+  ;;   ;;   ("c" (obs-websocket-connect) "Connect")
+  ;;   ;;   ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
+  ;;   ;;   ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
+  ;;   ;;   ("i" (obs-websocket-send "SetCurrentScene" :scene-name "Intermission") "Intermission")
+  ;;   ;;   ("v" (browse-url "https://twitch.tv/sachachua"))
+  ;;   ;;   ("m" my/twitch-message "Message")
+  ;;   ;;   ("t" my/twitch-message "Message")
+  ;;   ;;   ("<f8>" my/twitch-message "Message") ;; Then I can just f8 f8
+  ;;   ;;   ("sb" (obs-websocket-send "StartStreaming") "Stream - begin")
+  ;;   ;;   ("se" (obs-websocket-send "StopStreaming") "Stream - end"))
+  ;;   ;; (global-set-key (kbd "<f8>") #'my/obs-websocket/body)
+
+#+end_src
+** COMMENT Org-html-themify
+:PROPERTIES:
+:CUSTOM_ID: comment-org-html-themify
+:END:
+#+begin_src emacs-lisp
+  ;; (use-package org-html-themify
+  ;; :defer t
+  ;;   :ensure nil
+  ;;   :load-path "~/.emacs.d/manual/org-html-themify/"
+  ;;   :hook (org-mode . org-html-themify-mode)
+  ;;   :config
+  ;;   (setq org-html-themify-themes
+  ;;       '((dark . modus-vivendi)
+  ;;         (light . modus-operandi))))
+#+end_src
+** Htmlize
+:PROPERTIES:
+:CUSTOM_ID: htmlize
+:END:
+#+begin_src emacs-lisp
+  (use-package htmlize
+  :defer t
+  :config
+  (setq org-src-fontify-natively t))
+#+end_src
+** Auto-Complete
+:PROPERTIES:
+:CUSTOM_ID: auto-complete
+:END:
+#+begin_src emacs-lisp
+  ;; (use-package auto-complete
+  ;; :config
+  ;; (ac-config-default)
+  ;; (setq ac-auto-start t)
+  ;; (setq ac-delay 0.1)
+  ;; (setq ac-auto-show-menu nil)
+  ;; (setq ac-show-menu-immediately-on-auto-complete t)
+  ;; (setq ac-trigger-key nil)
+  ;; (add-hook 'after-init-hook 'global-auto-complete-mode))
+#+end_src
+
+** org-present
+:PROPERTIES:
+:CUSTOM_ID: org-present
+:END:
+
+#+begin_src emacs-lisp
+
+  (defun dw/org-present-prepare-slide ()
+    (org-overview)
+    (org-show-entry)
+    (org-show-children))
+
+  (defun dw/org-present-hook ()
+    (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+                                       (header-line (:height 4.5) variable-pitch)
+                                       (org-document-title (:height 1.75) org-document-title)
+                                       (org-code (:height 1.55) org-code)
+                                       (org-verbatim (:height 1.55) org-verbatim)
+                                       (org-block (:height 1.25) org-block)
+                                       (org-block-begin-line (:height 0.7) org-block)))
+    (setq header-line-format " ")
+    (org-appear-mode -1)
+    (org-display-inline-images)
+    (dw/org-present-prepare-slide))
+
+  (defun dw/org-present-quit-hook ()
+    (setq-local face-remapping-alist '((default variable-pitch default)))
+    (setq header-line-format nil)
+    (org-present-small)
+    (org-remove-inline-images)
+    (org-appear-mode 1))
+
+  (defun dw/org-present-prev ()
+    (interactive)
+    (org-present-prev)
+    (dw/org-present-prepare-slide))
+
+  (defun dw/org-present-next ()
+    (interactive)
+    (org-present-next)
+    (dw/org-present-prepare-slide))
+
+  (use-package org-present
+    :bind (:map org-present-mode-keymap
+           ("C-c C-j" . dw/org-present-next)
+           ("C-c C-k" . dw/org-present-prev))
+    :hook ((org-present-mode . dw/org-present-hook)
+           (org-present-mode-quit . dw/org-present-quit-hook)))
+
+#+end_src
+
+** epresent
+:PROPERTIES:
+:CUSTOM_ID: epresent
+:END:
+#+begin_src emacs-lisp
+(use-package epresent
+:defer t)
+#+end_src
+** Org-roam
+:PROPERTIES:
+:CUSTOM_ID: org-roam
+:END:
+#+begin_src emacs-lisp
+(use-package org-roam
+      :defer t
+      :hook
+      (after-init . org-roam-mode)
+      :custom
+      (org-roam-directory (file-truename "~/Documents/Org/"))
+      :bind (:map org-roam-mode-map
+              (("C-c n l" . org-roam)
+               ("C-c n f" . org-roam-find-file)
+               ("C-c n g" . org-roam-graph))
+              :map org-mode-map
+              (("C-c n i" . org-roam-insert))
+              (("C-c n I" . org-roam-insert-immediate))))
+(use-package emacsql-sqlite
+:defer t)
+
+#+end_src
 * Personal information
   :PROPERTIES:
   :CUSTOM_ID: personal-information
@@ -765,7 +992,7 @@ Mail address and full name for email and metadata.
 ;; https://lists.gnu.org/archive/html/emacs-orgmode/2010-11/msg00258.html
 (setq org-export-with-drawers t)
 
-(defun my-org-export-format-drawer (name content)
+(defun my/org-export-format-drawer (name content)
 "Export :NOTES: and :LOGBOOK: drawers to HTML class
 or LaTeX command"
 (cond
@@ -774,46 +1001,160 @@ or LaTeX command"
 (setq content (replace-regexp-in-string "</p>" "" content))
 (format "<pre class=\"example\">%s</pre>" content))))
 
-(setq org-html-format-drawer-function 'my-org-export-format-drawer)
+(setq org-html-format-drawer-function 'my/org-export-format-drawer)
 #+end_src
 
 #+begin_src emacs-lisp
-    ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
-    ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
-    (defun my/org-generate-custom-ids ()
-    "Generate CUSTOM_ID for any headings that are missing one"
-    (let ((existing-ids (org-map-entries
-    (lambda () (org-entry-get nil "CUSTOM_ID")))
-    ))
-              (when (file-exists-p (buffer-file-name (current-buffer)))
-              (org-map-entries
-               (lambda ()
-                 (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
-                        (heading (org-heading-components))
-                        (level (nth 0 heading))
-                        (todo (nth 2 heading))
-                        (headline (nth 4 heading))
-                        (slug (my/title-to-filename headline))
-                        (duplicate-id (member slug existing-ids)))
-           (when (and ;; (not custom-id)
-                      (< level 4)
-                      ;; (not todo)
-                      ;; (not duplicate-id)
-                      )
-                     (message "Adding entry %s to %s" slug headline)
-                     (org-entry-put nil "CUSTOM_ID" slug))))))))
+  ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
+  ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
+  (defun my/org-generate-custom-ids ()
+  "Generate CUSTOM_ID for any headings that are missing one"
+  (let ((existing-ids
+  ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+  (org-map-entries
+  (lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
+  ))
 
-    (defun my/title-to-filename (title)
-    "Convert TITLE to a reasonable filename."
-    ;; Based on the slug logic in org-roam, but org-roam also uses a
-    ;; timestamp, and I use only the slug. BTW "slug" comes from
-    ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
-    (setq title (s-downcase title))
-    (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
-    (setq title (s-replace-regexp "-+" "-" title))
-    (setq title (s-replace-regexp "^-" "" title))
-    (setq title (s-replace-regexp "-$" "" title))
-    title)
+            ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+            (org-map-entries
+             (lambda ()
+               (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+                      (heading (org-heading-components))
+                      (level (nth 0 heading))
+                      (todo (nth 2 heading))
+                      (headline (nth 4 heading))
+                      (slug (my/title-to-filename headline))
+                      (duplicate-id (member slug existing-ids)))
+         (when (and ;; (not custom-id)
+                    (< level 4)
+                    ;; (not todo)
+                    ;; (not duplicate-id)
+                    )
+                   (message "Adding entry %s to %s" slug headline)
+                   (org-entry-put nil "CUSTOM_ID" slug))))));; )
+  )
+
+  (defun my/title-to-filename (title)
+  "Convert TITLE to a reasonable filename."
+  ;; Based on the slug logic in org-roam, but org-roam also uses a
+  ;; timestamp, and I use only the slug. BTW "slug" comes from
+  ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
+  (setq title (s-downcase title))
+  (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
+  (setq title (s-replace-regexp "-+" "-" title))
+  (setq title (s-replace-regexp "^-" "" title))
+  (setq title (s-replace-regexp "-$" "" title))
+  title)
+#+end_src
+
+#+begin_src emacs-lisp
+(defun my/get-gcal-config-value (key)
+  "Return the value of the json file gcal_secret for key"
+  (cdr (assoc key (json-read-file "~/.emacs.d/gcal-secret.json")))
+  )
+#+end_src
+** Matlab
+   :PROPERTIES:
+   :CUSTOM_ID: matlab
+   :END:
+#+begin_src emacs-lisp
+(defun org-babel-octave-evaluate-session
+    (session body result-type &optional matlabp)
+  "Evaluate BODY in SESSION."
+  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
+     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+     (full-body
+      (pcase result-type
+        (`output
+         (mapconcat
+          #'org-babel-chomp
+          (list (if matlabp
+                        (multi-replace-regexp-in-string
+                         '(("%.*$"                      . "")    ;Remove comments
+                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
+                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
+                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
+                         body)
+                      body)
+                    org-babel-octave-eoe-indicator) "\n"))
+        (`value
+         (if (and matlabp org-babel-matlab-with-emacs-link)
+         (concat
+          (format org-babel-matlab-emacs-link-wrapper-method
+              body
+              (org-babel-process-file-name tmp-file 'noquote)
+              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+           (mapconcat
+        #'org-babel-chomp
+        (list (format org-babel-octave-wrapper-method
+                  body
+                  (org-babel-process-file-name tmp-file 'noquote)
+                  (org-babel-process-file-name tmp-file 'noquote))
+              org-babel-octave-eoe-indicator) "\n")))))
+     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+          (save-window-excursion
+            (with-temp-buffer
+              (insert full-body)
+              (write-region "" 'ignored wait-file nil nil nil 'excl)
+              (matlab-shell-run-region (point-min) (point-max))
+              (message "Waiting for Matlab Emacs Link")
+              (while (file-exists-p wait-file) (sit-for 0.01))
+              "")) ;; matlab-shell-run-region doesn't seem to
+        ;; make *matlab* buffer contents easily
+        ;; available, so :results output currently
+        ;; won't work
+        (org-babel-comint-with-output
+            (session
+             (if matlabp
+             org-babel-octave-eoe-indicator
+               org-babel-octave-eoe-output)
+             t full-body)
+          (insert full-body) (comint-send-input nil t)))) results)
+    (pcase result-type
+      (`value
+       (org-babel-octave-import-elisp-from-file tmp-file))
+      (`output
+       (setq results
+         (if matlabp
+         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
+           (cdr (member org-babel-octave-eoe-output
+                (reverse (mapcar #'org-strip-quotes
+                         (mapcar #'org-trim raw)))))))
+       (mapconcat #'identity (reverse results) "\n")))))
+
+(defun remove-car-upto-newline (raw)
+  "Truncate the first string in a list of strings `RAW' up to the first newline"
+  (cons (mapconcat #'identity
+                   (cdr (split-string-and-unquote (car raw) "\n"))
+                   "\n") (cdr raw)))
+
+(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
+  (interactive)
+  "Replace multiple regexps in a string. Order matters."
+  (if (null replacements-list)
+      string
+    (let ((regex (caar replacements-list))
+          (replacement (cdar replacements-list)))
+      (multi-replace-regexp-in-string (cdr replacements-list)
+                                      (replace-regexp-in-string regex replacement
+                                                                string rest)))))
+#+end_src
+** Flyspell
+:PROPERTIES:
+:CUSTOM_ID: flyspell
+:END:
+#+begin_src emacs-lisp
+(defun fd-switch-dictionary()
+  (interactive)
+  (let* ((dic ispell-current-dictionary)
+       (change (if (string= dic "castellano") "english" "castellano")))
+    (ispell-change-dictionary change)
+    (message "Dicionario cambiado desde %s a %s" dic change)
+    ))
+
+(global-set-key (kbd "<f2>")   'fd-switch-dictionary)
+
 #+end_src
 * General Configuration
   :PROPERTIES:
@@ -926,7 +1267,8 @@ Alternate themes:
   (use-package doom-themes
   :defer t
   :hook
-  (after-init . (lambda () (load-theme 'doom-palenight t))))
+  (after-init . (lambda () (load-theme 'doom-palenight t)))
+  )
   ;; (doom-themes-visual-bell-config)
 #+end_src
 
@@ -955,7 +1297,7 @@ Alternate themes:
     :END:
 
 #+begin_src emacs-lisp
-    (setq display-time-format "%l:%M %p %b %y"
+    (setq display-time-format "%H:%M %p %b %y"
             display-time-default-load-average nil)
     (setq display-time-day-and-date t
           display-time-24hr-format t)
@@ -1064,11 +1406,48 @@ anymore if I set up =diminish= correctly.
    :END:
 #+begin_src emacs-lisp
   ;; Revert Dired and other buffers
-  ;; (setq global-auto-revert-non-file-buffers t)
+  (setq global-auto-revert-non-file-buffers t)
 
   ;; Revert buffers when the underlying file has changed
   (global-auto-revert-mode 1)
 #+end_src
+** Default applications
+:PROPERTIES:
+:CUSTOM_ID: default-applications
+:END:
+#+begin_src emacs-lisp
+(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
+#+end_src
+** Coding
+:PROPERTIES:
+:CUSTOM_ID: coding
+:END:
+#+begin_src emacs-lisp
+(setq org-confirm-babel-evaluate nil)
+#+end_src
+
+#+RESULTS:
+** Displaying World Time
+:PROPERTIES:
+:CUSTOM_ID: displaying-world-time
+:END:
+#+begin_src emacs-lisp
+  (setq display-time-world-list
+    '(;; ("Etc/UTC" "UTC")
+      ;; ("America/Los_Angeles" "Seattle")
+      ;; ("America/New_York" "New York")
+      ("America/Guayaquil" "Guayaquil")
+      ;; ("Europe/Athens" "Athens")
+      ;; ("Pacific/Auckland" "Auckland")
+      ;; ("Asia/Shanghai" "Shanghai")
+      ;; ("Asia/Kolkata" "Hyderabad")
+      ))
+(setq display-time-world-time-format "%Z\t%a %d %b %R")
+#+end_src
+
+#+RESULTS:
+: %a, %d %b %I:%M %p
+
 * Keyboard Bindings
   :PROPERTIES:
   :CUSTOM_ID: keyboard-bindings
@@ -1087,6 +1466,8 @@ anymore if I set up =diminish= correctly.
    :END:
    #+begin_src emacs-lisp
    (global-set-key (kbd "C-c C-c") 'org-capture)
+   (setq org-startup-with-inline-images t)
+   (setq org-image-actual-width nil)
    #+end_src
 ** Interaction with emacs
    :PROPERTIES:
@@ -1097,6 +1478,7 @@ anymore if I set up =diminish= correctly.
      (global-set-key (kbd "C-c <right>") 'windmove-right)
      (global-set-key (kbd "C-c <up>")    'windmove-up)
      (global-set-key (kbd "C-c <down>")  'windmove-down)
+     (global-set-key (kbd "C-x wti")  'display-time-world)
      
      (global-set-key (kbd "C-c l") 'my/svg-to-pdf)
      (global-set-key (kbd "C-x q") 'compile)
@@ -1145,111 +1527,128 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
            (prog-mode . ws-butler-mode)))
 #+end_src
 
-* Org Mode
+* Org Mode settings
   :PROPERTIES:
-  :CUSTOM_ID: org-mode
+  :CUSTOM_ID: org-mode-settings
   :END:
 
 #+begin_src emacs-lisp
-(setq org-agenda-files'("~/Documents/Org/agenda.org"))
-  ;; (setq org-agenda-start-with-log-mode t)
-  ;; (setq org-log-done 'time)
-  ;; (setq org-log-into-drawer t)
-  ;; (setq org-image-actual-width 400)
-  ;; ;; (require 'ox-extra)
-  ;; ;; (ox-extras-activate '(ignore-headlines))
-  ;; (setq org-clock-persist 'history)
-  ;; (org-clock-persistence-insinuate)
-  (add-hook 'org-mode-hook 'org-indent-mode)
-  (setq org-startup-folded t)
+    ;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
+      (setq org-agenda-files'("~/Documents/Org/agenda.org"))
   ;; (setq org-latex-listings 'minted
   ;;       org-latex-packages-alist '(("" "minted"))
   ;;       org-latex-pdf-process
   ;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
   ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-  ;; ;; (setq org-latex-listings 'listings)
-  ;; (setq org-src-preserve-indentation 1)
-  (setq org-return-follows-link 1)
-  ;; (org-babel-do-load-languages ;; list of babel languages
-  ;;  'org-babel-load-languages
-  ;;  '((matlab . t)
-  ;;    (ditaa . t)
-  ;;    ;; (spice . t)
-  ;;    (gnuplot . t)
-  ;;    (org . t)
-  ;;    (shell . t)
-  ;;    (latex . t)
-  ;;    (python . t)
-  ;;    (asymptote . t)
-  ;;    ))
-  ;; (org-add-link-type
-  ;;  "color"
-  ;;  (lambda (path)
-  ;;    (message (concat "color "
-  ;;                     (progn (add-text-properties
-  ;;                             0 (length path)
-  ;;                             (list 'face `((t (:foreground ,path))))
-  ;;                             path) path))))
-  ;;  (lambda (path desc format)
-  ;;    (cond
-  ;;     ((eq format 'html)
-  ;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
-  ;;     ((eq format 'latex)
-  ;;      (format "\\textcolor{%s}{%s}" path desc)))))
+  ;; (setq org-latex-listings 'listings)
+        ;; (setq org-agenda-start-with-log-mode t)
+        ;; (setq org-log-done 'time)
+        ;; (setq org-log-into-drawer t)
+        ;; (setq org-image-actual-width 400)
+        ;; ;; (require 'ox-extra)
+        ;; ;; (ox-extras-activate '(ignore-headlines))
+        ;; (setq org-clock-persist 'history)
+        ;; (org-clock-persistence-insinuate)
+        (add-hook 'org-mode-hook 'org-indent-mode)
+        (setq org-startup-folded t)
+        ;; (setq org-latex-listings 'minted
+        ;;       org-latex-packages-alist '(("" "minted"))
+        ;;       org-latex-pdf-process
+        ;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+        ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+        ;; ;; (setq org-latex-listings 'listings)
+        ;; (setq org-src-preserve-indentation 1)
+        (setq org-return-follows-link 1)
+        ;; (org-babel-do-load-languages ;; list of babel languages
+        ;;  'org-babel-load-languages
+        ;;  '((matlab . t)
+        ;;    (ditaa . t)
+        ;;    ;; (spice . t)
+        ;;    (gnuplot . t)
+        ;;    (org . t)
+        ;;    (shell . t)
+        ;;    (latex . t)
+        ;;    (python . t)
+        ;;    (asymptote . t)
+        ;;    ))
+        ;; (org-add-link-type
+        ;;  "color"
+        ;;  (lambda (path)
+        ;;    (message (concat "color "
+        ;;                     (progn (add-text-properties
+        ;;                             0 (length path)
+        ;;                             (list 'face `((t (:foreground ,path))))
+        ;;                             path) path))))
+        ;;  (lambda (path desc format)
+        ;;    (cond
+        ;;     ((eq format 'html)
+        ;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
+        ;;     ((eq format 'latex)
+        ;;      (format "\\textcolor{%s}{%s}" path desc)))))
 #+end_src
 * Hooks
   :PROPERTIES:
   :CUSTOM_ID: hooks
   :END:
   #+begin_src emacs-lisp
-  (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
-  (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
-  (add-hook 'org-mode-hook
-  (lambda ()
-  (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
-    ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-    ;; (add-hook
-    ;; 'minibuffer-setup-hook
-    ;; (lambda ()
-    ;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
-    ;; (flyspell-mode 1))))
-    ;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
-    ;; (dolist (hook '(text-mode-hook))
-    ;;   (add-hook hook (lambda () (flyspell-mode 1))))
-    ;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
-    ;; (add-hook 'org-mode 'display-line-numbers)
-    ;; (add-hook 'dired-find-file 'pdf-tools-install)
-    ;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
-    ;; (add-hook 'after-init-hook 'global-company-mode)
-    ;; (add-hook 'matlab-mode-hook
-    ;;           (lambda ()
-    ;;             (set (make-local-variable 'compile-command)
-    ;;                  (format "matlab -batch %s" (shell-quote-argument
-    ;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
-    ;; (add-hook 'python-mode-hook
-    ;;           (lambda ()
-    ;;             (set (make-local-variable 'compile-command)
-    ;;                  (format "d:/Software/WPy64-3940/python-3.9.4.amd64/python.exe %s" (shell-quote-argument (buffer-name))))))
+        (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+        ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
+    ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
+        (add-hook 'org-mode-hook
+        (lambda ()
+        (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
+        (dolist (hook '(text-mode-hook))
+        (add-hook hook (lambda () (flyspell-mode 1))))
+        (eval-after-load "flyspell"
+        '(progn
+        (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
+        (define-key flyspell-mouse-map [mouse-3] #'undefined)))
+        (setq-default ispell-program-name "aspell")
+        (setq ispell-dictionary "castellano")
+        (setq flyspell-default-dictionary "castellano")
+          ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+          ;; (add-hook
+          ;; 'minibuffer-setup-hook
+          ;; (lambda ()
+          ;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
+          ;; (flyspell-mode 1))))
+          ;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+          ;; (dolist (hook '(text-mode-hook))
+          ;;   (add-hook hook (lambda () (flyspell-mode 1))))
+          ;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
+          ;; (add-hook 'org-mode 'display-line-numbers)
+          ;; (add-hook 'dired-find-file 'pdf-tools-install)
+          ;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
+          ;; (add-hook 'after-init-hook 'global-company-mode)
+          ;; (add-hook 'matlab-mode-hook
+          ;;           (lambda ()
+          ;;             (set (make-local-variable 'compile-command)
+          ;;                  (format "matlab -batch %s" (shell-quote-argument
+          ;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
+          ;; (add-hook 'python-mode-hook
+          ;;           (lambda ()
+          ;;             (set (make-local-variable 'compile-command)
+          ;;                  (format "d:/Software/WPy64-3940/python-3.9.4.amd64/python.exe %s" (shell-quote-argument (buffer-name))))))
 
-    ;; (add-hook 'pdf-view-mode-hook
-    ;;           (lambda ()
-    ;;             (display-line-numbers-mode -1)))
-    ;; (add-hook 'org-mode-hook
-    ;;   (lambda ()
-    ;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
-    ;; (add-hook 'text-mode-hook
-    ;;   (lambda ()
-    ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
-    ;; (add-hook 'text-mode-hook
-    ;;   (lambda ()
-    ;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
+          ;; (add-hook 'pdf-view-mode-hook
+          ;;           (lambda ()
+          ;;             (display-line-numbers-mode -1)))
+          ;; (add-hook 'org-mode-hook
+          ;;   (lambda ()
+          ;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
+          ;; (add-hook 'text-mode-hook
+          ;;   (lambda ()
+          ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
+          ;; (add-hook 'text-mode-hook
+          ;;   (lambda ()
+          ;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
 
-    ;; (add-hook 'message-mode-hook
-    ;;           (lambda ()
-    ;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
-    ;; (add-hook 'org-mode-hook
-    ;;           (lambda ()
-    ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+          ;; (add-hook 'message-mode-hook
+          ;;           (lambda ()
+          ;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
+          ;; (add-hook 'org-mode-hook
+          ;;           (lambda ()
+          ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
 #+end_src
 
 #+RESULTS:
