@@ -4,5 +4,4 @@
 
 # But not these files...
 !.gitignore
-!config.org
 !README.org

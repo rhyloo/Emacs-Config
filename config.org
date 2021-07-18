@@ -892,7 +892,7 @@ Mail address and full name for email and metadata.
 
      (defun my/find-emacs-configuration ()
        (interactive)
-       (find-file "~/.emacs.d/config.org"))
+       (find-file "~/.emacs.d/README.org"))
    #+end_src               
 
 ** Themes config
