@@ -12,41 +12,32 @@ After all this time... I think is the moment for write a good emacs configuratio
 - [[#startup-performance][Startup Performance]]
 - [[#package-management][Package Management]]
   - [[#packages][Packages]]
-- [[#packages][Packages]]
-  - [[#benchmakr][Benchmakr]]
-  - [[#org-make-toc][Org-make-toc]]
-  - [[#matlab-mode][Matlab-mode]]
-  - [[#magit][Magit]]
-  - [[#ivyswiper][Ivy/Swiper]]
-  - [[#auctex][Auctex]]
-  - [[#company][Company]]
-  - [[#pdf-tools][Pdf-tools]]
-  - [[#simple-httpd][Simple-httpd]]
-  - [[#impatient-mode][Impatient-mode]]
-  - [[#hledger][Hledger]]
-  - [[#language][Language]]
-  - [[#snippets][Snippets]]
-  - [[#dashboard][Dashboard]]
-  - [[#org-superstar][Org-superstar]]
-  - [[#super-save][Super-save]]
-  - [[#ledger][Ledger]]
-  - [[#flymake][Flymake]]
-  - [[#org][Org]]
-  - [[#ox-publish][Ox-publish]]
-  - [[#json][json]]
-  - [[#org-cal][Org-cal]]
-  - [[#guess-language][Guess-language]]
-  - [[#htmlize][Htmlize]]
-  - [[#auto-complete][Auto-Complete]]
-  - [[#org-present][org-present]]
-  - [[#epresent][epresent]]
-  - [[#org-roam][Org-roam]]
+    - [[#dnd][DnD]]
+    - [[#a---data-structure][A - Data structure]]
+    - [[#benchmakr][Benchmakr]]
+    - [[#org-make-toc][Org-make-toc]]
+    - [[#matlab-mode][Matlab-mode]]
+    - [[#magit][Magit]]
+    - [[#ivyswiper][Ivy/Swiper]]
+    - [[#auctex][Auctex]]
+    - [[#simple-httpd][Simple-httpd]]
+    - [[#company][Company]]
+    - [[#pdf-tools][Pdf-tools]]
+    - [[#org-tree-slide][Org-tree-slide]]
+    - [[#revealjs][revealjs]]
+    - [[#yasnippet][Yasnippet]]
+    - [[#emms][EMMS]]
+    - [[#sci-hub][Sci-hub]]
+    - [[#org-ref][Org-ref]]
+    - [[#google-translate][Google-translate]]
+    - [[#xkcd][Xkcd]]
+    - [[#editor-config][Editor Config]]
+    - [[#lua-mode][lua-mode]]
 - [[#personal-information][Personal information]]
 - [[#custom-functions][Custom functions]]
   - [[#links][Links]]
   - [[#image-edition][Image edition]]
   - [[#configurations][Configurations]]
-  - [[#themes-config][Themes config]]
   - [[#utilities][Utilities]]
   - [[#org-mode-functions][Org Mode Functions]]
   - [[#matlab][Matlab]]
@@ -58,18 +49,17 @@ After all this time... I think is the moment for write a good emacs configuratio
     - [[#emojis-in-buffers][Emojis in buffers]]
   - [[#mode-line][Mode Line]]
     - [[#basic-customization][Basic Customization]]
-    - [[#enable-mode-diminishing][Enable Mode Diminishing]]
-    - [[#smart-mode-line][Smart Mode Line]]
-    - [[#doom-modeline][Doom Modeline]]
   - [[#backup][Backup]]
   - [[#auto-reverting-changed-files][Auto-Reverting Changed Files]]
   - [[#default-applications][Default applications]]
   - [[#coding][Coding]]
   - [[#displaying-world-time][Displaying World Time]]
+  - [[#local-variables][Local Variables]]
 - [[#keyboard-bindings][Keyboard Bindings]]
   - [[#pdf-tools][Pdf tools]]
   - [[#org-mode][Org Mode]]
   - [[#interaction-with-emacs][Interaction with emacs]]
+  - [[#smartparens][Smartparens]]
 - [[#editing-configuration][Editing Configuration]]
   - [[#tab-widths][Tab Widths]]
   - [[#use-spaces-instead-of-tabs-for-indentation][Use spaces instead of tabs for indentation]]
@@ -107,8 +97,9 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
   ;; Initialize package sources
   (require 'package)
   (setq package-archives
-    '(("org"     .       "https://orgmode.org/elpa/")
+    '(
     ("gnu"     .       "https://elpa.gnu.org/packages/")
+    ("nongnu"     .       "https://elpa.nongnu.org/nongnu/")
     ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
     ("melpa" . "http://melpa.org/packages/")))
 
@@ -123,14 +114,30 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
     (setq use-package-always-ensure t)
 #+end_src
 ** Packages
-   :PROPERTIES:
-   :CUSTOM_ID: packages
-   :END:
-* Packages
   :PROPERTIES:
   :CUSTOM_ID: packages
   :END:
-** Benchmakr
+*** DnD
+:PROPERTIES:
+:CUSTOM_ID: dnd
+:END:
+ #+begin_src emacs-lisp
+     (use-package ox-dnd
+        :defer t
+        :ensure nil
+        :load-path "~/Documents/Github/emacs-org-dnd/ox-dnd.el"
+        :config
+        (add-hook 'org-mode-hook (lambda () (load-file "~/Documents/Github/emacs-org-dnd/ox-dnd.el")))
+)
+ #+end_src emacs-lisp
+*** A - Data structure
+:PROPERTIES:
+:CUSTOM_ID: a-data-structure
+:END:
+ #+begin_src emacs-lisp
+     (use-package a)
+ #+end_src emacs-lisp
+*** Benchmakr
    :PROPERTIES:
    :CUSTOM_ID: benchmakr
    :END:
@@ -146,7 +153,7 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
      ;;   :ensure nil
      ;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
  #+end_src
-** Org-make-toc
+*** Org-make-toc
    :PROPERTIES:
    :CUSTOM_ID: org-make-toc
    :END:
@@ -161,7 +168,7 @@ This package makes it easy to have one or more customizable tables of contents i
   )
 #+end_src
 
-** Matlab-mode
+*** Matlab-mode
    :PROPERTIES:
    :CUSTOM_ID: matlab-mode
    :END:
@@ -171,13 +178,11 @@ MATLAB mode for Emacs consists of Emacs Lisp code that implements a major-mode f
 This allows Emacs to be used in place of the MATLAB Editor for editing your MATLAB source code, debugging MATLAB code, and syntax/semantic checking of your MATLAB code with mlint.
 
 #+begin_src emacs-lisp
-  (use-package matlab-mode
-      :defer t
-      :mode "\\.m\\'"
-      ;; :interpreter ("matlab -nodesktop -nosplash -r" . matlab-mode)
-      )
+    (use-package matlab-mode
+        :defer t)
 #+end_src
-** Magit
+
+*** Magit
    :PROPERTIES:
    :CUSTOM_ID: magit
    :END:
@@ -190,7 +195,7 @@ Magit is a complete text-based user interface to Git.
     :bind ("C-x g" . magit-status))
 #+end_src
 
-** Ivy/Swiper
+*** Ivy/Swiper
    :PROPERTIES:
    :CUSTOM_ID: ivy-swiper
    :END:
@@ -201,7 +206,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
   :bind ("C-s" . swiper))
 #+end_src
 
-** Auctex
+*** Auctex
    :PROPERTIES:
    :CUSTOM_ID: auctex
    :END:
@@ -210,7 +215,15 @@ Swiper, an Ivy-enhanced alternative to Isearch.
   (use-package auctex
     :defer t)
 #+end_src
-** Company
+*** Simple-httpd
+:PROPERTIES:
+:CUSTOM_ID: simple-httpd
+:END:
+#+begin_src emacs-lisp
+(use-package simple-httpd
+  :defer t)
+#+end_src
+*** Company
    :PROPERTIES:
    :CUSTOM_ID: company
    :END:
@@ -220,7 +233,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
   :config
   (add-hook 'after-init-hook 'global-company-mode))
 #+end_src
-** Pdf-tools
+*** Pdf-tools
    :PROPERTIES:
    :CUSTOM_ID: pdf-tools
    :END:
@@ -233,536 +246,157 @@ Swiper, an Ivy-enhanced alternative to Isearch.
         TeX-source-correlate-start-server t
         TeX-source-correlate-method 'synctex))
 #+end_src
-
-** Simple-httpd
-   :PROPERTIES:
-   :CUSTOM_ID: simple-httpd
-   :END:
+*** Org-tree-slide
+:PROPERTIES:
+:CUSTOM_ID: org-tree-slide
+:END:
 #+begin_src emacs-lisp
-  (use-package simple-httpd
-    :defer t
-    :config
-    (setq httpd-root "~/Documents/Github/Blog/public_html")
-    ;; (setq httpd-port "8080")
-    )
+  (use-package org-tree-slide)
 #+end_src
-** Impatient-mode
-   :PROPERTIES:
-   :CUSTOM_ID: impatient-mode
-   :END:
+*** revealjs
+:PROPERTIES:
+:CUSTOM_ID: revealjs
+:END:
 #+begin_src emacs-lisp
-  ;; (use-package impatient-mode
-  ;;   :defer t)
-#+end_src
-
-** Hledger
-   :PROPERTIES:
-   :CUSTOM_ID: hledger
-   :END:
-#+begin_src emacs-lisp
-  ;; (use-package hledger-mode
-  ;;   :defer t
-  ;;   :mode ("\\.journal\\'" "\\.hledger\\'")
-  ;;   :commands hledger-enable-reporting
-  ;;   :preface
-  ;;   (defun hledger/next-entry ()
-  ;;     "Move to next entry and pulse."
-  ;;     (interactive)
-  ;;     (hledger-next-or-new-entry)
-  ;;     (hledger-pulse-momentary-current-entry))
-
-  ;;   (defface hledger-warning-face
-  ;;     '((((background dark))
-  ;;        :background "Red" :foreground "White")
-  ;;       (((background light))
-  ;;        :background "Red" :foreground "White")
-  ;;       (t :inverse-video t))
-  ;;     "Face for warning"
-  ;;     :group 'hledger)
-
-  ;;   (defun hledger/prev-entry ()
-  ;;     "Move to last entry and pulse."
-  ;;     (interactive)
-  ;;     (hledger-backward-entry)
-  ;;     (hledger-pulse-momentary-current-entry))
-
-  ;;   :bind (("C-c j" . hledger-run-command)
-  ;;          :map hledger-mode-map
-  ;;          ("C-c e" . hledger-jentry)
-  ;;          ("M-p" . hledger/prev-entry)
-  ;;          ("M-n" . hledger/next-entry))
-  ;;   :init
-  ;;   (setq hledger-jfile "~/finance/2021.journal")
-  ;;   :config
-  ;;   (add-hook 'hledger-view-mode-hook #'hl-line-mode)
-  ;;   (add-hook 'hledger-view-mode-hook #'center-text-for-reading)
-
-  ;;   (add-hook 'hledger-view-mode-hook
-  ;;             (lambda ()
-  ;;               (run-with-timer 1
-  ;;                               nil
-  ;;                               (lambda ()
-  ;;                                 (when (equal hledger-last-run-command
-  ;;                                              "balancesheet")
-  ;;                                   ;; highlight frequently changing accounts
-  ;;                                   (highlight-regexp "^.*\\(savings\\|cash\\).*€")
-  ;;                                   (highlight-regexp "^.*credit-card.*€"
-  ;;                                                     'hledger-warning-face))))))
-
-  ;;   (add-hook 'hledger-mode-hook
-  ;;             (lambda ()
-  ;;               (make-local-variable 'company-backends)
-  ;;               (add-to-list 'company-backends 'hledger-company))))
-#+end_src
-** Language
-   :PROPERTIES:
-   :CUSTOM_ID: language
-   :END:
-#+begin_src emacs-lisp
-  ;; ;; (use-package guess-language         ; Automatically detect language for Flyspell
-  ;; ;;   :ensure t
-  ;; ;;   :defer t
-  ;; ;;   :init (add-hook 'text-mode-hook #'guess-language-mode)
-  ;; ;;   :config
-  ;; ;;   (setq guess-language-langcodes '((en . ("en_GB" "English"))
-  ;; ;;                                    (es . ("es" "Spanish")))
-  ;; ;;         guess-language-languages '(en es)
-  ;; ;;         guess-language-min-paragraph-length 45)
-  ;; ;;   :diminish guess-language-mode)
-
-#+end_src
-** Snippets
-   :PROPERTIES:
-   :CUSTOM_ID: snippets
-   :END:
-   :PROPERTIES:
-
-   :END:
-#+begin_src emacs-lisp
-  ;; (use-package yasnippet                  ; Snippets
-  ;;   :ensure t
-  ;;   :config
-  ;;   ;; (validate-setq
-  ;;   ;;  yas-verbosity 1                      ; No need to be so verbose
-  ;;   ;;  yas-wrap-around-region t)
-  ;;   ;;  (with-eval-after-load 'yasnippet
-  ;;   ;;    (validate-setq yas-snippet-dirs '(yasnippet-snippets-dir)))
-  ;;   (yas-reload-all)
-  ;;   (yas-global-mode))
-
-  ;; (use-package yasnippet-snippets         ; Collection of snippets
-  ;;   :ensure t)
-#+end_src
-** Dashboard
-   :PROPERTIES:
-   :CUSTOM_ID: dashboard
-   :END:
-#+begin_src emacs-lisp
-  ;; (use-package dashboard
-  ;; :ensure t
-  ;; :config
-  ;; (dashboard-setup-startup-hook)
-  ;; (setq dashboard-startup-banner 'logo)
-  ;; (setq dashboard-center-content t)
-  ;; (setq dashboard-banner-logo-title "Bienvenido Rhyloo"))
-#+end_src
-** Org-superstar
-   :PROPERTIES:
-   :CUSTOM_ID: org-superstar
-   :END:
-#+begin_src emacs-lisp
-  (use-package org-superstar
-    :after org
-    :hook (org-mode . org-superstar-mode)
-    :custom
-    (org-superstar-remove-leading-stars t)
-    (org-superstar-headline-bullets-list '("◉" "○" "●" "○" "●" "○" "●")))
-    (require 'org-indent)
-
-  ;; Replace list hyphen with dot
-  ;; (font-lock-add-keywords 'org-mode
-  ;;                         '(("^ *\\([-]\\) "
-  ;;                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-
-  ;; ;; Increase the size of various headings
-  ;; (set-face-attribute 'org-document-title nil :font "Iosevka Aile" :weight 'bold :height 1.3)
-  ;; (dolist (face '((org-level-1 . 1.2)
-  ;;                 (org-level-2 . 1.1)
-  ;;                 (org-level-3 . 1.05)
-  ;;                 (org-level-4 . 1.0)
-  ;;                 (org-level-5 . 1.1)
-  ;;                 (org-level-6 . 1.1)
-  ;;                 (org-level-7 . 1.1)
-  ;;                 (org-level-8 . 1.1)))
-  ;;   (set-face-attribute (car face) nil :font "Iosevka Aile" :weight 'medium :height (cdr face)))
-
-  ;; Make sure org-indent face is available
-
-
-  ;; ;; Ensure that anything that should be fixed-pitch in Org files appears that way
-  ;; (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
-  ;; (set-face-attribute 'org-table nil  :inherit 'fixed-pitch)
-  ;; (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch)
-  ;; (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
-  ;; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
-  ;; (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
-  ;; (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
-  ;; (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
-  ;; (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
-
-  ;; Get rid of the background on column views
-  (set-face-attribute 'org-column nil :background nil)
-  (set-face-attribute 'org-column-title nil :background nil)
-
-  ;; TODO: Others to consider
-  ;; '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
-  ;; '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-  ;; '(org-property-value ((t (:inherit fixed-pitch))) t)
-  ;; '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
-  ;; '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
-  ;; '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-  ;; '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-#+end_src
-** Super-save
-   :PROPERTIES:
-   :CUSTOM_ID: super-save
-   :END:
-#+begin_src emacs-lisp
-(use-package super-save
-  :defer 1
-  :diminish super-save-mode
+  (use-package ox-reveal
   :config
-  (super-save-mode +1)
-  (setq super-save-auto-save-when-idle t))
-#+end_src
-** Ledger
-   :PROPERTIES:
-   :CUSTOM_ID: ledger
-   :END:
-#+begin_src emacs-lisp
-(use-package ledger-mode
-:defer t)
+  (setq org-reveal-root "./reveal.js"))
 #+end_src
 
 #+RESULTS:
-** Flymake
-   :PROPERTIES:
-   :CUSTOM_ID: flymake
-   :END:
-#+begin_src emacs-lisp
-(use-package flymake
-:defer t
-:config
-(add-hook 'after-init-hook 'flymake-mode))
-#+end_src
-
-#+begin_src emacs-lisp
-  ;; (use-package flymake-ledger
-  ;; :after flymake
-  ;; )
-#+end_src
-** Org
-   :PROPERTIES:
-   :CUSTOM_ID: org
-   :END:
-#+begin_src emacs-lisp
-  ;; (use-package org
-  ;;   :config
-  ;;   (progn
-  ;;   (use-package ob
-  ;;     :config
-      ;; (setq org-src-fontify-natively t)
-      (org-babel-do-load-languages
-       'org-babel-load-languages
-       '((js . t)
-         (org . t)
-         (css . t)
-         (dot . t)
-         (latex . t)
-         (shell . t)
-         (python . t)
-         (matlab . t)
-         (emacs-lisp . t)))
-    ;; (use-package ox-md
-    ;;   :config
-    ;;   (setq org-md-headline-style 'atx)
-    ;;   (use-package ox-gfm
-    ;;     :ensure t))
-    ;; (use-package ox-html
-    ;;   :config
-    ;;   (setq org-html-doctype "html5"
-    ;;         org-html-html5-fancy t
-    ;;         org-html-metadata-timestamp-format "%Y-%m-%d %H:%M"))
-    ;; (use-package org-crypt
-    ;;   :config
-    ;;   (org-crypt-use-before-save-magic)
-    ;;   (setq org-crypt-key "i@l42y.com"
-    ;;         org-tags-exclude-from-inheritance (quote ("crypt"))))
-    ;; (use-package org-agenda
-    ;;   :bind ("C-c a" . org-agenda))
-    ;; (use-package ox
-    ;;   :defer t
-    ;;   :config
-    ;;   (progn
-    ;;   (use-package ox-publish
-    ;;   :config
-      (setq org-publish-project-alist
-      '(("org-content"
-      :base-directory "~/Documents/Github/Blog/blog/"
-      :base-extension "org"
-      :auto-sitemap t                ; Generate sitemap.org automagically...
-      :sitemap-filename "sitemap.org"  ; ... call it sitemap.org (it's the default)...
-      :sitemap-title "Sitemap"         ; ... with title 'Sitemap'.
-      :publishing-directory "~/Documents/Github/Blog/public_html"
-      :recursive t
-      :publishing-function org-html-publish-to-html
-      :headline-levels 4             ; Just the default for this project.
-      :auto-preamble t
-      )
-      ("org-media"
-      :base-directory "~/Documents/Github/Blog/blog"
-      :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf\\|svg"
-      :publishing-directory "~/Documents/Github/Blog/public_html"
-      :recursive t
-      :publishing-function org-publish-attachment
-      )
-      ("blog" :components ("org-content" "org-media"))
-      ))
-;; )
-      ;; ))))
-
-#+end_src
-** Ox-publish
-   :PROPERTIES:
-   :CUSTOM_ID: ox-publish
-   :END:
-#+begin_src emacs-lisp
-  ;; (use-package ox-publish
-  ;;   :config
-  ;;   (setq org-publish-project-alist
-  ;;   '(("org-notes"
-  ;; 	:base-directory "~/Documents/Github/Blog/blog/"
-  ;; 	:base-extension "org"
-  ;; 	:auto-sitemap t                ; Generate sitemap.org automagically...
-  ;; 	:sitemap-filename "sitemap.org"  ; ... call it sitemap.org (it's the default)...
-  ;; 	:sitemap-title "Sitemap"         ; ... with title 'Sitemap'.
-  ;; 	:publishing-directory "~/Documents/Github/Blog/public_html"
-  ;; 	:recursive t
-  ;; 	:publishing-function org-html-publish-to-html
-  ;; 	:headline-levels 4             ; Just the default for this project.
-  ;; 	:auto-preamble t
-  ;; 	)
-  ;; 	("org-static"
-  ;; 	:base-directory "~/Documents/Github/Blog/blog/"
-  ;; 	:base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
-  ;; 	:publishing-directory "~/Documents/Github/blog/public_html"
-  ;; 	:recursive t
-  ;; 	:publishing-function org-publish-attachment
-  ;; 	)
-  ;; 	("org" :components ("org-notes" "org-static"))
-  ;; 	)))
- #+end_src
-** json
+: t
+*** Yasnippet
 :PROPERTIES:
-:CUSTOM_ID: json
+:CUSTOM_ID: yasnippet
 :END:
 #+begin_src emacs-lisp
-(use-package json
-:defer t)
+  (use-package yasnippet                  ; Snippets
+    :ensure t
+    :config
+    (setq yas-snippet-dirs
+    '("~/.emacs.d/elpa/yasnippet-snippets-20210910.1959/snippets/" ;;Latex-collection snippets
+    "~/Documents/Github/yasnippets-latex/snippets/latex-mode/"
+    ))
+    ;; (validate-setq
+    ;;  yas-verbosity 1                      ; No need to be so verbose
+    ;;  yas-wrap-around-region t)
+    ;;  (with-eval-after-load 'yasnippet
+    ;;    (validate-setq yas-snippet-dirs '(yasnippet-snippets-dir)))
+    (yas-reload-all)
+    (yas-global-mode 1))
 #+end_src
 
-** Org-cal
+#+RESULTS:
+: t
+*** EMMS
 :PROPERTIES:
-:CUSTOM_ID: org-cal
+:CUSTOM_ID: emms
 :END:
 #+begin_src emacs-lisp
-  (setq package-check-signature nil)
-
-  (use-package org-gcal
+  (use-package emms
   :defer t
+  :ensure nil
   :config
-  (setq org-gcal-client-id (my/get-gcal-config-value 'org-gcal-client-id)
-        org-gcal-client-secret (my/get-gcal-config-value 'org-gcal-client-secret)
-        org-gcal-file-alist '(("jorgebenma@gmail.com" . "~/Documents/Org/agenda.org")))
-  (add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
-  ;; (add-hook 'org-agenda-mode-hook
-  ;;   (lambda ()
-  ;;   (add-hook 'after-save-hook 'org-gcal-sync)))
-  (add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) )))
+  (setq exec-path (append exec-path '("/usr/local/bin")))
+  (add-to-list 'load-path "~/.emacs.d/site-lisp/emms/lisp")
+  (require 'emms-setup)
+  (require 'emms-player-mplayer)
+  (emms-standard)
+  (emms-default-players)
+  (define-emms-simple-player mplayer '(file url)
+  (regexp-opt '(".ogg" ".mp3" ".wav" ".mpg" ".mpeg" ".wmv" ".wma"
+  ".mov" ".avi" ".divx" ".ogm" ".asf" ".mkv" "http://" "mms://"
+  ".rm" ".rmvb" ".mp4" ".flac" ".vob" ".m4a" ".flv" ".ogv" ".pls"))
+  "mplayer" "-slave" "-quiet" "-really-quiet" "-fullscreen")
+  (setq emms-source-file-default-directory "~/Music/")
+
+(defun track-title-from-file-name (file)
+"For using with EMMS description functions. Extracts the track
+ title from the file name FILE, which just means a) taking only
+ the file component at the end of the path, and b) removing any
+ file extension."
+ (with-temp-buffer
+ (save-excursion (insert (file-name-nondirectory (directory-file-name file))))
+ (ignore-error 'search-failed
+ (search-forward-regexp (rx "." (+ alnum) eol))
+ (delete-region (match-beginning 0) (match-end 0)))
+ (buffer-string)))
+
+ (defun my-emms-track-description (track)
+ "Return a description of TRACK, for EMMS, but try to cut just
+ the track name from the file name, and just use the file name too
+ rather than the whole path."
+ (let ((artist (emms-track-get track 'info-artist))
+ (title (emms-track-get track 'info-title)))
+ (cond ((and artist title)
+ (concat artist " - " title))
+ (title title)
+ ((eq (emms-track-type track) 'file)
+ (track-title-from-file-name (emms-track-name track)))
+ (t (emms-track-simple-description track)))))
+
+ (setq emms-track-description-function 'my-emms-track-description))
 #+end_src
 
-** Guess-language
+#+RESULTS:
+: t
+*** Sci-hub
 :PROPERTIES:
-:CUSTOM_ID: guess-language
+:CUSTOM_ID: sci-hub
 :END:
 #+begin_src emacs-lisp
-  ;; (use-package guess-language         ; Automatically detect language for Flyspell
-  ;;   :defer t
-  ;;   :init (add-hook 'text-mode-hook #'guess-language-mode)
-  ;;   :config
-  ;;   (setq guess-language-langcodes '((en . ("en_GB" "English"))
-  ;;                                    (es . ("es" "Spanish")))
-  ;;         guess-language-languages '(en es)
-  ;;         guess-language-min-paragraph-length 45)
-  ;;   :diminish guess-language-mode)
+  (use-package scihub
+  :defer t)
 #+end_src
-** COMMENT Obs-websocket
+*** Org-ref
 :PROPERTIES:
-:CUSTOM_ID: comment-obs-websocket
+:CUSTOM_ID: org-ref
 :END:
 #+begin_src emacs-lisp
-  ;; (use-package websocket)
-  ;; (defun my/twitch-message (text)
-  ;;   (interactive "MText: ")
-  ;;   (with-current-buffer
-  ;;       (get-buffer-create "Twitch message")
-  ;;     (erase-buffer)
-  ;;     (insert text)
-  ;;     (goto-char (point-min))))
-  ;; (use-package obs-websocket
-  ;; :defer t
-  ;; :ensure nil
-  ;; :load-path "~/.emacs.d/manual/obs-websocket.el"
-  ;; :config
-  ;; (setq obs-websocket-password "picaso_10"))
-  ;;   ;; :config
-  ;;   ;; (defhydra my/obs-websocket (:exit t)
-  ;;   ;;   "Control Open Broadcast Studio"
-  ;;   ;;   ("c" (obs-websocket-connect) "Connect")
-  ;;   ;;   ("d" (obs-websocket-send "SetCurrentScene" :scene-name "Desktop") "Desktop")
-  ;;   ;;   ("e" (obs-websocket-send "SetCurrentScene" :scene-name "Emacs") "Emacs")
-  ;;   ;;   ("i" (obs-websocket-send "SetCurrentScene" :scene-name "Intermission") "Intermission")
-  ;;   ;;   ("v" (browse-url "https://twitch.tv/sachachua"))
-  ;;   ;;   ("m" my/twitch-message "Message")
-  ;;   ;;   ("t" my/twitch-message "Message")
-  ;;   ;;   ("<f8>" my/twitch-message "Message") ;; Then I can just f8 f8
-  ;;   ;;   ("sb" (obs-websocket-send "StartStreaming") "Stream - begin")
-  ;;   ;;   ("se" (obs-websocket-send "StopStreaming") "Stream - end"))
-  ;;   ;; (global-set-key (kbd "<f8>") #'my/obs-websocket/body)
+  (use-package org-ref
+  :defer t)
+#+end_src
 
-#+end_src
-** COMMENT Org-html-themify
+#+RESULTS:
+*** Google-translate
 :PROPERTIES:
-:CUSTOM_ID: comment-org-html-themify
+:CUSTOM_ID: google-translate
 :END:
 #+begin_src emacs-lisp
-  ;; (use-package org-html-themify
-  ;; :defer t
-  ;;   :ensure nil
-  ;;   :load-path "~/.emacs.d/manual/org-html-themify/"
-  ;;   :hook (org-mode . org-html-themify-mode)
-  ;;   :config
-  ;;   (setq org-html-themify-themes
-  ;;       '((dark . modus-vivendi)
-  ;;         (light . modus-operandi))))
+  (use-package google-translate
+  :defer t)
 #+end_src
-** Htmlize
+
+#+RESULTS:
+*** Xkcd
 :PROPERTIES:
-:CUSTOM_ID: htmlize
+:CUSTOM_ID: xkcd
 :END:
 #+begin_src emacs-lisp
-  (use-package htmlize
+  (use-package xkcd
+  :defer t)
+#+end_src
+*** Editor Config
+:PROPERTIES:
+:CUSTOM_ID: editor-config
+:END:
+#+begin_src emacs-lisp
+(use-package editorconfig
   :defer t
+  :ensure t
   :config
-  (setq org-src-fontify-natively t))
+  (editorconfig-mode 1))
 #+end_src
-** Auto-Complete
-:PROPERTIES:
-:CUSTOM_ID: auto-complete
-:END:
+
+#+RESULTS:
+*** lua-mode
 #+begin_src emacs-lisp
-  ;; (use-package auto-complete
-  ;; :config
-  ;; (ac-config-default)
-  ;; (setq ac-auto-start t)
-  ;; (setq ac-delay 0.1)
-  ;; (setq ac-auto-show-menu nil)
-  ;; (setq ac-show-menu-immediately-on-auto-complete t)
-  ;; (setq ac-trigger-key nil)
-  ;; (add-hook 'after-init-hook 'global-auto-complete-mode))
+  (use-package lua-mode
+  :defer t)
 #+end_src
 
-** org-present
-:PROPERTIES:
-:CUSTOM_ID: org-present
-:END:
+#+RESULTS:
 
-#+begin_src emacs-lisp
-
-  (defun dw/org-present-prepare-slide ()
-    (org-overview)
-    (org-show-entry)
-    (org-show-children))
-
-  (defun dw/org-present-hook ()
-    (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
-                                       (header-line (:height 4.5) variable-pitch)
-                                       (org-document-title (:height 1.75) org-document-title)
-                                       (org-code (:height 1.55) org-code)
-                                       (org-verbatim (:height 1.55) org-verbatim)
-                                       (org-block (:height 1.25) org-block)
-                                       (org-block-begin-line (:height 0.7) org-block)))
-    (setq header-line-format " ")
-    (org-appear-mode -1)
-    (org-display-inline-images)
-    (dw/org-present-prepare-slide))
-
-  (defun dw/org-present-quit-hook ()
-    (setq-local face-remapping-alist '((default variable-pitch default)))
-    (setq header-line-format nil)
-    (org-present-small)
-    (org-remove-inline-images)
-    (org-appear-mode 1))
-
-  (defun dw/org-present-prev ()
-    (interactive)
-    (org-present-prev)
-    (dw/org-present-prepare-slide))
-
-  (defun dw/org-present-next ()
-    (interactive)
-    (org-present-next)
-    (dw/org-present-prepare-slide))
-
-  (use-package org-present
-    :bind (:map org-present-mode-keymap
-           ("C-c C-j" . dw/org-present-next)
-           ("C-c C-k" . dw/org-present-prev))
-    :hook ((org-present-mode . dw/org-present-hook)
-           (org-present-mode-quit . dw/org-present-quit-hook)))
-
-#+end_src
-
-** epresent
-:PROPERTIES:
-:CUSTOM_ID: epresent
-:END:
-#+begin_src emacs-lisp
-(use-package epresent
-:defer t)
-#+end_src
-** Org-roam
-:PROPERTIES:
-:CUSTOM_ID: org-roam
-:END:
-#+begin_src emacs-lisp
-(use-package org-roam
-      :defer t
-      :hook
-      (after-init . org-roam-mode)
-      :custom
-      (org-roam-directory (file-truename "~/Documents/Org/"))
-      :bind (:map org-roam-mode-map
-              (("C-c n l" . org-roam)
-               ("C-c n f" . org-roam-find-file)
-               ("C-c n g" . org-roam-graph))
-              :map org-mode-map
-              (("C-c n i" . org-roam-insert))
-              (("C-c n I" . org-roam-insert-immediate))))
-(use-package emacsql-sqlite
-:defer t)
-
-#+end_src
 * Personal information
   :PROPERTIES:
   :CUSTOM_ID: personal-information
@@ -895,68 +529,93 @@ Mail address and full name for email and metadata.
        (find-file "~/.emacs.d/README.org"))
    #+end_src               
 
-** Themes config
+** COMMENT Themes config
    :PROPERTIES:
-   :CUSTOM_ID: themes-config
+   :CUSTOM_ID: comment-themes-config
+   :ORDERED:  t
    :END:
 
     #+begin_src emacs-lisp
-    (defun my/theme-configuration ()
-    (set-face-attribute hl-line-face nil :underline nil :background "black")
-    (set-face-attribute 'mode-line-inactive nil :background nil :box nil :foreground "gray" :overline "white")
-    (set-face-attribute 'vertical-border nil :background nil :foreground "white")
-    )
+      (defun my/theme-configuration ()        ;
+      (set-face-attribute hl-line-face nil :underline nil :background "black")
+      (set-face-attribute 'mode-line-inactive nil :background nil :box nil :foreground "gray" :overline "white")
+      (set-face-attribute 'vertical-border nil :background nil :foreground "white")
+      )                                       ;
     #+end_src
 
+    #+RESULTS:
+    : my/theme-configuration
+
     #+begin_src emacs-lisp
-             (defun my/setup-color-theme-dark ()
-               (interactive)
-               (when (display-graphic-p) 
-                 (color-theme-sanityinc-solarized-dark))
-               (set-frame-parameter (selected-frame) 'alpha '(85 85))
-               (add-to-list 'default-frame-alist '(alpha 85 85))
-               ;; (set-foreground-color "white")
-               (set-face-background 'secondary-selection "black")
-               (set-face-background 'font-lock-doc-face "black")
-               (set-face-foreground 'font-lock-comment-face "blue")
-               ;; (set-face-background 'org-indent "black")
-               ;; (set-face-foreground 'org-indent "black")
-               (set-face-background 'org-hide "black")
-               (set-face-foreground 'org-hide "black")
-               (set-face-background 'font-lock-string-face "black")
-               (set-background-color "black")
-               (set-face-background 'hl-line "black"))
-      
-             (defun my/setup-color-theme-light ()
-               (interactive)
-               (when (display-graphic-p) 
-                 (color-theme-sanityinc-solarized-light))
-               ;; set transparency
-               (set-frame-parameter (selected-frame) 'alpha '(95 95))
-               (add-to-list 'default-frame-alist '(alpha 95 95))
-               (set-foreground-color "black")
-               (set-face-background 'secondary-selection "#fdf6e3")
-               (set-face-background 'font-lock-doc-face "black")
-               (set-face-background 'hl-line "lightblue")
-               ;; (set-face-background 'company-tooltip "white")
-               ;; (set-face-background 'org-indent "#fdf6e3")
-               ;; (set-face-foreground 'org-indent "#fdf6e3")
-               ;; (set-face-foreground 'company-preview-common "#b58900")
-               (set-face-attribute 'region nil :background "lightgrey") 
-               (set-face-foreground 'font-lock-comment-face "dark red"))
-      
-             (setq current-theme '(my/setup-color-theme-dark))
-             (defun synchronize-theme ()
-               (interactive)
-               (setq hour (string-to-number (substring (current-time-string)11 13)))
-                 (if (member hour (number-sequence 7 18))
-                     (setq now '(my/setup-color-theme-light))
-                     (setq now '(my/setup-color-theme-dark))) 
-                 (if (equal now current-theme)
-                     nil
-                   (setq current-theme now))
-                   (eval now))
+      ;; M-x Describe-face
+      (defun my/setup-color-theme-terminal ()
+        (interactive)
+          (global-hl-line-mode 0)
+        (set-foreground-color "white")
+        (set-face-background 'secondary-selection "white")
+        (set-face-background 'font-lock-doc-face "black")
+        (set-face-foreground 'font-lock-comment-face "red")
+        (set-face-foreground 'font-lock-function-name-face "green")
+        ;; (set-face-background 'org-indent "black")
+        ;; (set-face-foreground 'org-indent "black")
+        (set-face-background 'org-hide "black")
+        (set-face-foreground 'org-hide "black")
+        (set-face-background 'font-lock-string-face "black")
+        (set-background-color "black")
+        (set-face-background 'hl-line "white"))
+        (my/setup-color-theme-terminal)
+        (global-hl-line-mode 0)
+      (defun my/setup-color-theme-dark ()
+        (interactive)
+        (when (display-graphic-p)
+          (color-theme-sanityinc-solarized-dark))
+        (set-frame-parameter (selected-frame) 'alpha '(85 85))
+        (add-to-list 'default-frame-alist '(alpha 85 85))
+        ;; (set-foreground-color "white")
+        (set-face-background 'secondary-selection "black")
+        (set-face-background 'font-lock-doc-face "black")
+        (set-face-foreground 'font-lock-comment-face "blue")
+        ;; (set-face-background 'org-indent "black")
+        ;; (set-face-foreground 'org-indent "black")
+        (set-face-background 'org-hide "black")
+        (set-face-foreground 'org-hide "black")
+        (set-face-background 'font-lock-string-face "black")
+        (set-background-color "black")
+        (set-face-background 'hl-line "black"))
+
+      (defun my/setup-color-theme-light ()
+        (interactive)
+        (when (display-graphic-p)
+          (color-theme-sanityinc-solarized-light))
+        ;; set transparency
+        (set-frame-parameter (selected-frame) 'alpha '(95 95))
+        (add-to-list 'default-frame-alist '(alpha 95 95))
+        (set-foreground-color "black")
+        (set-face-background 'secondary-selection "#fdf6e3")
+        (set-face-background 'font-lock-doc-face "black")
+        (set-face-background 'hl-line "lightblue")
+        ;; (set-face-background 'company-tooltip "white")
+        ;; (set-face-background 'org-indent "#fdf6e3")
+        ;; (set-face-foreground 'org-indent "#fdf6e3")
+        ;; (set-face-foreground 'company-preview-common "#b58900")
+        (set-face-attribute 'region nil :background "lightgrey")
+        (set-face-foreground 'font-lock-comment-face "dark red"))
+
+      (setq current-theme '(my/setup-color-theme-dark))
+      (defun synchronize-theme ()
+        (interactive)
+        (setq hour (string-to-number (substring (current-time-string)11 13)))
+          (if (member hour (number-sequence 7 18))
+              (setq now '(my/setup-color-theme-light))
+              (setq now '(my/setup-color-theme-dark)))
+          (if (equal now current-theme)
+              nil
+            (setq current-theme now))
+            (eval now))
 #+end_src                   
+
+#+RESULTS:
+: synchronize-theme
 
 ** Utilities
    :PROPERTIES:
@@ -964,6 +623,23 @@ Mail address and full name for email and metadata.
    :END:
 
    #+begin_src emacs-lisp
+
+   (defun my/upload-doc ()
+   (interactive)
+   (setq private_repository "~/Documents/Github/linux_connection/")
+   (setq filename (read-file-name "File name: "))
+   (copy-file filename private_repository)
+   (my/find-file private_repository)
+   (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+   (kill-buffer "*Shell Command Output*")
+   (delete-other-windows))
+
+   (defun my/actualization-repo ()
+   (interactive)
+   (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+   (kill-buffer "*Shell Command Output*")
+   (delete-other-windows))
+
      (defun my/find-file (filename)
        "Open a file in the background"
        (interactive "FFind file: ")
@@ -981,6 +657,9 @@ Mail address and full name for email and metadata.
              (clipboard-kill-region (point-min) (point-max)))
            (message filename))))
    #+end_src
+
+   #+RESULTS:
+   : my/pwd
 
 ** Org Mode Functions
    :PROPERTIES:
@@ -1143,6 +822,7 @@ or LaTeX command"
 ** Flyspell
 :PROPERTIES:
 :CUSTOM_ID: flyspell
+:ORDERED:  t
 :END:
 #+begin_src emacs-lisp
 (defun fd-switch-dictionary()
@@ -1154,8 +834,11 @@ or LaTeX command"
     ))
 
 (global-set-key (kbd "<f2>")   'fd-switch-dictionary)
-
+(global-set-key (kbd "<f12>")   'flyspell-auto-correct-word)
 #+end_src
+
+#+RESULTS:
+
 * General Configuration
   :PROPERTIES:
   :CUSTOM_ID: general-configuration
@@ -1211,6 +894,7 @@ Enable line numbers and customize their format.
   (column-number-mode)
   ;; Enable line numbers for some modes
   (dolist (mode '(text-mode-hook
+                  matlab-mode-hook
 		  prog-mode-hook
 		  conf-mode-hook))
     (add-hook mode (lambda () (display-line-numbers-mode 1))))
@@ -1297,7 +981,7 @@ Alternate themes:
     :END:
 
 #+begin_src emacs-lisp
-    (setq display-time-format "%H:%M %p %b %y"
+    (setq display-time-format "%H:%M %d %b %Y"
             display-time-default-load-average nil)
     (setq display-time-day-and-date t
           display-time-24hr-format t)
@@ -1305,9 +989,13 @@ Alternate themes:
     (unless (equal "Battery status not available" (battery)) ;;;Show battery
   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 #+end_src
-*** Enable Mode Diminishing
+
+#+RESULTS:
+: t
+
+*** COMMENT Enable Mode Diminishing
     :PROPERTIES:
-    :CUSTOM_ID: enable-mode-diminishing
+    :CUSTOM_ID: comment-enable-mode-diminishing
     :END:
 
 The [[https://github.com/myrjola/diminish.el][diminish]] package hides pesky minor modes from the modelines.
@@ -1316,9 +1004,9 @@ The [[https://github.com/myrjola/diminish.el][diminish]] package hides pesky min
   ;; (use-package diminish)
 #+end_src
 
-*** Smart Mode Line
+*** COMMENT Smart Mode Line
     :PROPERTIES:
-    :CUSTOM_ID: smart-mode-line
+    :CUSTOM_ID: comment-smart-mode-line
     :END:
 Prettify the modeline with [[https://github.com/Malabarba/smart-mode-line/][smart-mode-line]].  Really need to re-evaluate the
 ordering of =mode-line-format=.  Also not sure if =rm-excluded-modes= is needed
@@ -1364,9 +1052,9 @@ anymore if I set up =diminish= correctly.
 
 #+end_src
 
-*** Doom Modeline
+*** COMMENT Doom Modeline
     :PROPERTIES:
-    :CUSTOM_ID: doom-modeline
+    :CUSTOM_ID: comment-doom-modeline
     :END:
 #+begin_src emacs-lisp
   ;; You must run (all-the-icons-install-fonts) one time after
@@ -1423,7 +1111,19 @@ anymore if I set up =diminish= correctly.
 :CUSTOM_ID: coding
 :END:
 #+begin_src emacs-lisp
-(setq org-confirm-babel-evaluate nil)
+  (setq org-confirm-babel-evaluate nil)
+  (add-hook 'prog-mode-hook #'hs-minor-mode)
+  (use-package blacken
+  :defer t
+  :config
+  (add-hook 'python-mode-hook 'blacken-mode))
+
+  (use-package elpy
+    ;; :ensure t
+    :defer t
+    ;; :init
+    ;; (advice-add 'python-mode :before 'elpy-enable)
+    )
 #+end_src
 
 #+RESULTS:
@@ -1447,6 +1147,13 @@ anymore if I set up =diminish= correctly.
 
 #+RESULTS:
 : %a, %d %b %I:%M %p
+** Local Variables
+:PROPERTIES:
+:CUSTOM_ID: local-variables
+:END:
+#+begin_src emacs-lisp
+(setq enable-local-variables 1)
+#+end_src
 
 * Keyboard Bindings
   :PROPERTIES:
@@ -1488,8 +1195,38 @@ anymore if I set up =diminish= correctly.
      (global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
      (global-set-key (kbd "<f6>") 'org-publish-current-file)
      (global-set-key (kbd "<f9>") 'my/pwd)
-   
-   #+end_src
+     (global-set-key (kbd "<f8>") 'my/upload-doc)
+     (global-set-key (kbd "<f7>") 'my/actualization-repo)
+     (global-set-key (kbd "M-+")  'dired-create-empty-file)
+      #+end_src
+
+   #+RESULTS:
+   : dired-create-empty-file
+
+** Smartparens
+:PROPERTIES:
+:CUSTOM_ID: smartparens
+:END:
+#+begin_src emacs-lisp
+  (use-package smartparens
+    ;; :init
+    ;; (bind-key "C-M-f" #'sp-forward-sexp smartparens-mode-map)
+    ;; (bind-key "C-M-b" #'sp-backward-sexp smartparens-mode-map)
+    ;; (bind-key "C-)" #'sp-forward-slurp-sexp smartparens-mode-map)
+    ;; (bind-key "C-(" #'sp-backward-slurp-sexp smartparens-mode-map)
+    ;; (bind-key "M-)" #'sp-forward-barf-sexp smartparens-mode-map)
+    ;; (bind-key "M-(" #'sp-backward-barf-sexp smartparens-mode-map)
+    ;; (bind-key "C-S-s" #'sp-splice-sexp)
+    ;; (bind-key "C-M-<backspace>" #'backward-kill-sexp)
+    ;; (bind-key "C-M-S-<SPC>" (lambda () (interactive) (mark-sexp -1)))
+
+    :config
+    (smartparens-global-mode t)
+
+    (sp-pair "'" nil :actions :rem)
+    (sp-pair "`" nil :actions :rem)
+    (setq sp-highlight-pair-overlay nil))
+#+end_src
 * Editing Configuration
   :PROPERTIES:
   :CUSTOM_ID: editing-configuration
@@ -1559,18 +1296,18 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
         ;; ;; (setq org-latex-listings 'listings)
         ;; (setq org-src-preserve-indentation 1)
         (setq org-return-follows-link 1)
-        ;; (org-babel-do-load-languages ;; list of babel languages
-        ;;  'org-babel-load-languages
-        ;;  '((matlab . t)
-        ;;    (ditaa . t)
-        ;;    ;; (spice . t)
-        ;;    (gnuplot . t)
-        ;;    (org . t)
-        ;;    (shell . t)
-        ;;    (latex . t)
-        ;;    (python . t)
-        ;;    (asymptote . t)
-        ;;    ))
+        (org-babel-do-load-languages ;; list of babel languages
+         'org-babel-load-languages
+         '((matlab . t)
+           (ditaa . t)
+           ;; (spice . t)
+           (gnuplot . t)
+           (org . t)
+           (shell . t)
+           (latex . t)
+           (python . t)
+           (asymptote . t)
+           ))
         ;; (org-add-link-type
         ;;  "color"
         ;;  (lambda (path)
@@ -1586,69 +1323,77 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
         ;;     ((eq format 'latex)
         ;;      (format "\\textcolor{%s}{%s}" path desc)))))
 #+end_src
+
+#+RESULTS:
+
 * Hooks
   :PROPERTIES:
   :CUSTOM_ID: hooks
   :END:
   #+begin_src emacs-lisp
-        (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
-        ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
-    ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
-        (add-hook 'org-mode-hook
-        (lambda ()
-        (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
-        (dolist (hook '(text-mode-hook))
-        (add-hook hook (lambda () (flyspell-mode 1))))
-        (eval-after-load "flyspell"
-        '(progn
-        (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
-        (define-key flyspell-mouse-map [mouse-3] #'undefined)))
-        (setq-default ispell-program-name "aspell")
-        (setq ispell-dictionary "castellano")
-        (setq flyspell-default-dictionary "castellano")
-          ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-          ;; (add-hook
-          ;; 'minibuffer-setup-hook
-          ;; (lambda ()
-          ;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
-          ;; (flyspell-mode 1))))
-          ;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
-          ;; (dolist (hook '(text-mode-hook))
-          ;;   (add-hook hook (lambda () (flyspell-mode 1))))
-          ;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
-          ;; (add-hook 'org-mode 'display-line-numbers)
-          ;; (add-hook 'dired-find-file 'pdf-tools-install)
-          ;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
-          ;; (add-hook 'after-init-hook 'global-company-mode)
-          ;; (add-hook 'matlab-mode-hook
-          ;;           (lambda ()
-          ;;             (set (make-local-variable 'compile-command)
-          ;;                  (format "matlab -batch %s" (shell-quote-argument
-          ;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
-          ;; (add-hook 'python-mode-hook
-          ;;           (lambda ()
-          ;;             (set (make-local-variable 'compile-command)
-          ;;                  (format "d:/Software/WPy64-3940/python-3.9.4.amd64/python.exe %s" (shell-quote-argument (buffer-name))))))
+    (add-hook 'matlab-mode-hook
+              (lambda ()
+                (set (make-local-variable 'compile-command)
+                     (format "matlab -batch %s" (shell-quote-argument
+                 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
+            (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+            ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
+        ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
+            (add-hook 'org-mode-hook
+            (lambda ()
+            (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
+            (dolist (hook '(text-mode-hook))
+            (add-hook hook (lambda () (flyspell-mode 1))))
+            (eval-after-load "flyspell"
+            '(progn
+            (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
+            (define-key flyspell-mouse-map [mouse-3] #'undefined)))
+            (setq-default ispell-program-name "aspell")
+            (setq ispell-dictionary "castellano")
+            (setq flyspell-default-dictionary "castellano")
+              ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+              ;; (add-hook
+              ;; 'minibuffer-setup-hook
+              ;; (lambda ()
+              ;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
+              ;; (flyspell-mode 1))))
+              ;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+              ;; (dolist (hook '(text-mode-hook))
+              ;;   (add-hook hook (lambda () (flyspell-mode 1))))
+              ;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
+              ;; (add-hook 'org-mode 'display-line-numbers)
+              ;; (add-hook 'dired-find-file 'pdf-tools-install)
+              ;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
+              ;; (add-hook 'after-init-hook 'global-company-mode)
+              ;; (add-hook 'matlab-mode-hook
+              ;;           (lambda ()
+              ;;             (set (make-local-variable 'compile-command)
+              ;;                  (format "matlab -batch %s" (shell-quote-argument
+              ;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
+              (add-hook 'python-mode-hook
+                        (lambda ()
+                          (set (make-local-variable 'compile-command)
+                               (format "python %s" (shell-quote-argument (buffer-name))))))
 
-          ;; (add-hook 'pdf-view-mode-hook
-          ;;           (lambda ()
-          ;;             (display-line-numbers-mode -1)))
-          ;; (add-hook 'org-mode-hook
-          ;;   (lambda ()
-          ;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
-          ;; (add-hook 'text-mode-hook
-          ;;   (lambda ()
-          ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
-          ;; (add-hook 'text-mode-hook
-          ;;   (lambda ()
-          ;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
+              ;; (add-hook 'pdf-view-mode-hook
+              ;;           (lambda ()
+              ;;             (display-line-numbers-mode -1)))
+              ;; (add-hook 'org-mode-hook
+              ;;   (lambda ()
+              ;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
+              ;; (add-hook 'text-mode-hook
+              ;;   (lambda ()
+              ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
+              ;; (add-hook 'text-mode-hook
+              ;;   (lambda ()
+              ;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
 
-          ;; (add-hook 'message-mode-hook
-          ;;           (lambda ()
-          ;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
-          ;; (add-hook 'org-mode-hook
-          ;;           (lambda ()
-          ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+              ;; (add-hook 'message-mode-hook
+              ;;           (lambda ()
+              ;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
+              ;; (add-hook 'org-mode-hook
+              ;;           (lambda ()
+              ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
 #+end_src
 
 #+RESULTS:
