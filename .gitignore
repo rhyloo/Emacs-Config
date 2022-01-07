@@ -1,0 +1,11 @@
+# https://stackoverflow.com/questions/987142/make-gitignore-ignore-everything-except-a-few-files
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!README.org
+!blog.el
+!LICENSE
+!README.el
+!init.el
