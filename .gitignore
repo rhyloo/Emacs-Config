@@ -5,11 +5,18 @@
 # But not these files...
 !.gitignore
 <<<<<<< HEAD
+<<<<<<< HEAD
 !config.org
 =======
+=======
+>>>>>>> 600fbf4 (New files config)
 !README.org
 !blog.el
 !LICENSE
 !README.el
+<<<<<<< HEAD
+!init.el
+>>>>>>> 600fbf4 (New files config)
+=======
 !init.el
 >>>>>>> 600fbf4 (New files config)
