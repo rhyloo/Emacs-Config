@@ -4,4 +4,12 @@
 
 # But not these files...
 !.gitignore
+<<<<<<< HEAD
 !config.org
+=======
+!README.org
+!blog.el
+!LICENSE
+!README.el
+!init.el
+>>>>>>> 600fbf4 (New files config)
