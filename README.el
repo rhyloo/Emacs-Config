@@ -1,17 +1,22 @@
 ;; Minimize garbage collection during startup
-(setq gc-cons-threshold most-positive-fixnum)
-  ;; ;; The default is 800 kilobytes.  Measured in bytes.
-  (setq gc-cons-threshold (* 50 1000 1000))
-  ;; Profile emacs startup
-  (add-hook 'emacs-startup-hook
-            (lambda ()
-              (message "*** Emacs loaded in %s with %d garbage collections."
-                       (format "%.2f seconds"
-                               (float-time
-                                (time-subtract after-init-time before-init-time)))
-                       gcs-done)))
+;; (setq gc-cons-threshold most-positive-fixnum)
 
-;; Initialize package sources
+;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold-original gc-cons-threshold)
+(setq gc-cons-threshold (* 1024 1024 100))
+
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+(lambda ()
+(message "*** Emacs loaded in %s with %d garbage collections."
+(format "%.2f seconds"
+(float-time
+(time-subtract after-init-time before-init-time)))
+gcs-done)))
+
+(setq user-full-name "Rhyloo"
+user-mail-address "rhyloot@gmail.com")
+
 (require 'package)
 (setq package-archives
   '(
@@ -20,26 +25,14 @@
   ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
   ("melpa" . "http://melpa.org/packages/")))
 
-(package-initialize)
+  (package-initialize)
 
-;; Use-package for civilized configuration
 (unless (package-installed-p 'use-package)
 (package-refresh-contents)
 (package-install 'use-package))
-
-  (require 'use-package)
-  (setq use-package-always-ensure t)
-
-(use-package benchmark-init
- :ensure t
- :config
- ;; To disable collection of benchmark data after init is done.
- (add-hook 'after-init-hook 'benchmark-init/deactivate))
-
-  ;; (use-package ispell-multi
-  ;;   :defer t
-  ;;   :ensure nil
-  ;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
+ 
+(require 'use-package)
+(setq use-package-always-ensure t)
 
 (use-package org-make-toc
 :defer t
@@ -82,72 +75,10 @@
 :config
 (setq org-reveal-root "./reveal.js"))
 
-(use-package yasnippet                  ; Snippets
-  :ensure t
-  :config
-  (setq yas-snippet-dirs
-  '("~/.emacs.d/elpa/yasnippet-snippets-20210910.1959/snippets/" ;;Latex-collection snippets
-  "~/Documents/Github/yasnippets-latex/snippets/latex-mode/"
-  ))
-  ;; (validate-setq
-  ;;  yas-verbosity 1                      ; No need to be so verbose
-  ;;  yas-wrap-around-region t)
-  ;;  (with-eval-after-load 'yasnippet
-  ;;    (validate-setq yas-snippet-dirs '(yasnippet-snippets-dir)))
-  (yas-reload-all)
-  (yas-global-mode 1))
-
-(use-package emms
-  :defer t
-  :ensure nil
-  :config
-  (setq exec-path (append exec-path '("/usr/local/bin")))
-  (add-to-list 'load-path "~/.emacs.d/site-lisp/emms/lisp")
-  (require 'emms-setup)
-  (require 'emms-player-mplayer)
-  (emms-standard)
-  (emms-default-players)
-  (define-emms-simple-player mplayer '(file url)
-  (regexp-opt '(".ogg" ".mp3" ".wav" ".mpg" ".mpeg" ".wmv" ".wma"
-  ".mov" ".avi" ".divx" ".ogm" ".asf" ".mkv" "http://" "mms://"
-  ".rm" ".rmvb" ".mp4" ".flac" ".vob" ".m4a" ".flv" ".ogv" ".pls"))
-  "mplayer" "-slave" "-quiet" "-really-quiet" "-fullscreen")
-  (setq emms-source-file-default-directory "~/Music/")
-
-(defun track-title-from-file-name (file)
-"For using with EMMS description functions. Extracts the track
- title from the file name FILE, which just means a) taking only
- the file component at the end of the path, and b) removing any
- file extension."
- (with-temp-buffer
- (save-excursion (insert (file-name-nondirectory (directory-file-name file))))
- (ignore-error 'search-failed
- (search-forward-regexp (rx "." (+ alnum) eol))
- (delete-region (match-beginning 0) (match-end 0)))
- (buffer-string)))
-
- (defun my-emms-track-description (track)
- "Return a description of TRACK, for EMMS, but try to cut just
- the track name from the file name, and just use the file name too
- rather than the whole path."
- (let ((artist (emms-track-get track 'info-artist))
- (title (emms-track-get track 'info-title)))
- (cond ((and artist title)
- (concat artist " - " title))
- (title title)
- ((eq (emms-track-type track) 'file)
- (track-title-from-file-name (emms-track-name track)))
- (t (emms-track-simple-description track)))))
-
- (setq emms-track-description-function 'my-emms-track-description))
-
 (use-package scihub
 :defer t)
 
 (use-package org-ref
-:defer t)
-
-(use-package google-translate
 :defer t)
 
 (use-package xkcd
@@ -162,8 +93,12 @@
 (use-package lua-mode
 :defer t)
 
-(setq user-full-name "Rhyloo"
-      user-mail-address "rhyloot@gmail.com")
+(use-package smartparens
+  :config
+  (smartparens-global-mode t)
+  (sp-pair "'" nil :actions :rem)
+  (sp-pair "`" nil :actions :rem)
+  (setq sp-highlight-pair-overlay nil))
 
 (require 'ol)
   (org-link-set-parameters "hide-link"
@@ -295,6 +230,138 @@
           (clipboard-kill-region (point-min) (point-max)))
         (message filename))))
 
+(defun fd-switch-dictionary()
+  (interactive)
+  (let* ((dic ispell-current-dictionary)
+       (change (if (string= dic "castellano") "english" "castellano")))
+    (ispell-change-dictionary change)
+    (message "Dicionario cambiado desde %s a %s" dic change)
+    ))
+
+(global-set-key (kbd "<f2>")   'fd-switch-dictionary)
+(global-set-key (kbd "<f12>")   'flyspell-auto-correct-word)
+
+(setq inhibit-startup-message t)
+(scroll-bar-mode -1)        ;; Disable visible scrollbar
+(tool-bar-mode -1)          ;; Disable the toolbar
+(tooltip-mode -1)           ;; Disable tooltips
+(set-fringe-mode 10)        ;; Give some breathing room
+(menu-bar-mode -1)          ;; Disable the menu bar
+(show-paren-mode 1)
+(global-hl-line-mode 0)     ;; Highlight lines
+(global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
+(setq read-file-name-completion-ignore-case t)
+(setq completion-ignore-case  t) ;;Tab completion in minibuffer: case insensitive
+;; (setq read-buffer-completion-ignore-case t)
+;; (setq visible-bell t) ;; Set up the visible bell
+;; (add-hook 'split-window-right-hook 'my/theme-configuration)
+
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+(setq scroll-step 1) ;; keyboard scroll one line at a time
+(setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
+
+(set-frame-parameter (selected-frame) 'alpha '(90 . 90)) 
+(add-to-list 'default-frame-alist '(alpha . (90 . 90)))
+(set-frame-parameter (selected-frame) 'fullscreen 'maximized)
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+(column-number-mode)
+
+;; Enable line numbers for some modes
+(dolist (mode '(text-mode-hook
+                python-mode-hook
+                matlab-mode-hook
+		prog-mode-hook
+		conf-mode-hook))
+		(add-hook mode (lambda () (display-line-numbers-mode 1))))
+;; Override some modes which derive from the above
+(dolist (mode '(org-mode-hook))
+(add-hook mode (lambda () (display-line-numbers-mode -1))))
+
+(setq large-file-warning-threshold nil)
+
+(setq vc-follow-symlinks t)
+
+(setq ad-redefinition-action 'accept)
+
+(setq-default frame-title-format '("%f [%m]")) ;;title bar name
+
+(fset 'yes-or-no-p 'y-or-n-p) ;; Replace yes or no for y or n
+
+(delete-selection-mode 1) ;;Let you select and replace with yank or write
+
+(setq display-time-format "%H:%M %d %b %Y"
+display-time-default-load-average nil)
+(setq display-time-day-and-date t
+display-time-24hr-format t)
+(display-time)
+
+(unless (equal "Battery status not available" (battery)) ;;;Show battery
+(display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+
+(setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
+
+;; Revert Dired and other buffers
+(setq global-auto-revert-non-file-buffers t)
+
+;; Revert buffers when the underlying file has changed
+(global-auto-revert-mode 1)
+
+(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
+
+(setq enable-local-variables 1)
+
+(eval-after-load 'pdf-tools
+'(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
+
+(global-set-key (kbd "C-c <left>")  'windmove-left)
+(global-set-key (kbd "C-c <right>") 'windmove-right)
+(global-set-key (kbd "C-c <up>")    'windmove-up)
+(global-set-key (kbd "C-c <down>")  'windmove-down)
+(global-set-key (kbd "C-x wti")  'display-time-world)
+
+(global-set-key (kbd "C-c l") 'my/svg-to-pdf)
+(global-set-key (kbd "C-x q") 'compile)
+
+(global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
+(global-set-key (kbd "<f4>") 'org-publish-all)
+(global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
+(global-set-key (kbd "<f6>") 'org-publish-current-file)
+(global-set-key (kbd "<f9>") 'my/pwd)
+(global-set-key (kbd "<f8>") 'my/upload-doc)
+(global-set-key (kbd "<f7>") 'my/actualization-repo)
+(global-set-key (kbd "M-+")  'dired-create-empty-file)
+
+(setq-default tab-width 2)
+(setq-default evil-shift-width tab-width)
+
+(setq-default indent-tabs-mode nil)
+
+(setq org-startup-folded t)
+(setq org-return-follows-link 1)
+(setq org-startup-with-inline-images t)
+(setq org-image-actual-width nil)
+
+(add-hook 'org-mode-hook 'org-indent-mode)
+
+(org-babel-do-load-languages ;; list of babel languages
+'org-babel-load-languages
+'((matlab . t)
+(ditaa . t)
+;; (spice . t)
+(gnuplot . t)
+(org . t)
+(shell . t)
+(latex . t)
+(python . t)
+(asymptote . t)
+))
+(setq org-agenda-files'("~/Documents/Org/agenda.org"))
+
+(global-set-key (kbd "C-c C-c") 'org-capture)
+
 ;; https://emacs.stackexchange.com/questions/16511/how-can-i-get-a-custom-org-drawer-to-open-close
 ;; https://www.emacswiki.org/emacs/ReplaceInString
 ;; https://lists.gnu.org/archive/html/emacs-orgmode/2010-11/msg00258.html
@@ -345,7 +412,7 @@ or LaTeX command"
 ;; Based on the slug logic in org-roam, but org-roam also uses a
 ;; timestamp, and I use only the slug. BTW "slug" comes from
 ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
-(setq title (s-downcase title))
+(setq title (downcase-word title))
 (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
 (setq title (s-replace-regexp "-+" "-" title))
 (setq title (s-replace-regexp "^-" "" title))
@@ -357,263 +424,8 @@ title)
   (cdr (assoc key (json-read-file "~/.emacs.d/gcal-secret.json")))
   )
 
-(defun org-babel-octave-evaluate-session
-    (session body result-type &optional matlabp)
-  "Evaluate BODY in SESSION."
-  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
-     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
-     (full-body
-      (pcase result-type
-        (`output
-         (mapconcat
-          #'org-babel-chomp
-          (list (if matlabp
-                        (multi-replace-regexp-in-string
-                         '(("%.*$"                      . "")    ;Remove comments
-                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
-                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
-                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
-                         body)
-                      body)
-                    org-babel-octave-eoe-indicator) "\n"))
-        (`value
-         (if (and matlabp org-babel-matlab-with-emacs-link)
-         (concat
-          (format org-babel-matlab-emacs-link-wrapper-method
-              body
-              (org-babel-process-file-name tmp-file 'noquote)
-              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
-           (mapconcat
-        #'org-babel-chomp
-        (list (format org-babel-octave-wrapper-method
-                  body
-                  (org-babel-process-file-name tmp-file 'noquote)
-                  (org-babel-process-file-name tmp-file 'noquote))
-              org-babel-octave-eoe-indicator) "\n")))))
-     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
-          (save-window-excursion
-            (with-temp-buffer
-              (insert full-body)
-              (write-region "" 'ignored wait-file nil nil nil 'excl)
-              (matlab-shell-run-region (point-min) (point-max))
-              (message "Waiting for Matlab Emacs Link")
-              (while (file-exists-p wait-file) (sit-for 0.01))
-              "")) ;; matlab-shell-run-region doesn't seem to
-        ;; make *matlab* buffer contents easily
-        ;; available, so :results output currently
-        ;; won't work
-        (org-babel-comint-with-output
-            (session
-             (if matlabp
-             org-babel-octave-eoe-indicator
-               org-babel-octave-eoe-output)
-             t full-body)
-          (insert full-body) (comint-send-input nil t)))) results)
-    (pcase result-type
-      (`value
-       (org-babel-octave-import-elisp-from-file tmp-file))
-      (`output
-       (setq results
-         (if matlabp
-         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
-                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
-           (cdr (member org-babel-octave-eoe-output
-                (reverse (mapcar #'org-strip-quotes
-                         (mapcar #'org-trim raw)))))))
-       (mapconcat #'identity (reverse results) "\n")))))
-
-(defun remove-car-upto-newline (raw)
-  "Truncate the first string in a list of strings `RAW' up to the first newline"
-  (cons (mapconcat #'identity
-                   (cdr (split-string-and-unquote (car raw) "\n"))
-                   "\n") (cdr raw)))
-
-(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
-  (interactive)
-  "Replace multiple regexps in a string. Order matters."
-  (if (null replacements-list)
-      string
-    (let ((regex (caar replacements-list))
-          (replacement (cdar replacements-list)))
-      (multi-replace-regexp-in-string (cdr replacements-list)
-                                      (replace-regexp-in-string regex replacement
-                                                                string rest)))))
-
-(defun fd-switch-dictionary()
-  (interactive)
-  (let* ((dic ispell-current-dictionary)
-       (change (if (string= dic "castellano") "english" "castellano")))
-    (ispell-change-dictionary change)
-    (message "Dicionario cambiado desde %s a %s" dic change)
-    ))
-
-(global-set-key (kbd "<f2>")   'fd-switch-dictionary)
-(global-set-key (kbd "<f12>")   'flyspell-auto-correct-word)
-
-;; Thanks, but no thanks
-(setq inhibit-startup-message t)
-(scroll-bar-mode -1)        ; Disable visible scrollbar
-(tool-bar-mode -1)          ; Disable the toolbar
-(tooltip-mode -1)           ; Disable tooltips
-(set-fringe-mode 10)       ; Give some breathing room
-(menu-bar-mode -1)            ; Disable the menu bar
-(show-paren-mode 1)
-(global-hl-line-mode 1) ;; Highlight lines
-(global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
-(setq read-file-name-completion-ignore-case t)
-(add-hook 'split-window-right-hook 'my/theme-configuration)
-;; (setq completion-ignore-case  t);;Tab completion in minibuffer: case insensitive
-;; (setq read-buffer-completion-ignore-case t)
-;; Set up the visible bell
-;; (setq visible-bell t)
-
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1) ;; keyboard scroll one line at a time
-(setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
-
-(set-frame-parameter (selected-frame) 'alpha '(90 . 90))
-(add-to-list 'default-frame-alist '(alpha . (90 . 90)))
-(set-frame-parameter (selected-frame) 'fullscreen 'maximized)
-(add-to-list 'default-frame-alist '(fullscreen . maximized))
-
-(column-number-mode)
-;; Enable line numbers for some modes
-(dolist (mode '(text-mode-hook
-                matlab-mode-hook
-		prog-mode-hook
-		conf-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 1))))
-;; Override some modes which derive from the above
-(dolist (mode '(org-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode -1))))
-
-(setq large-file-warning-threshold nil)
-
-(setq vc-follow-symlinks t)
-
-(setq ad-redefinition-action 'accept)
-
-(setq-default frame-title-format '("%f [%m]")) ;;title bar name
-
-(fset 'yes-or-no-p 'y-or-n-p) ;; Replace yes or no for y or n
-
-(delete-selection-mode 1) ;;Let you select and replace with yank or write
-
-(use-package spacegray-theme :defer t)
-(use-package doom-themes
-:defer t
-:hook
-(after-init . (lambda () (load-theme 'doom-palenight t)))
-)
-;; (doom-themes-visual-bell-config)
-
-(use-package emojify
-  :hook (erc-mode . emojify-mode)
-  :commands emojify-mode)
-
-(setq display-time-format "%H:%M %d %b %Y"
-          display-time-default-load-average nil)
-  (setq display-time-day-and-date t
-        display-time-24hr-format t)
-  (display-time)
-  (unless (equal "Battery status not available" (battery)) ;;;Show battery
-(display-battery-mode 1))    ; On laptops it's nice to know how much power you have
-
-(setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
-
-;; Revert Dired and other buffers
-(setq global-auto-revert-non-file-buffers t)
-
-;; Revert buffers when the underlying file has changed
-(global-auto-revert-mode 1)
-
-(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
-
-(setq org-confirm-babel-evaluate nil)
-(add-hook 'prog-mode-hook #'hs-minor-mode)
-(use-package blacken
-:defer t
-:config
-(add-hook 'python-mode-hook 'blacken-mode))
-
-(use-package elpy
-  ;; :ensure t
-  :defer t
-  ;; :init
-  ;; (advice-add 'python-mode :before 'elpy-enable)
-  )
-
-(setq display-time-world-list
-    '(;; ("Etc/UTC" "UTC")
-      ;; ("America/Los_Angeles" "Seattle")
-      ;; ("America/New_York" "New York")
-      ("America/Guayaquil" "Guayaquil")
-      ;; ("Europe/Athens" "Athens")
-      ;; ("Pacific/Auckland" "Auckland")
-      ;; ("Asia/Shanghai" "Shanghai")
-      ;; ("Asia/Kolkata" "Hyderabad")
-      ))
-(setq display-time-world-time-format "%Z\t%a %d %b %R")
-
-(setq enable-local-variables 1)
-
-(eval-after-load 'pdf-tools 
-'(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
-
-(global-set-key (kbd "C-c C-c") 'org-capture)
-(setq org-startup-with-inline-images t)
-(setq org-image-actual-width nil)
-
-(global-set-key (kbd "C-c <left>")  'windmove-left)
-(global-set-key (kbd "C-c <right>") 'windmove-right)
-(global-set-key (kbd "C-c <up>")    'windmove-up)
-(global-set-key (kbd "C-c <down>")  'windmove-down)
-(global-set-key (kbd "C-x wti")  'display-time-world)
-
-(global-set-key (kbd "C-c l") 'my/svg-to-pdf)
-(global-set-key (kbd "C-x q") 'compile)
-
-(global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
-(global-set-key (kbd "<f4>") 'org-publish-all)
-(global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
-(global-set-key (kbd "<f6>") 'org-publish-current-file)
-(global-set-key (kbd "<f9>") 'my/pwd)
-(global-set-key (kbd "<f8>") 'my/upload-doc)
-(global-set-key (kbd "<f7>") 'my/actualization-repo)
-(global-set-key (kbd "M-+")  'dired-create-empty-file)
-
-(use-package smartparens
-  ;; :init
-  ;; (bind-key "C-M-f" #'sp-forward-sexp smartparens-mode-map)
-  ;; (bind-key "C-M-b" #'sp-backward-sexp smartparens-mode-map)
-  ;; (bind-key "C-)" #'sp-forward-slurp-sexp smartparens-mode-map)
-  ;; (bind-key "C-(" #'sp-backward-slurp-sexp smartparens-mode-map)
-  ;; (bind-key "M-)" #'sp-forward-barf-sexp smartparens-mode-map)
-  ;; (bind-key "M-(" #'sp-backward-barf-sexp smartparens-mode-map)
-  ;; (bind-key "C-S-s" #'sp-splice-sexp)
-  ;; (bind-key "C-M-<backspace>" #'backward-kill-sexp)
-  ;; (bind-key "C-M-S-<SPC>" (lambda () (interactive) (mark-sexp -1)))
-
-  :config
-  (smartparens-global-mode t)
-
-  (sp-pair "'" nil :actions :rem)
-  (sp-pair "`" nil :actions :rem)
-  (setq sp-highlight-pair-overlay nil))
-
-(setq-default tab-width 2)
-(setq-default evil-shift-width tab-width)
-
-(setq-default indent-tabs-mode nil)
-
-(use-package ws-butler
-  :hook ((text-mode . ws-butler-mode)
-         (prog-mode . ws-butler-mode)))
-
 ;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
-    (setq org-agenda-files'("~/Documents/Org/agenda.org"))
+
 ;; (setq org-latex-listings 'minted
 ;;       org-latex-packages-alist '(("" "minted"))
 ;;       org-latex-pdf-process
@@ -628,8 +440,7 @@ title)
       ;; ;; (ox-extras-activate '(ignore-headlines))
       ;; (setq org-clock-persist 'history)
       ;; (org-clock-persistence-insinuate)
-      (add-hook 'org-mode-hook 'org-indent-mode)
-      (setq org-startup-folded t)
+
       ;; (setq org-latex-listings 'minted
       ;;       org-latex-packages-alist '(("" "minted"))
       ;;       org-latex-pdf-process
@@ -637,19 +448,7 @@ title)
       ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
       ;; ;; (setq org-latex-listings 'listings)
       ;; (setq org-src-preserve-indentation 1)
-      (setq org-return-follows-link 1)
-      (org-babel-do-load-languages ;; list of babel languages
-       'org-babel-load-languages
-       '((matlab . t)
-         (ditaa . t)
-         ;; (spice . t)
-         (gnuplot . t)
-         (org . t)
-         (shell . t)
-         (latex . t)
-         (python . t)
-         (asymptote . t)
-         ))
+
       ;; (org-add-link-type
       ;;  "color"
       ;;  (lambda (path)
@@ -670,7 +469,8 @@ title)
             (set (make-local-variable 'compile-command)
                  (format "matlab -batch %s" (shell-quote-argument
              (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
-        (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+        ;; (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+        ;; (add-hook 'after-save-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
         ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
     ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
         (add-hook 'org-mode-hook
@@ -728,3 +528,32 @@ title)
           ;; (add-hook 'org-mode-hook
           ;;           (lambda ()
           ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+
+(defun efs/lsp-mode-setup()
+(setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+(lsp-headerline-breadcrumb-mode))
+
+(use-package lsp-mode
+:commands (lsp lsp-deferred)
+:hook (lsp-mode . efs/lsp-mode-setup)
+:init
+(setq lsp-keymap-prefix "C-c l")
+:config
+(lsp-enable-which-key-integration t))
+
+(use-package lsp-ui
+:hook (lsp-mode . lsp-ui-mode)
+:custom
+(lsp-ui-doc-position 'bottom))
+
+(use-package pyvenv
+:config
+(pyvenv-mode 1))
+
+(use-package python-mode
+:ensure t
+:hook (python-mode . lsp-deferred)
+:custom
+(python-shell-interpreter "python3"))
+(setq custom-theme-directory "~/.emacs.d/private/themes")
+(load-theme 'minimal t)

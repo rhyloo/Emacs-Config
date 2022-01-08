@@ -2,99 +2,99 @@
 #+AUTHOR: Rhyloo
 #+startup: hideblocks
 #+OPTIONS: broken-links:t
-After all this time... I think is the moment for write a good emacs configuration for the future and for sharing with others.
+
+After all this time... I think is the moment for write a good emacs configuration for the future and for sharing with others.Thanks, but no thanks.
+
 * Table  of Contents
- :PROPERTIES:
- :TOC:      :include all :ignore (this)
- :CUSTOM_ID: table-of-contents
- :END:
+:PROPERTIES:
+:TOC:      :include all :ignore (this)
+:CUSTOM_ID: table-of-contents
+:END:
 :CONTENTS:
 - [[#startup-performance][Startup Performance]]
-- [[#package-management][Package Management]]
-  - [[#packages][Packages]]
-    - [[#dnd][DnD]]
-    - [[#a---data-structure][A - Data structure]]
-    - [[#benchmakr][Benchmakr]]
-    - [[#org-make-toc][Org-make-toc]]
-    - [[#matlab-mode][Matlab-mode]]
-    - [[#magit][Magit]]
-    - [[#ivyswiper][Ivy/Swiper]]
-    - [[#auctex][Auctex]]
-    - [[#simple-httpd][Simple-httpd]]
-    - [[#company][Company]]
-    - [[#pdf-tools][Pdf-tools]]
-    - [[#org-tree-slide][Org-tree-slide]]
-    - [[#revealjs][revealjs]]
-    - [[#yasnippet][Yasnippet]]
-    - [[#emms][EMMS]]
-    - [[#sci-hub][Sci-hub]]
-    - [[#org-ref][Org-ref]]
-    - [[#google-translate][Google-translate]]
-    - [[#xkcd][Xkcd]]
-    - [[#editor-config][Editor Config]]
-    - [[#lua-mode][lua-mode]]
 - [[#personal-information][Personal information]]
+- [[#package-management][Package Management]]
+  - [[#basic][Basic]]
+  - [[#use-package][Use-package]]
+  - [[#packages][Packages]]
+    - [[#org-make-toc][Org-make-toc]]
+    - [[#ivyswiper][Ivy/Swiper]]
+    - [[#smartparens][Smartparens]]
 - [[#custom-functions][Custom functions]]
   - [[#links][Links]]
   - [[#image-edition][Image edition]]
   - [[#configurations][Configurations]]
   - [[#utilities][Utilities]]
-  - [[#org-mode-functions][Org Mode Functions]]
-  - [[#matlab][Matlab]]
   - [[#flyspell][Flyspell]]
 - [[#general-configuration][General Configuration]]
   - [[#user-interface][User Interface]]
-  - [[#theme][Theme]]
-  - [[#font][Font]]
-    - [[#emojis-in-buffers][Emojis in buffers]]
   - [[#mode-line][Mode Line]]
     - [[#basic-customization][Basic Customization]]
   - [[#backup][Backup]]
   - [[#auto-reverting-changed-files][Auto-Reverting Changed Files]]
   - [[#default-applications][Default applications]]
-  - [[#coding][Coding]]
-  - [[#displaying-world-time][Displaying World Time]]
   - [[#local-variables][Local Variables]]
 - [[#keyboard-bindings][Keyboard Bindings]]
   - [[#pdf-tools][Pdf tools]]
-  - [[#org-mode][Org Mode]]
-  - [[#interaction-with-emacs][Interaction with emacs]]
-  - [[#smartparens][Smartparens]]
+  - [[#general][General]]
 - [[#editing-configuration][Editing Configuration]]
   - [[#tab-widths][Tab Widths]]
   - [[#use-spaces-instead-of-tabs-for-indentation][Use spaces instead of tabs for indentation]]
-  - [[#automatically-clean-whitespace][Automatically clean whitespace]]
-- [[#org-mode-settings][Org Mode settings]]
+- [[#org-mode][Org Mode]]
+  - [[#settings][Settings]]
+  - [[#hooks][Hooks]]
+  - [[#coding-with-org-mode][Coding with Org Mode]]
+  - [[#key-bindings][Key bindings]]
+  - [[#functions][Functions]]
+  - [[#some-extra-code][Some extra code]]
 - [[#hooks][Hooks]]
+- [[#python-ide][Python-IDE]]
 :END:
 * Startup Performance
   :PROPERTIES:
   :CUSTOM_ID: startup-performance
   :END:
 
-Make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time.
+  Make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time.
+  #+begin_src emacs-lisp
+    ;; Minimize garbage collection during startup
+    (setq gc-cons-threshold most-positive-fixnum)
 
-#+begin_src emacs-lisp
-  ;; Minimize garbage collection during startup
-  (setq gc-cons-threshold most-positive-fixnum)
-    ;; ;; The default is 800 kilobytes.  Measured in bytes.
-    (setq gc-cons-threshold (* 50 1000 1000))
+    ;; The default is 800 kilobytes.  Measured in bytes.
+    (setq gc-cons-threshold-original gc-cons-threshold)
+    (setq gc-cons-threshold (* 1024 1024 100))
+
     ;; Profile emacs startup
     (add-hook 'emacs-startup-hook
-              (lambda ()
-                (message "*** Emacs loaded in %s with %d garbage collections."
-                         (format "%.2f seconds"
-                                 (float-time
-                                  (time-subtract after-init-time before-init-time)))
-                         gcs-done)))
-#+end_src
+    (lambda ()
+    (message "*** Emacs loaded in %s with %d garbage collections."
+    (format "%.2f seconds"
+    (float-time
+    (time-subtract after-init-time before-init-time)))
+    gcs-done)))
+  #+end_src
+
+* Personal information
+  :PROPERTIES:
+  :CUSTOM_ID: personal-information
+  :END:
+
+  Mail address and full name for email and metadata.
+  #+begin_src emacs-lisp
+  (setq user-full-name "Rhyloo"
+  user-mail-address "rhyloot@gmail.com")
+  #+end_src
+
 * Package Management
   :PROPERTIES:
   :CUSTOM_ID: package-management
   :END:
-Set up ELPA, MELPA, and Org package repositories and load =use-package= to manage package configuration.
-#+begin_src emacs-lisp
-  ;; Initialize package sources
+** Basic
+:PROPERTIES:
+:CUSTOM_ID: basic
+:END:
+  Set up ELPA, MELPA, and Org package repositories and load =use-package= to manage package configuration.
+  #+begin_src emacs-lisp
   (require 'package)
   (setq package-archives
     '(
@@ -103,23 +103,30 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
     ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
     ("melpa" . "http://melpa.org/packages/")))
 
-  (package-initialize)
+    (package-initialize)
+   #+end_src
 
-  ;; Use-package for civilized configuration
-  (unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
-    (require 'use-package)
-    (setq use-package-always-ensure t)
+** Use-package 
+:PROPERTIES:
+:CUSTOM_ID: use-package
+:END:
+For civilized configuration
+#+begin_src emacs-lisp
+(unless (package-installed-p 'use-package)
+(package-refresh-contents)
+(package-install 'use-package))
+ 
+(require 'use-package)
+(setq use-package-always-ensure t)
 #+end_src
+
 ** Packages
   :PROPERTIES:
   :CUSTOM_ID: packages
   :END:
-*** DnD
+*** COMMENT DnD
 :PROPERTIES:
-:CUSTOM_ID: dnd
+:CUSTOM_ID: comment-dnd
 :END:
  #+begin_src emacs-lisp
      (use-package ox-dnd
@@ -130,16 +137,16 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
         (add-hook 'org-mode-hook (lambda () (load-file "~/Documents/Github/emacs-org-dnd/ox-dnd.el")))
 )
  #+end_src emacs-lisp
-*** A - Data structure
+*** COMMENT A - Data structure
 :PROPERTIES:
-:CUSTOM_ID: a-data-structure
+:CUSTOM_ID: comment-a-data-structure
 :END:
  #+begin_src emacs-lisp
      (use-package a)
  #+end_src emacs-lisp
-*** Benchmakr
+*** COMMENT Benchmakr
    :PROPERTIES:
-   :CUSTOM_ID: benchmakr
+   :CUSTOM_ID: comment-benchmakr
    :END:
  #+begin_src emacs-lisp
    (use-package benchmark-init
@@ -159,8 +166,6 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
    :END:
 
 This package makes it easy to have one or more customizable tables of contents in Org files. They can be updated manually, or automatically when the file is saved. Links to headings are created compatible with GitHub’s Org renderer.
-
-
 #+begin_src emacs-lisp
   (use-package org-make-toc
   :defer t
@@ -170,7 +175,7 @@ This package makes it easy to have one or more customizable tables of contents i
 
 *** Matlab-mode
    :PROPERTIES:
-   :CUSTOM_ID: matlab-mode
+   :CUSTOM_ID: comment-matlab-mode
    :END:
 
 MATLAB mode for Emacs consists of Emacs Lisp code that implements a major-mode for Emacs that assists in the editing of MATLAB scripts.
@@ -184,7 +189,7 @@ This allows Emacs to be used in place of the MATLAB Editor for editing your MATL
 
 *** Magit
    :PROPERTIES:
-   :CUSTOM_ID: magit
+   :CUSTOM_ID: comment-magit
    :END:
 
 Magit is a complete text-based user interface to Git.
@@ -208,7 +213,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 
 *** Auctex
    :PROPERTIES:
-   :CUSTOM_ID: auctex
+   :CUSTOM_ID: comment-auctex
    :END:
 #+begin_src emacs-lisp
   ;; ;;Auctex highlight syntax
@@ -217,7 +222,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 *** Simple-httpd
 :PROPERTIES:
-:CUSTOM_ID: simple-httpd
+:CUSTOM_ID: comment-simple-httpd
 :END:
 #+begin_src emacs-lisp
 (use-package simple-httpd
@@ -225,7 +230,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 *** Company
    :PROPERTIES:
-   :CUSTOM_ID: company
+   :CUSTOM_ID: comment-company
    :END:
 #+begin_src emacs-lisp
   ;; ;;Company-mode
@@ -235,7 +240,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 *** Pdf-tools
    :PROPERTIES:
-   :CUSTOM_ID: pdf-tools
+   :CUSTOM_ID: comment-pdf-tools
    :END:
 #+begin_src emacs-lisp
   (use-package pdf-tools
@@ -248,14 +253,14 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 *** Org-tree-slide
 :PROPERTIES:
-:CUSTOM_ID: org-tree-slide
+:CUSTOM_ID: comment-org-tree-slide
 :END:
 #+begin_src emacs-lisp
   (use-package org-tree-slide)
 #+end_src
 *** revealjs
 :PROPERTIES:
-:CUSTOM_ID: revealjs
+:CUSTOM_ID: comment-revealjs
 :END:
 #+begin_src emacs-lisp
   (use-package ox-reveal
@@ -265,9 +270,9 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 
 #+RESULTS:
 : t
-*** Yasnippet
+*** COMMENT Yasnippet
 :PROPERTIES:
-:CUSTOM_ID: yasnippet
+:CUSTOM_ID: comment-yasnippet
 :END:
 #+begin_src emacs-lisp
   (use-package yasnippet                  ; Snippets
@@ -288,9 +293,9 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 
 #+RESULTS:
 : t
-*** EMMS
+*** COMMENT EMMS
 :PROPERTIES:
-:CUSTOM_ID: emms
+:CUSTOM_ID: comment-emms
 :END:
 #+begin_src emacs-lisp
   (use-package emms
@@ -342,7 +347,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 : t
 *** Sci-hub
 :PROPERTIES:
-:CUSTOM_ID: sci-hub
+:CUSTOM_ID: comment-sci-hub
 :END:
 #+begin_src emacs-lisp
   (use-package scihub
@@ -350,7 +355,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 *** Org-ref
 :PROPERTIES:
-:CUSTOM_ID: org-ref
+:CUSTOM_ID: comment-org-ref
 :END:
 #+begin_src emacs-lisp
   (use-package org-ref
@@ -358,9 +363,9 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 
 #+RESULTS:
-*** Google-translate
+*** COMMENT Google-translate
 :PROPERTIES:
-:CUSTOM_ID: google-translate
+:CUSTOM_ID: comment-google-translate
 :END:
 #+begin_src emacs-lisp
   (use-package google-translate
@@ -370,7 +375,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+RESULTS:
 *** Xkcd
 :PROPERTIES:
-:CUSTOM_ID: xkcd
+:CUSTOM_ID: comment-xkcd
 :END:
 #+begin_src emacs-lisp
   (use-package xkcd
@@ -378,7 +383,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 #+end_src
 *** Editor Config
 :PROPERTIES:
-:CUSTOM_ID: editor-config
+:CUSTOM_ID: comment-editor-config
 :END:
 #+begin_src emacs-lisp
 (use-package editorconfig
@@ -390,21 +395,37 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 
 #+RESULTS:
 *** lua-mode
+:PROPERTIES:
+:CUSTOM_ID: comment-lua-mode
+:END:
 #+begin_src emacs-lisp
   (use-package lua-mode
   :defer t)
 #+end_src
 
 #+RESULTS:
+*** COMMENT ws-butler
+:PROPERTIES:
+:CUSTOM_ID: comment-ws-butler
+:END:
 
-* Personal information
-  :PROPERTIES:
-  :CUSTOM_ID: personal-information
-  :END:
-Mail address and full name for email and metadata.
-#+begin_src emacs-lisp 
-(setq user-full-name "Rhyloo"
-      user-mail-address "rhyloot@gmail.com")
+Automatically clean whitespace
+#+begin_src emacs-lisp
+  (use-package ws-butler
+    :hook ((text-mode . ws-butler-mode)
+           (prog-mode . ws-butler-mode)))
+#+end_src
+*** Smartparens
+:PROPERTIES:
+:CUSTOM_ID: smartparens
+:END:
+#+begin_src emacs-lisp
+  (use-package smartparens
+    :config
+    (smartparens-global-mode t)
+    (sp-pair "'" nil :actions :rem)
+    (sp-pair "`" nil :actions :rem)
+    (setq sp-highlight-pair-overlay nil))
 #+end_src
 * Custom functions
   :PROPERTIES:
@@ -519,15 +540,19 @@ Mail address and full name for email and metadata.
      (defun my/reload-emacs-configuration ()
        (interactive)
        (load-file "~/.emacs.d/init.el"))
+   #+end_src
 
+   #+begin_src emacs-lisp
      (defun my/load-blog-configuration ()
        (interactive)
        (load-file "~/.emacs.d/blog.el"))
+   #+end_src
 
+   #+begin_src emacs-lisp
      (defun my/find-emacs-configuration ()
        (interactive)
        (find-file "~/.emacs.d/README.org"))
-   #+end_src               
+   #+end_src
 
 ** COMMENT Themes config
    :PROPERTIES:
@@ -612,7 +637,7 @@ Mail address and full name for email and metadata.
               nil
             (setq current-theme now))
             (eval now))
-#+end_src                   
+#+end_src
 
 #+RESULTS:
 : synchronize-theme
@@ -661,80 +686,9 @@ Mail address and full name for email and metadata.
    #+RESULTS:
    : my/pwd
 
-** Org Mode Functions
+** COMMENT Matlab
    :PROPERTIES:
-   :CUSTOM_ID: org-mode-functions
-   :END:
-#+begin_src emacs-lisp
-;; https://emacs.stackexchange.com/questions/16511/how-can-i-get-a-custom-org-drawer-to-open-close
-;; https://www.emacswiki.org/emacs/ReplaceInString
-;; https://lists.gnu.org/archive/html/emacs-orgmode/2010-11/msg00258.html
-(setq org-export-with-drawers t)
-
-(defun my/org-export-format-drawer (name content)
-"Export :NOTES: and :LOGBOOK: drawers to HTML class
-or LaTeX command"
-(cond
-((string-match "DETAILS" name)
-(setq content (replace-regexp-in-string "<p>" "" content))
-(setq content (replace-regexp-in-string "</p>" "" content))
-(format "<pre class=\"example\">%s</pre>" content))))
-
-(setq org-html-format-drawer-function 'my/org-export-format-drawer)
-#+end_src
-
-#+begin_src emacs-lisp
-  ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
-  ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
-  (defun my/org-generate-custom-ids ()
-  "Generate CUSTOM_ID for any headings that are missing one"
-  (let ((existing-ids
-  ;; (when (file-exists-p (buffer-file-name (current-buffer)))
-  (org-map-entries
-  (lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
-  ))
-
-            ;; (when (file-exists-p (buffer-file-name (current-buffer)))
-            (org-map-entries
-             (lambda ()
-               (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
-                      (heading (org-heading-components))
-                      (level (nth 0 heading))
-                      (todo (nth 2 heading))
-                      (headline (nth 4 heading))
-                      (slug (my/title-to-filename headline))
-                      (duplicate-id (member slug existing-ids)))
-         (when (and ;; (not custom-id)
-                    (< level 4)
-                    ;; (not todo)
-                    ;; (not duplicate-id)
-                    )
-                   (message "Adding entry %s to %s" slug headline)
-                   (org-entry-put nil "CUSTOM_ID" slug))))));; )
-  )
-
-  (defun my/title-to-filename (title)
-  "Convert TITLE to a reasonable filename."
-  ;; Based on the slug logic in org-roam, but org-roam also uses a
-  ;; timestamp, and I use only the slug. BTW "slug" comes from
-  ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
-  (setq title (s-downcase title))
-  (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
-  (setq title (s-replace-regexp "-+" "-" title))
-  (setq title (s-replace-regexp "^-" "" title))
-  (setq title (s-replace-regexp "-$" "" title))
-  title)
-#+end_src
-
-#+begin_src emacs-lisp
-(defun my/get-gcal-config-value (key)
-  "Return the value of the json file gcal_secret for key"
-  (cdr (assoc key (json-read-file "~/.emacs.d/gcal-secret.json")))
-  )
-#+end_src
-** Matlab
-   :PROPERTIES:
-   :CUSTOM_ID: matlab
+   :CUSTOM_ID: comment-matlab
    :END:
 #+begin_src emacs-lisp
 (defun org-babel-octave-evaluate-session
@@ -848,105 +802,107 @@ or LaTeX command"
    :CUSTOM_ID: user-interface
    :END:
 
-Clean up Emacs' user interface, make it more minimal.
+   Clean up Emacs' user interface, make it more minimal.
 
-#+begin_src emacs-lisp
-  ;; Thanks, but no thanks
-  (setq inhibit-startup-message t)
-  (scroll-bar-mode -1)        ; Disable visible scrollbar
-  (tool-bar-mode -1)          ; Disable the toolbar
-  (tooltip-mode -1)           ; Disable tooltips
-  (set-fringe-mode 10)       ; Give some breathing room
-  (menu-bar-mode -1)            ; Disable the menu bar
-  (show-paren-mode 1)
-  (global-hl-line-mode 1) ;; Highlight lines
-  (global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
-  (setq read-file-name-completion-ignore-case t)
-  (add-hook 'split-window-right-hook 'my/theme-configuration)
-  ;; (setq completion-ignore-case  t);;Tab completion in minibuffer: case insensitive
-  ;; (setq read-buffer-completion-ignore-case t)
-  ;; Set up the visible bell
-  ;; (setq visible-bell t)
-#+end_src
+   #+begin_src emacs-lisp
+   (setq inhibit-startup-message t)
+   (scroll-bar-mode -1)        ;; Disable visible scrollbar
+   (tool-bar-mode -1)          ;; Disable the toolbar
+   (tooltip-mode -1)           ;; Disable tooltips
+   (set-fringe-mode 10)        ;; Give some breathing room
+   (menu-bar-mode -1)          ;; Disable the menu bar
+   (show-paren-mode 1)
+   (global-hl-line-mode 0)     ;; Highlight lines
+   (global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
+   (setq read-file-name-completion-ignore-case t)
+   (setq completion-ignore-case  t) ;;Tab completion in minibuffer: case insensitive
+   ;; (setq read-buffer-completion-ignore-case t)
+   ;; (setq visible-bell t) ;; Set up the visible bell
+   ;; (add-hook 'split-window-right-hook 'my/theme-configuration)
+   #+end_src
 
-Improve scrolling.
+   Improve scrolling.
 
-#+begin_src emacs-lisp
+  #+begin_src emacs-lisp
   (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
   (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
   (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
   (setq scroll-step 1) ;; keyboard scroll one line at a time
   (setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
-#+end_src
+  #+end_src
 
-Set frame transparency and maximize windows by default.
+  Set frame transparency and maximize windows by default.
 
-#+begin_src emacs-lisp
-  (set-frame-parameter (selected-frame) 'alpha '(90 . 90))
+  #+begin_src emacs-lisp
+  (set-frame-parameter (selected-frame) 'alpha '(90 . 90)) 
   (add-to-list 'default-frame-alist '(alpha . (90 . 90)))
   (set-frame-parameter (selected-frame) 'fullscreen 'maximized)
   (add-to-list 'default-frame-alist '(fullscreen . maximized))
-#+end_src
+  #+end_src
 
-Enable line numbers and customize their format.
+  Enable line numbers and customize their format.
 
-#+begin_src emacs-lisp
+  #+begin_src emacs-lisp
   (column-number-mode)
+  
   ;; Enable line numbers for some modes
   (dolist (mode '(text-mode-hook
+                  python-mode-hook
                   matlab-mode-hook
 		  prog-mode-hook
 		  conf-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode 1))))
+		  (add-hook mode (lambda () (display-line-numbers-mode 1))))
   ;; Override some modes which derive from the above
   (dolist (mode '(org-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode -1))))
-#+end_src
+  (add-hook mode (lambda () (display-line-numbers-mode -1))))
+  #+end_src
 
-Don't warn for large files (shows up when launching videos)
+  Don't warn for large files (shows up when launching videos)
 
-#+begin_src emacs-lisp
+  #+begin_src emacs-lisp
   (setq large-file-warning-threshold nil)
-#+end_src
+  #+end_src
 
-Don't warn for following symlinked files
+  Don't warn for following symlinked files
 
-#+begin_src emacs-lisp
+  #+begin_src emacs-lisp
   (setq vc-follow-symlinks t)
-#+end_src
+  #+end_src
 
-Don't warn when advice is added for functions
+  Don't warn when advice is added for functions
 
-#+begin_src emacs-lisp
+  #+begin_src emacs-lisp
   (setq ad-redefinition-action 'accept)
-#+end_src
+  #+end_src
 
-Title format
+  Title format
 
-#+begin_src emacs-lisp
- (setq-default frame-title-format '("%f [%m]")) ;;title bar name
-#+end_src
+  #+begin_src emacs-lisp
+  (setq-default frame-title-format '("%f [%m]")) ;;title bar name
+  #+end_src
 
-y or n?
-#+begin_src emacs-lisp
-(fset 'yes-or-no-p 'y-or-n-p) ;; Replace yes or no for y or n
-#+end_src
+  y or n?
+  #+begin_src emacs-lisp
+  (fset 'yes-or-no-p 'y-or-n-p) ;; Replace yes or no for y or n
+  #+end_src
 
-#+begin_src emacs-lisp
-(delete-selection-mode 1) ;;Let you select and replace with yank or write
-#+end_src
-** Theme
+  #+begin_src emacs-lisp
+  (delete-selection-mode 1) ;;Let you select and replace with yank or write
+  #+end_src
+
+** COMMENT Theme
    :PROPERTIES:
-   :CUSTOM_ID: theme
+   :CUSTOM_ID: comment-theme
    :END:
 
-These days I bounce around between themes included with [[https://github.com/hlissner/emacs-doom-themes][DOOM Themes]] since they're well-designed and integrate with a lot of Emacs packages.
-A nice gallery of Emacs themes can be found at https://emacsthemes.com/.
-Alternate themes:
-- =doom-snazzy=
-- =doom-vibrant=
+   These days I bounce around between themes included with [[https://github.com/hlissner/emacs-doom-themes][DOOM Themes]] since they're well-designed and integrate with a lot of Emacs packages.
+   A nice gallery of Emacs themes can be found at https://emacsthemes.com/.
 
-#+begin_src emacs-lisp
+   Alternate themes:
+   - =doom-snazzy=
+   - =doom-vibrant=
+
+  #+begin_src emacs-lisp
   (use-package spacegray-theme :defer t)
   (use-package doom-themes
   :defer t
@@ -954,22 +910,22 @@ Alternate themes:
   (after-init . (lambda () (load-theme 'doom-palenight t)))
   )
   ;; (doom-themes-visual-bell-config)
-#+end_src
+  #+end_src
 
-** Font
+** COMMENT Font
    :PROPERTIES:
-   :CUSTOM_ID: font
+   :CUSTOM_ID: comment-font
    :END:
-*** Emojis in buffers
+*** COMMENT Emojis in buffers
     :PROPERTIES:
-    :CUSTOM_ID: emojis-in-buffers
+    :CUSTOM_ID: comment-emojis-in-buffers
     :END:
 
-#+begin_src emacs-lisp :tagle no
-  (use-package emojify
+    #+begin_src emacs-lisp :tagle no
+    (use-package emojify
     :hook (erc-mode . emojify-mode)
     :commands emojify-mode)
-#+end_src
+    #+end_src
 
 ** Mode Line
    :PROPERTIES:
@@ -979,19 +935,22 @@ Alternate themes:
     :PROPERTIES:
     :CUSTOM_ID: basic-customization
     :END:
+Display time
 
 #+begin_src emacs-lisp
-    (setq display-time-format "%H:%M %d %b %Y"
-            display-time-default-load-average nil)
-    (setq display-time-day-and-date t
-          display-time-24hr-format t)
-    (display-time)
-    (unless (equal "Battery status not available" (battery)) ;;;Show battery
-  (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+(setq display-time-format "%H:%M %d %b %Y"
+display-time-default-load-average nil)
+(setq display-time-day-and-date t
+display-time-24hr-format t)
+(display-time)
 #+end_src
 
-#+RESULTS:
-: t
+Display battery if it is possible
+
+#+begin_src emacs-lisp
+(unless (equal "Battery status not available" (battery)) ;;;Show battery
+(display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+#+end_src
 
 *** COMMENT Enable Mode Diminishing
     :PROPERTIES:
@@ -1106,9 +1065,9 @@ anymore if I set up =diminish= correctly.
 #+begin_src emacs-lisp
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
 #+end_src
-** Coding
+** COMMENT Coding
 :PROPERTIES:
-:CUSTOM_ID: coding
+:CUSTOM_ID: comment-coding
 :END:
 #+begin_src emacs-lisp
   (setq org-confirm-babel-evaluate nil)
@@ -1127,9 +1086,9 @@ anymore if I set up =diminish= correctly.
 #+end_src
 
 #+RESULTS:
-** Displaying World Time
+** COMMENT Displaying World Time
 :PROPERTIES:
-:CUSTOM_ID: displaying-world-time
+:CUSTOM_ID: comment-displaying-world-time
 :END:
 #+begin_src emacs-lisp
   (setq display-time-world-list
@@ -1164,23 +1123,14 @@ anymore if I set up =diminish= correctly.
    :CUSTOM_ID: pdf-tools
    :END:
    #+begin_src emacs-lisp
-     (eval-after-load 'pdf-tools 
+     (eval-after-load 'pdf-tools
      '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
    #+end_src
-** Org Mode
+** General
    :PROPERTIES:
-   :CUSTOM_ID: org-mode
+   :CUSTOM_ID: general
    :END:
-   #+begin_src emacs-lisp
-   (global-set-key (kbd "C-c C-c") 'org-capture)
-   (setq org-startup-with-inline-images t)
-   (setq org-image-actual-width nil)
-   #+end_src
-** Interaction with emacs
-   :PROPERTIES:
-   :CUSTOM_ID: interaction-with-emacs
-   :END:
-   #+begin_src emacs-lisp
+    #+begin_src emacs-lisp
      (global-set-key (kbd "C-c <left>")  'windmove-left)
      (global-set-key (kbd "C-c <right>") 'windmove-right)
      (global-set-key (kbd "C-c <up>")    'windmove-up)
@@ -1199,34 +1149,6 @@ anymore if I set up =diminish= correctly.
      (global-set-key (kbd "<f7>") 'my/actualization-repo)
      (global-set-key (kbd "M-+")  'dired-create-empty-file)
       #+end_src
-
-   #+RESULTS:
-   : dired-create-empty-file
-
-** Smartparens
-:PROPERTIES:
-:CUSTOM_ID: smartparens
-:END:
-#+begin_src emacs-lisp
-  (use-package smartparens
-    ;; :init
-    ;; (bind-key "C-M-f" #'sp-forward-sexp smartparens-mode-map)
-    ;; (bind-key "C-M-b" #'sp-backward-sexp smartparens-mode-map)
-    ;; (bind-key "C-)" #'sp-forward-slurp-sexp smartparens-mode-map)
-    ;; (bind-key "C-(" #'sp-backward-slurp-sexp smartparens-mode-map)
-    ;; (bind-key "M-)" #'sp-forward-barf-sexp smartparens-mode-map)
-    ;; (bind-key "M-(" #'sp-backward-barf-sexp smartparens-mode-map)
-    ;; (bind-key "C-S-s" #'sp-splice-sexp)
-    ;; (bind-key "C-M-<backspace>" #'backward-kill-sexp)
-    ;; (bind-key "C-M-S-<SPC>" (lambda () (interactive) (mark-sexp -1)))
-
-    :config
-    (smartparens-global-mode t)
-
-    (sp-pair "'" nil :actions :rem)
-    (sp-pair "`" nil :actions :rem)
-    (setq sp-highlight-pair-overlay nil))
-#+end_src
 * Editing Configuration
   :PROPERTIES:
   :CUSTOM_ID: editing-configuration
@@ -1236,7 +1158,7 @@ anymore if I set up =diminish= correctly.
    :CUSTOM_ID: tab-widths
    :END:
 
-Default to an indentation size of 2 spaces since it's the norm for pretty much every language I use.
+   Default to an indentation size of 2 spaces since it's the norm for pretty much every language I use.
 
 #+begin_src emacs-lisp
 
@@ -1253,25 +1175,133 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
 #+begin_src emacs-lisp
   (setq-default indent-tabs-mode nil)
 #+end_src
+* Org Mode 
+  :PROPERTIES:
+  :CUSTOM_ID: org-mode
+  :END:
+** Settings
+:PROPERTIES:
+:CUSTOM_ID: settings
+:END:
+  #+begin_src emacs-lisp
+  (setq org-startup-folded t)
+  (setq org-return-follows-link 1)
+  (setq org-startup-with-inline-images t)
+  (setq org-image-actual-width nil)
+  #+end_src
+** Hooks
+:PROPERTIES:
+:CUSTOM_ID: hooks
+:END:
+  #+begin_src emacs-lisp
+  (add-hook 'org-mode-hook 'org-indent-mode)
+  #+end_src
+** Coding with Org Mode
+:PROPERTIES:
+:CUSTOM_ID: coding-with-org-mode
+:END:
+  #+begin_src emacs-lisp
+  (org-babel-do-load-languages ;; list of babel languages
+  'org-babel-load-languages
+  '((matlab . t)
+  (ditaa . t)
+  ;; (spice . t)
+  (gnuplot . t)
+  (org . t)
+  (shell . t)
+  (latex . t)
+  (python . t)
+  (asymptote . t)
+  ))
+  (setq org-agenda-files'("~/Documents/Org/agenda.org"))
+  #+end_src
 
-** Automatically clean whitespace
+** Key bindings
    :PROPERTIES:
-   :CUSTOM_ID: automatically-clean-whitespace
+   :CUSTOM_ID: key-bindings
+   :END:
+   #+begin_src emacs-lisp
+   (global-set-key (kbd "C-c C-c") 'org-capture)
+   #+end_src
+
+** Functions
+   :PROPERTIES:
+   :CUSTOM_ID: functions
    :END:
 #+begin_src emacs-lisp
-  (use-package ws-butler
-    :hook ((text-mode . ws-butler-mode)
-           (prog-mode . ws-butler-mode)))
+;; https://emacs.stackexchange.com/questions/16511/how-can-i-get-a-custom-org-drawer-to-open-close
+;; https://www.emacswiki.org/emacs/ReplaceInString
+;; https://lists.gnu.org/archive/html/emacs-orgmode/2010-11/msg00258.html
+(setq org-export-with-drawers t)
+
+(defun my/org-export-format-drawer (name content)
+"Export :NOTES: and :LOGBOOK: drawers to HTML class
+or LaTeX command"
+(cond
+((string-match "DETAILS" name)
+(setq content (replace-regexp-in-string "<p>" "" content))
+(setq content (replace-regexp-in-string "</p>" "" content))
+(format "<pre class=\"example\">%s</pre>" content))))
+
+(setq org-html-format-drawer-function 'my/org-export-format-drawer)
 #+end_src
 
-* Org Mode settings
-  :PROPERTIES:
-  :CUSTOM_ID: org-mode-settings
-  :END:
+#+begin_src emacs-lisp
+  ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
+  ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
+  (defun my/org-generate-custom-ids ()
+  "Generate CUSTOM_ID for any headings that are missing one"
+  (let ((existing-ids
+  ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+  (org-map-entries
+  (lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
+  ))
+
+            ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+            (org-map-entries
+             (lambda ()
+               (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+                      (heading (org-heading-components))
+                      (level (nth 0 heading))
+                      (todo (nth 2 heading))
+                      (headline (nth 4 heading))
+                      (slug (my/title-to-filename headline))
+                      (duplicate-id (member slug existing-ids)))
+         (when (and ;; (not custom-id)
+                    (< level 4)
+                    ;; (not todo)
+                    ;; (not duplicate-id)
+                    )
+                   (message "Adding entry %s to %s" slug headline)
+                   (org-entry-put nil "CUSTOM_ID" slug))))));; )
+  )
+
+  (defun my/title-to-filename (title)
+  "Convert TITLE to a reasonable filename."
+  ;; Based on the slug logic in org-roam, but org-roam also uses a
+  ;; timestamp, and I use only the slug. BTW "slug" comes from
+  ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
+  (setq title (downcase-word title))
+  (setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
+  (setq title (s-replace-regexp "-+" "-" title))
+  (setq title (s-replace-regexp "^-" "" title))
+  (setq title (s-replace-regexp "-$" "" title))
+  title)
+#+end_src
 
 #+begin_src emacs-lisp
-    ;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
-      (setq org-agenda-files'("~/Documents/Org/agenda.org"))
+(defun my/get-gcal-config-value (key)
+  "Return the value of the json file gcal_secret for key"
+  (cdr (assoc key (json-read-file "~/.emacs.d/gcal-secret.json")))
+  )
+#+end_src
+** Some extra code
+:PROPERTIES:
+:CUSTOM_ID: comment-some-extra-code
+:END:
+  #+begin_src emacs-lisp
+  ;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
+  
   ;; (setq org-latex-listings 'minted
   ;;       org-latex-packages-alist '(("" "minted"))
   ;;       org-latex-pdf-process
@@ -1286,8 +1316,7 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
         ;; ;; (ox-extras-activate '(ignore-headlines))
         ;; (setq org-clock-persist 'history)
         ;; (org-clock-persistence-insinuate)
-        (add-hook 'org-mode-hook 'org-indent-mode)
-        (setq org-startup-folded t)
+
         ;; (setq org-latex-listings 'minted
         ;;       org-latex-packages-alist '(("" "minted"))
         ;;       org-latex-pdf-process
@@ -1295,19 +1324,7 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
         ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
         ;; ;; (setq org-latex-listings 'listings)
         ;; (setq org-src-preserve-indentation 1)
-        (setq org-return-follows-link 1)
-        (org-babel-do-load-languages ;; list of babel languages
-         'org-babel-load-languages
-         '((matlab . t)
-           (ditaa . t)
-           ;; (spice . t)
-           (gnuplot . t)
-           (org . t)
-           (shell . t)
-           (latex . t)
-           (python . t)
-           (asymptote . t)
-           ))
+  
         ;; (org-add-link-type
         ;;  "color"
         ;;  (lambda (path)
@@ -1322,10 +1339,7 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
         ;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
         ;;     ((eq format 'latex)
         ;;      (format "\\textcolor{%s}{%s}" path desc)))))
-#+end_src
-
-#+RESULTS:
-
+   #+end_src
 * Hooks
   :PROPERTIES:
   :CUSTOM_ID: hooks
@@ -1336,7 +1350,8 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
                 (set (make-local-variable 'compile-command)
                      (format "matlab -batch %s" (shell-quote-argument
                  (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
-            (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+            ;; (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
+            ;; (add-hook 'after-save-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
             ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
         ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
             (add-hook 'org-mode-hook
@@ -1395,5 +1410,38 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
               ;;           (lambda ()
               ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
 #+end_src
+* Python-IDE
+:PROPERTIES:
+:CUSTOM_ID: python-ide
+:END:
+  #+begin_src emacs-lisp
+  (defun efs/lsp-mode-setup()
+  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+  (lsp-headerline-breadcrumb-mode))
 
-#+RESULTS:
+  (use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . efs/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
+  
+  (use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-doc-position 'bottom))
+
+  (use-package pyvenv
+  :config
+  (pyvenv-mode 1))
+
+  (use-package python-mode
+  :ensure t
+  :hook (python-mode . lsp-deferred)
+  :custom
+  (python-shell-interpreter "python3"))
+  (setq custom-theme-directory "~/.emacs.d/private/themes")
+  (load-theme 'minimal t)
+  #+end_src
+
