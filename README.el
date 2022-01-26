@@ -36,25 +36,18 @@
  ;; To disable collection of benchmark data after init is done.
  (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-  ;; (use-package ispell-multi
-  ;;   :defer t
-  ;;   :ensure nil
-  ;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
-
 (use-package org-make-toc
-:defer t
-;; :hook (org-mode . org-make-toc-mode)
-)
+:defer t)
 
 (use-package matlab-mode
-    :defer t)
+:defer t)
 
 (use-package magit
   :defer t
   :bind ("C-x g" . magit-status))
 
 (use-package swiper
-:bind ("C-s" . swiper))
+:bind ("C-s" . swiper-isearch))
 
 ;; ;;Auctex highlight syntax
 (use-package auctex
@@ -162,8 +155,30 @@
 (use-package lua-mode
 :defer t)
 
+(use-package vhdl-mode
+:defer t)
+
+(use-package org-roam
+:init
+(setq org-roam-v2-ack t)
+:custom
+(org-roam-directory "~/Documents/org")
+(setq org-roam-graph-viewer 'eww-open-file)
+:bind (("C-c n l" . org-roam-buffer-toggle)
+       ("C-c n f" . org-roam-node-find)
+       ("C-c n g" . org-roam-graph)
+       ("C-c n i" . org-roam-node-insert)
+       ("C-c n c" . org-roam-capture)
+       ;; Dailies
+       ("C-c n j" . org-roam-dailies-capture-today))
+:config
+;; (org-roam-db-autosync-mode)
+(org-roam-setup))
+
 (setq user-full-name "Rhyloo"
       user-mail-address "rhyloot@gmail.com")
+(setq custom-theme-directory "~/.emacs.d/private/themes")
+(load-theme 'minimal t)
 
 (require 'ol)
   (org-link-set-parameters "hide-link"
@@ -295,68 +310,6 @@
           (clipboard-kill-region (point-min) (point-max)))
         (message filename))))
 
-;; https://emacs.stackexchange.com/questions/16511/how-can-i-get-a-custom-org-drawer-to-open-close
-;; https://www.emacswiki.org/emacs/ReplaceInString
-;; https://lists.gnu.org/archive/html/emacs-orgmode/2010-11/msg00258.html
-(setq org-export-with-drawers t)
-
-(defun my/org-export-format-drawer (name content)
-"Export :NOTES: and :LOGBOOK: drawers to HTML class
-or LaTeX command"
-(cond
-((string-match "DETAILS" name)
-(setq content (replace-regexp-in-string "<p>" "" content))
-(setq content (replace-regexp-in-string "</p>" "" content))
-(format "<pre class=\"example\">%s</pre>" content))))
-
-(setq org-html-format-drawer-function 'my/org-export-format-drawer)
-
-;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
-;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
-(defun my/org-generate-custom-ids ()
-"Generate CUSTOM_ID for any headings that are missing one"
-(let ((existing-ids
-;; (when (file-exists-p (buffer-file-name (current-buffer)))
-(org-map-entries
-(lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
-))
-
-          ;; (when (file-exists-p (buffer-file-name (current-buffer)))
-          (org-map-entries
-           (lambda ()
-             (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
-                    (heading (org-heading-components))
-                    (level (nth 0 heading))
-                    (todo (nth 2 heading))
-                    (headline (nth 4 heading))
-                    (slug (my/title-to-filename headline))
-                    (duplicate-id (member slug existing-ids)))
-       (when (and ;; (not custom-id)
-                  (< level 4)
-                  ;; (not todo)
-                  ;; (not duplicate-id)
-                  )
-                 (message "Adding entry %s to %s" slug headline)
-                 (org-entry-put nil "CUSTOM_ID" slug))))));; )
-)
-
-(defun my/title-to-filename (title)
-"Convert TITLE to a reasonable filename."
-;; Based on the slug logic in org-roam, but org-roam also uses a
-;; timestamp, and I use only the slug. BTW "slug" comes from
-;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
-(setq title (s-downcase title))
-(setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
-(setq title (s-replace-regexp "-+" "-" title))
-(setq title (s-replace-regexp "^-" "" title))
-(setq title (s-replace-regexp "-$" "" title))
-title)
-
-(defun my/get-gcal-config-value (key)
-  "Return the value of the json file gcal_secret for key"
-  (cdr (assoc key (json-read-file "~/.emacs.d/gcal-secret.json")))
-  )
-
 (defun org-babel-octave-evaluate-session
     (session body result-type &optional matlabp)
   "Evaluate BODY in SESSION."
@@ -461,7 +414,7 @@ title)
 (global-hl-line-mode 1) ;; Highlight lines
 (global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
 (setq read-file-name-completion-ignore-case t)
-(add-hook 'split-window-right-hook 'my/theme-configuration)
+;; (add-hook 'split-window-right-hook 'my/theme-configuration)
 ;; (setq completion-ignore-case  t);;Tab completion in minibuffer: case insensitive
 ;; (setq read-buffer-completion-ignore-case t)
 ;; Set up the visible bell
@@ -501,14 +454,6 @@ title)
 
 (delete-selection-mode 1) ;;Let you select and replace with yank or write
 
-(use-package spacegray-theme :defer t)
-(use-package doom-themes
-:defer t
-:hook
-(after-init . (lambda () (load-theme 'doom-palenight t)))
-)
-;; (doom-themes-visual-bell-config)
-
 (use-package emojify
   :hook (erc-mode . emojify-mode)
   :commands emojify-mode)
@@ -544,18 +489,6 @@ title)
   ;; :init
   ;; (advice-add 'python-mode :before 'elpy-enable)
   )
-
-(setq display-time-world-list
-    '(;; ("Etc/UTC" "UTC")
-      ;; ("America/Los_Angeles" "Seattle")
-      ;; ("America/New_York" "New York")
-      ("America/Guayaquil" "Guayaquil")
-      ;; ("Europe/Athens" "Athens")
-      ;; ("Pacific/Auckland" "Auckland")
-      ;; ("Asia/Shanghai" "Shanghai")
-      ;; ("Asia/Kolkata" "Hyderabad")
-      ))
-(setq display-time-world-time-format "%Z\t%a %d %b %R")
 
 (setq enable-local-variables 1)
 
@@ -612,58 +545,22 @@ title)
   :hook ((text-mode . ws-butler-mode)
          (prog-mode . ws-butler-mode)))
 
-;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
-    (setq org-agenda-files'("~/Documents/Org/agenda.org"))
-;; (setq org-latex-listings 'minted
-;;       org-latex-packages-alist '(("" "minted"))
-;;       org-latex-pdf-process
-;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-;; (setq org-latex-listings 'listings)
-      ;; (setq org-agenda-start-with-log-mode t)
-      ;; (setq org-log-done 'time)
-      ;; (setq org-log-into-drawer t)
-      ;; (setq org-image-actual-width 400)
-      ;; ;; (require 'ox-extra)
-      ;; ;; (ox-extras-activate '(ignore-headlines))
-      ;; (setq org-clock-persist 'history)
-      ;; (org-clock-persistence-insinuate)
-      (add-hook 'org-mode-hook 'org-indent-mode)
-      (setq org-startup-folded t)
-      ;; (setq org-latex-listings 'minted
-      ;;       org-latex-packages-alist '(("" "minted"))
-      ;;       org-latex-pdf-process
-      ;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-      ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-      ;; ;; (setq org-latex-listings 'listings)
-      ;; (setq org-src-preserve-indentation 1)
-      (setq org-return-follows-link 1)
-      (org-babel-do-load-languages ;; list of babel languages
-       'org-babel-load-languages
-       '((matlab . t)
-         (ditaa . t)
-         ;; (spice . t)
-         (gnuplot . t)
-         (org . t)
-         (shell . t)
-         (latex . t)
-         (python . t)
-         (asymptote . t)
-         ))
-      ;; (org-add-link-type
-      ;;  "color"
-      ;;  (lambda (path)
-      ;;    (message (concat "color "
-      ;;                     (progn (add-text-properties
-      ;;                             0 (length path)
-      ;;                             (list 'face `((t (:foreground ,path))))
-      ;;                             path) path))))
-      ;;  (lambda (path desc format)
-      ;;    (cond
-      ;;     ((eq format 'html)
-      ;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
-      ;;     ((eq format 'latex)
-      ;;      (format "\\textcolor{%s}{%s}" path desc)))))
+(setq org-agenda-files'("~/Documents/Org/agenda.org"))
+(add-hook 'org-mode-hook 'org-indent-mode)
+(setq org-startup-folded t)
+(setq org-return-follows-link 1)
+(org-babel-do-load-languages ;; list of babel languages
+'org-babel-load-languages
+'((matlab . t)
+(ditaa . t)
+;; (spice . t)
+(gnuplot . t)
+(org . t)
+(shell . t)
+(latex . t)
+(python . t)
+(asymptote . t)
+))
 
 (add-hook 'matlab-mode-hook
           (lambda ()
@@ -728,3 +625,35 @@ title)
           ;; (add-hook 'org-mode-hook
           ;;           (lambda ()
           ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+
+(defun efs/lsp-mode-setup()
+(setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+(lsp-headerline-breadcrumb-mode))
+
+(use-package lsp-mode
+:commands (lsp lsp-deferred)
+:hook (lsp-mode . efs/lsp-mode-setup)
+:init
+(setq lsp-keymap-prefix "C-c l")
+:config
+(lsp-enable-which-key-integration t))
+
+(use-package lsp-ui
+:hook (lsp-mode . lsp-ui-mode)
+:custom
+(lsp-ui-doc-position 'bottom))
+
+(use-package pyvenv
+:config
+(pyvenv-mode 1))
+
+(use-package python-mode
+:ensure t
+:hook (python-mode . lsp-deferred)
+:custom
+(python-shell-interpreter "python3"))
+(setq custom-theme-directory "~/.emacs.d/private/themes")
+(load-theme 'minimal t)
+(global-hl-line-mode 0)
+
+(setq enable-local-variables 1)
