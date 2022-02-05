@@ -31,8 +31,21 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(use-package deft
+    :config
+    (setq deft-directory "~/Documents/org"
+          deft-recursive t
+          deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
+          deft-strip-title-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
+          ;; deft-use-filename-as-title t
+          )
+    :bind
+    ("C-c n s" . deft))
+
 (use-package org
   :pin gnu
+  :hook
+  ((before-save . zp/org-set-last-modified))
   :config
   (ivy-mode 1)
   (setq org-src-tab-acts-natively t))
@@ -453,6 +466,9 @@
          ("C-c n g" . org-roam-graph)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
+         ("C-c n r" . org-roam-node-random)
+         ("C-c n t" . org-roam-tag-add)
+         ("C-c n a" . org-roam-alias-add)
          ;; Dailies
          ("C-c n j" . org-roam-dailies-capture-today))
   :config
@@ -467,6 +483,24 @@
                  (window-parameters . (
                                        ;; (no-other-window . t)
                                        (no-delete-other-windows . t)))))
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :if-new
+           (file+head "${slug}.org"
+                      "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n")
+           :immediate-finish t)
+          ("p" "programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n") :unnarrowed t)
+          ("w" "work" plain "%?"
+           :target (file+head "work/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n") :unnarrowed t)
+          ("P" "personal" plain "%?"
+           :target (file+head "personal/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n") :unnarrowed t)
+          )
+        time-stamp-start "#\\+lastmod: [\t]*")
   )
 
 (use-package ox-reveal
@@ -504,7 +538,11 @@
   :ensure t
   :hook (python-mode . lsp-deferred)
   :custom
-  (python-shell-interpreter "python3"))
+  (python-shell-interpreter "python3")
+  (setq python-indent-offset 4)
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 4)
+  (setq indent-line-function 'insert-tab))
 (setq custom-theme-directory "~/.emacs.d/private/themes")
 (load-theme 'minimal t)
 
@@ -632,39 +670,93 @@
 ;;       (delete-window name)
 ;;       (kill-buffer name))
 
-  (defun my/upload-doc ()
-    (interactive)
-    (setq private_repository "~/Documents/Github/linux_connection/")
-    (setq filename (read-file-name "File name: "))
-    (copy-file filename private_repository)
-    (my/find-file private_repository)
-    (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
-    (kill-buffer "*Shell Command Output*")
-    (delete-other-windows))
+;;--------------------------
+;; Handling file properties for ‘CREATED’ & ‘LAST_MODIFIED’
+;;--------------------------
 
-  (defun my/actualization-repo ()
-    (interactive)
-    (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
-    (kill-buffer "*Shell Command Output*")
-    (delete-other-windows))
+(defun zp/org-find-time-file-property (property &optional anywhere)
+  "Return the position of the time file PROPERTY if it exists.
+When ANYWHERE is non-nil, search beyond the preamble."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((first-heading
+           (save-excursion
+             (re-search-forward org-outline-regexp-bol nil t))))
+      (when (re-search-forward (format "^#\\+%s:" property)
+                               (if anywhere nil first-heading)
+                               t)
+        (point)))))
+
+(defun zp/org-has-time-file-property-p (property &optional anywhere)
+  "Return the position of time file PROPERTY if it is defined.
+As a special case, return -1 if the time file PROPERTY exists but
+is not defined."
+  (when-let ((pos (zp/org-find-time-file-property property anywhere)))
+    (save-excursion
+      (goto-char pos)
+      (if (and (looking-at-p " ")
+               (progn (forward-char)
+                      (org-at-timestamp-p 'lax)))
+          pos
+        -1))))
+
+(defun zp/org-set-time-file-property (property &optional anywhere pos)
+  "Set the time file PROPERTY in the preamble.
+When ANYWHERE is non-nil, search beyond the preamble.
+If the position of the file PROPERTY has already been computed,
+it can be passed in POS."
+  (when-let ((pos (or pos
+                      (zp/org-find-time-file-property property))))
+    (save-excursion
+      (goto-char pos)
+      (if (looking-at-p " ")
+          (forward-char)
+        (insert " "))
+      (delete-region (point) (line-end-position))
+      (let* ((now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+        (insert now)))))
+
+(defun zp/org-set-last-modified ()
+  "Update the LAST_MODIFIED file property in the preamble."
+  (when (derived-mode-p 'org-mode)
+    (zp/org-set-time-file-property "LAST_MODIFIED")))
 
 
-  (defun my/svg-to-pdf ()
-    "Get as input an image with svg format for return it as pdf"
-    (interactive)
-    (shell-command (concat "inkscape " (read-file-name "File name: ")  " --export-area-drawing --batch-process --export-type=pdf --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".pdf&")))
 
-  (defun my/eps-to-pdf ()
-    "Get as input an image with eps format for return it as pdf. It use gs script for do it may be just work in Windows systems."
-    (interactive)
-    (setq filename (read-file-name "File name: "))
-    (setq outputname (read-from-minibuffer (concat "Name output file:")))
-    (shell-command (concat "gswin32 -sDEVICE=pdfwrite -dEPSFitPage -o " outputname ".pdf " filename) ".pdf&"))
 
-  (defun my/pdf-to-svg ()
-    "Get as input a file with pdf format for return it as svg image"
-    (interactive)
-    (shell-command (concat "pdftocairo -svg " (read-file-name "File name: ") " " (read-from-minibuffer (concat "Name output file:")) ".svg&")))
+(defun my/upload-doc ()
+  (interactive)
+  (setq private_repository "~/Documents/Github/linux_connection/")
+  (setq filename (read-file-name "File name: "))
+  (copy-file filename private_repository)
+  (my/find-file private_repository)
+  (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+  (kill-buffer "*Shell Command Output*")
+  (delete-other-windows))
+
+(defun my/actualization-repo ()
+  (interactive)
+  (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+  (kill-buffer "*Shell Command Output*")
+  (delete-other-windows))
+
+
+(defun my/svg-to-pdf ()
+  "Get as input an image with svg format for return it as pdf"
+  (interactive)
+  (shell-command (concat "inkscape " (read-file-name "File name: ")  " --export-area-drawing --batch-process --export-type=pdf --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".pdf&")))
+
+(defun my/eps-to-pdf ()
+  "Get as input an image with eps format for return it as pdf. It use gs script for do it may be just work in Windows systems."
+  (interactive)
+  (setq filename (read-file-name "File name: "))
+  (setq outputname (read-from-minibuffer (concat "Name output file:")))
+  (shell-command (concat "gswin32 -sDEVICE=pdfwrite -dEPSFitPage -o " outputname ".pdf " filename) ".pdf&"))
+
+(defun my/pdf-to-svg ()
+  "Get as input a file with pdf format for return it as svg image"
+  (interactive)
+  (shell-command (concat "pdftocairo -svg " (read-file-name "File name: ") " " (read-from-minibuffer (concat "Name output file:")) ".svg&")))
 
 (defun my/reload-emacs-configuration ()
   (interactive)
