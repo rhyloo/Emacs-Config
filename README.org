@@ -520,7 +520,8 @@ Swiper, an Ivy-enhanced alternative to Isearch.
     :defer t
     :hook ((org-mode . auto-revert-mode)
            ;; (org-mode . super-save-mode)
-           (org-mode . highlight-changes-mode))
+           ;; (org-mode . highlight-changes-mode)
+           )
     :diminish super-save-mode
     :config
     (super-save-mode 1)
@@ -569,6 +570,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
    'org-babel-load-languages
    '((js . t)
      (org . t)
+     (octave . t)
      (css . t)
      (dot . t)
      (latex . t)
@@ -625,6 +627,12 @@ Swiper, an Ivy-enhanced alternative to Isearch.
   ;; ))))
 
 #+end_src
+
+#+RESULTS:
+| org-content | :base-directory | ~/Documents/Github/Blog/blog/ | :base-extension | org  | :auto-sitemap | t    | :sitemap-filename | sitemap.org | :sitemap-title | Sitemap | :publishing-directory | ~/Documents/Github/Blog/public_html | :recursive | t                     | :publishing-function                | org-html-publish-to-html | :headline-levels |                    4 | :auto-preamble         | t |
+| org-media   | :base-directory | ~/Documents/Github/Blog/blog  | :base-extension | css\ | js\           | png\ | jpg\              | gif\        | pdf\           | mp3\    | ogg\                  | swf\                                | svg        | :publishing-directory | ~/Documents/Github/Blog/public_html | :recursive               | t                | :publishing-function | org-publish-attachment |   |
+| blog        | :components     | (org-content org-media)       |                 |      |               |      |                   |             |                |         |                       |                                     |            |                       |                                     |                          |                  |                      |                        |   |
+
 ** Ox-publish
 :PROPERTIES:
 :CUSTOM_ID: ox-publish

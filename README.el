@@ -259,7 +259,8 @@
   :defer t
   :hook ((org-mode . auto-revert-mode)
          ;; (org-mode . super-save-mode)
-         (org-mode . highlight-changes-mode))
+         ;; (org-mode . highlight-changes-mode)
+         )
   :diminish super-save-mode
   :config
   (super-save-mode 1)
