@@ -3,11 +3,12 @@
 #+startup: hideblocks
 #+OPTIONS: broken-links:t
 
+#+begin_html
 <details>
 <summary> This is a test </summary>
 After all this time... I think is the moment for write a good emacs configuration for the future and for sharing with others.
 </details>
-
+#+end_html
 
 * Table  of Contents
 :PROPERTIES:
