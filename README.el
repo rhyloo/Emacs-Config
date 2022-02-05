@@ -1,62 +1,80 @@
 ;; Minimize garbage collection during startup
 (setq gc-cons-threshold most-positive-fixnum)
-  ;; ;; The default is 800 kilobytes.  Measured in bytes.
-  (setq gc-cons-threshold (* 50 1000 1000))
-  ;; Profile emacs startup
-  (add-hook 'emacs-startup-hook
-            (lambda ()
-              (message "*** Emacs loaded in %s with %d garbage collections."
-                       (format "%.2f seconds"
-                               (float-time
-                                (time-subtract after-init-time before-init-time)))
-                       gcs-done)))
+;; ;; The default is 800 kilobytes.  Measured in bytes.
+;; (setq gc-cons-threshold (* 511 1024 1024))
+;; (setq gc-cons-percentage 0.5)
+;; (run-with-idle-timer 5 t #'garbage-collect)
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
 
 ;; Initialize package sources
 (require 'package)
 (setq package-archives
-  '(("org"     .       "https://orgmode.org/elpa/")
-  ("gnu"     .       "https://elpa.gnu.org/packages/")
-  ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
-  ("melpa" . "http://melpa.org/packages/")))
+      '(;; ("org"     .       "https://orgmode.org/elpa/")
+        ("gnu"     .       "https://elpa.gnu.org/packages/")
+        ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
+        ("melpa" . "http://melpa.org/packages/")))
 
 (package-initialize)
 
 ;; Use-package for civilized configuration
 (unless (package-installed-p 'use-package)
-(package-refresh-contents)
-(package-install 'use-package))
+  (package-refresh-contents)
+  (package-install 'use-package))
 
-  (require 'use-package)
-  (setq use-package-always-ensure t)
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+(use-package org
+  :pin gnu
+  :config
+  (ivy-mode 1)
+  (setq org-src-tab-acts-natively t))
+
+(use-package org-ref
+  :defer t)
+
+  ;; (use-package citar)
+
+  ;; (use-package helm-bibtex)
+
+(use-package org-noter
+  :defer t)
 
 (use-package benchmark-init
- :ensure t
- :config
- ;; To disable collection of benchmark data after init is done.
- (add-hook 'after-init-hook 'benchmark-init/deactivate))
+  :ensure t
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-  ;; (use-package ispell-multi
-  ;;   :defer t
-  ;;   :ensure nil
-  ;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
+;; (use-package ispell-multi
+;;   :defer t
+;;   :ensure nil
+;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
 
 (use-package org-make-toc
-:defer t
-;; :hook (org-mode . org-make-toc-mode)
-)
+  :defer t
+  ;; :hook (org-mode . org-make-toc-mode)
+  )
 
 (use-package matlab-mode
-    :defer t
-    :mode "\\.m\\'"
-    ;; :interpreter ("matlab -nodesktop -nosplash -r" . matlab-mode)
-    )
+  :defer t
+  :mode "\\.m\\'"
+  ;; :interpreter ("matlab -nodesktop -nosplash -r" . matlab-mode)
+  )
 
 (use-package magit
   :defer t
   :bind ("C-x g" . magit-status))
 
 (use-package swiper
-:bind ("C-s" . swiper-isearch))
+  :bind ("C-s" . swiper-isearch))
 
 ;; ;;Auctex highlight syntax
 (use-package auctex
@@ -64,16 +82,16 @@
 
 ;; ;;Company-mode
 (use-package company
-:config
-(add-hook 'after-init-hook 'global-company-mode))
+  :config
+  (add-hook 'after-init-hook 'global-company-mode))
 
 (use-package pdf-tools
   :config
   (pdf-loader-install)
   (setq-default pdf-view-display-size 'fit-page)
   (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
-      TeX-source-correlate-start-server t
-      TeX-source-correlate-method 'synctex))
+        TeX-source-correlate-start-server t
+        TeX-source-correlate-method 'synctex))
 
 (use-package simple-httpd
   :defer t
@@ -225,88 +243,92 @@
 ;; '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 
 (use-package super-save
-  :defer 1
+  :defer t
+  :hook ((org-mode . auto-revert-mode)
+         ;; (org-mode . super-save-mode)
+         (org-mode . highlight-changes-mode))
   :diminish super-save-mode
   :config
-  (super-save-mode +1)
-  (setq super-save-auto-save-when-idle t))
+  (super-save-mode 1)
+  ;; (setq super-save-auto-save-when-idle t)
+  )
 
 (use-package ledger-mode
-:defer t)
+  :defer t)
 
 (use-package flymake
-:defer t
-:config
-(add-hook 'after-init-hook 'flymake-mode))
+  :defer t
+  :config
+  (add-hook 'after-init-hook 'flymake-mode))
 
 ;; (use-package flymake-ledger
 ;; :after flymake
 ;; )
 
 ;; (use-package org
-  ;;   :config
-  ;;   (progn
-  ;;   (use-package ob
-  ;;     :config
-      ;; (setq org-src-fontify-natively t)
-      (org-babel-do-load-languages
-       'org-babel-load-languages
-       '((js . t)
-         (org . t)
-         (css . t)
-         (dot . t)
-         (latex . t)
-         (shell . t)
-         (python . t)
-         (matlab . t)
-         (emacs-lisp . t)))
-    ;; (use-package ox-md
-    ;;   :config
-    ;;   (setq org-md-headline-style 'atx)
-    ;;   (use-package ox-gfm
-    ;;     :ensure t))
-    ;; (use-package ox-html
-    ;;   :config
-    ;;   (setq org-html-doctype "html5"
-    ;;         org-html-html5-fancy t
-    ;;         org-html-metadata-timestamp-format "%Y-%m-%d %H:%M"))
-    ;; (use-package org-crypt
-    ;;   :config
-    ;;   (org-crypt-use-before-save-magic)
-    ;;   (setq org-crypt-key "i@l42y.com"
-    ;;         org-tags-exclude-from-inheritance (quote ("crypt"))))
-    ;; (use-package org-agenda
-    ;;   :bind ("C-c a" . org-agenda))
-    ;; (use-package ox
-    ;;   :defer t
-    ;;   :config
-    ;;   (progn
-    ;;   (use-package ox-publish
-    ;;   :config
-      (setq org-publish-project-alist
+;;   :config
+;;   (progn
+;;   (use-package ob
+;;     :config
+;; (setq org-src-fontify-natively t)
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((js . t)
+   (org . t)
+   (css . t)
+   (dot . t)
+   (latex . t)
+   (shell . t)
+   (python . t)
+   (matlab . t)
+   (emacs-lisp . t)))
+;; (use-package ox-md
+;;   :config
+;;   (setq org-md-headline-style 'atx)
+;;   (use-package ox-gfm
+;;     :ensure t))
+;; (use-package ox-html
+;;   :config
+;;   (setq org-html-doctype "html5"
+;;         org-html-html5-fancy t
+;;         org-html-metadata-timestamp-format "%Y-%m-%d %H:%M"))
+;; (use-package org-crypt
+;;   :config
+;;   (org-crypt-use-before-save-magic)
+;;   (setq org-crypt-key "i@l42y.com"
+;;         org-tags-exclude-from-inheritance (quote ("crypt"))))
+;; (use-package org-agenda
+;;   :bind ("C-c a" . org-agenda))
+;; (use-package ox
+;;   :defer t
+;;   :config
+;;   (progn
+;;   (use-package ox-publish
+;;   :config
+(setq org-publish-project-alist
       '(("org-content"
-      :base-directory "~/Documents/Github/Blog/blog/"
-      :base-extension "org"
-      :auto-sitemap t                ; Generate sitemap.org automagically...
-      :sitemap-filename "sitemap.org"  ; ... call it sitemap.org (it's the default)...
-      :sitemap-title "Sitemap"         ; ... with title 'Sitemap'.
-      :publishing-directory "~/Documents/Github/Blog/public_html"
-      :recursive t
-      :publishing-function org-html-publish-to-html
-      :headline-levels 4             ; Just the default for this project.
-      :auto-preamble t
-      )
-      ("org-media"
-      :base-directory "~/Documents/Github/Blog/blog"
-      :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf\\|svg"
-      :publishing-directory "~/Documents/Github/Blog/public_html"
-      :recursive t
-      :publishing-function org-publish-attachment
-      )
-      ("blog" :components ("org-content" "org-media"))
-      ))
+         :base-directory "~/Documents/Github/Blog/blog/"
+         :base-extension "org"
+         :auto-sitemap t                ; Generate sitemap.org automagically...
+         :sitemap-filename "sitemap.org"  ; ... call it sitemap.org (it's the default)...
+         :sitemap-title "Sitemap"         ; ... with title 'Sitemap'.
+         :publishing-directory "~/Documents/Github/Blog/public_html"
+         :recursive t
+         :publishing-function org-html-publish-to-html
+         :headline-levels 4             ; Just the default for this project.
+         :auto-preamble t
+         )
+        ("org-media"
+         :base-directory "~/Documents/Github/Blog/blog"
+         :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf\\|svg"
+         :publishing-directory "~/Documents/Github/Blog/public_html"
+         :recursive t
+         :publishing-function org-publish-attachment
+         )
+        ("blog" :components ("org-content" "org-media"))
+        ))
 ;; )
-      ;; ))))
+;; ))))
 
 ;; (use-package ox-publish
 ;;   :config
@@ -334,7 +356,7 @@
 ;; 	)))
 
 (use-package json
-:defer t)
+  :defer t)
 
 ;; (setq package-check-signature nil)
 
@@ -361,9 +383,9 @@
 ;;   :diminish guess-language-mode)
 
 (use-package htmlize
-:defer t
-:config
-(setq org-src-fontify-natively t))
+  :defer t
+  :config
+  (setq org-src-fontify-natively t))
 
 ;; (use-package auto-complete
 ;; :config
@@ -412,30 +434,40 @@
 
 (use-package org-present
   :bind (:map org-present-mode-keymap
-         ("C-c C-j" . dw/org-present-next)
-         ("C-c C-k" . dw/org-present-prev))
+              ("C-c C-j" . dw/org-present-next)
+              ("C-c C-k" . dw/org-present-prev))
   :hook ((org-present-mode . dw/org-present-hook)
          (org-present-mode-quit . dw/org-present-quit-hook)))
 
 (use-package epresent
-:defer t)
+  :defer t)
 
 (use-package org-roam
-:init
-(setq org-roam-v2-ack t)
-:custom
-(org-roam-directory "~/Documents/org")
-(setq org-roam-graph-viewer nil)
-:bind (("C-c n l" . org-roam-buffer-toggle)
-       ("C-c n f" . org-roam-node-find)
-       ("C-c n g" . org-roam-graph)
-       ("C-c n i" . org-roam-node-insert)
-       ("C-c n c" . org-roam-capture)
-       ;; Dailies
-       ("C-c n j" . org-roam-dailies-capture-today))
-:config
-;; (org-roam-db-autosync-mode)
-(org-roam-setup))
+  :init
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory "~/Documents/org")
+  (setq org-roam-graph-viewer nil)
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n g" . org-roam-graph)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ;; Dailies
+         ("C-c n j" . org-roam-dailies-capture-today))
+  :config
+  ;; (org-roam-db-autosync-mode)
+  (org-roam-setup)
+  (add-to-list 'display-buffer-alist
+               '("\\*org-roam\\*"
+                 (display-buffer-in-side-window)
+                 (side . right)
+                 (slot . 0)
+                 (window-width . 0.2)
+                 (window-parameters . (
+                                       ;; (no-other-window . t)
+                                       (no-delete-other-windows . t)))))
+  )
 
 (use-package ox-reveal
   :config
@@ -448,31 +480,31 @@
   :defer t)
 
 (defun efs/lsp-mode-setup()
-(setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
-(lsp-headerline-breadcrumb-mode))
+  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+  (lsp-headerline-breadcrumb-mode))
 
 (use-package lsp-mode
-:commands (lsp lsp-deferred)
-:hook (lsp-mode . efs/lsp-mode-setup)
-:init
-(setq lsp-keymap-prefix "C-c l")
-:config
-(lsp-enable-which-key-integration t))
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . efs/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
 
 (use-package lsp-ui
-:hook (lsp-mode . lsp-ui-mode)
-:custom
-(lsp-ui-doc-position 'bottom))
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-doc-position 'bottom))
 
 (use-package pyvenv
-:config
-(pyvenv-mode 1))
+  :config
+  (pyvenv-mode 1))
 
 (use-package python-mode
-:ensure t
-:hook (python-mode . lsp-deferred)
-:custom
-(python-shell-interpreter "python3"))
+  :ensure t
+  :hook (python-mode . lsp-deferred)
+  :custom
+  (python-shell-interpreter "python3"))
 (setq custom-theme-directory "~/.emacs.d/private/themes")
 (load-theme 'minimal t)
 
@@ -482,110 +514,157 @@
 (use-package which-key
   :defer t)
 
+(defun dw/org-present-prepare-slide ()
+  (org-overview)
+  (org-show-entry)
+  (org-show-children))
+
+(defun dw/org-present-hook ()
+  (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+                                     (header-line (:height 4.5) variable-pitch)
+                                     (org-code (:height 1.55) org-code)
+                                     (org-verbatim (:height 1.55) org-verbatim)
+                                     (org-block (:height 1.25) org-block)
+                                     (org-block-begin-line (:height 0.7) org-block)))
+  (setq header-line-format " ")
+  (org-display-inline-images)
+  (dw/org-present-prepare-slide))
+
+(defun dw/org-present-quit-hook ()
+  (setq-local face-remapping-alist '((default variable-pitch default)))
+  (setq header-line-format nil)
+  (org-present-small)
+  (org-remove-inline-images))
+
+(defun dw/org-present-prev ()
+  (interactive)
+  (org-present-prev)
+  (dw/org-present-prepare-slide))
+
+(defun dw/org-present-next ()
+  (interactive)
+  (org-present-next)
+  (dw/org-present-prepare-slide))
+
+(use-package org-present
+  :bind (:map org-present-mode-keymap
+              ("C-c C-j" . dw/org-present-next)
+              ("C-c C-k" . dw/org-present-prev))
+  :hook ((org-present-mode . dw/org-present-hook)
+         (org-present-mode . org-present-read-only)
+         (org-present-mode-quit . dw/org-present-quit-hook)))
+
 (setq user-full-name "Rhyloo"
       user-mail-address "rhyloot@gmail.com")
 
 (require 'ol)
-  (org-link-set-parameters "hide-link"
-                           :follow #'org-hide-link-open
-                           :export #'org-hide-link-export
-                           ;; :store #'org-hide-link-store-link
-         :complete #'org-hide-link-complete-file)
+(org-link-set-parameters "hide-link"
+                         :follow #'org-hide-link-open
+                         :export #'org-hide-link-export
+                         ;; :store #'org-hide-link-store-link
+                         :complete #'org-hide-link-complete-file)
 
-  (defcustom org-hide-link-complete-file 'hide-link
-    "The Emacs command to be used to display a man page."
-    :group 'org-link
-    :type 'string)
+(defcustom org-hide-link-complete-file 'hide-link
+  "The Emacs command to be used to display a man page."
+  :group 'org-link
+  :type 'string)
 
-  (defun org-hide-link-open (path _)
-    (find-file path))
+(defun org-hide-link-open (path _)
+  (find-file path))
 
-  (defun org-hide-link-complete-file (&optional arg)
-    "Create a file link using completion."
-    (let ((file (read-file-name "File: "))
-    (pwd (file-name-as-directory (expand-file-name ".")))
-    (pwd1 (file-name-as-directory (abbreviate-file-name
-                 (expand-file-name ".")))))
-      (cond ((equal arg '(16))
-       (concat "hide-link:"
-         (abbreviate-file-name (expand-file-name file))))
-      ((string-match
-        (concat "^" (regexp-quote pwd1) "\\(.+\\)") file)
-       (concat "hide-link:" (match-string 1 file)))
-      ((string-match
-        (concat "^" (regexp-quote pwd) "\\(.+\\)")
-        (expand-file-name file))
-       (concat "hide-link:"
-         (match-string 1 (expand-file-name file))))
-      (t (concat "hide-link:" file)))))
+(defun org-hide-link-complete-file (&optional arg)
+  "Create a file link using completion."
+  (let ((file (read-file-name "File: "))
+        (pwd (file-name-as-directory (expand-file-name ".")))
+        (pwd1 (file-name-as-directory (abbreviate-file-name
+                                       (expand-file-name ".")))))
+    (cond ((equal arg '(16))
+           (concat "hide-link:"
+                   (abbreviate-file-name (expand-file-name file))))
+          ((string-match
+            (concat "^" (regexp-quote pwd1) "\\(.+\\)") file)
+           (concat "hide-link:" (match-string 1 file)))
+          ((string-match
+            (concat "^" (regexp-quote pwd) "\\(.+\\)")
+            (expand-file-name file))
+           (concat "hide-link:"
+                   (match-string 1 (expand-file-name file))))
+          (t (concat "hide-link:" file)))))
 
-  (defun org-hide-link-export (link description format)
-    "Export a man page link from Org files."
-    (let ((path (format "¿Buscas algo?"))
-          (desc (or description link)))
-      (pcase format
-        (`html (format "<span class = nolinks><a target=\"_blank\" href=\"%s\">%s</a></span>" path desc))
-        (`latex (format "\\href{%s}{%s}" path desc))
-        (`texinfo (format "@uref{%s,%s}" path desc))
-        (`ascii (format "%s (%s)" desc path))
-        (t path))))
+(defun org-hide-link-export (link description format)
+  "Export a man page link from Org files."
+  (let ((path (format "¿Buscas algo?"))
+        (desc (or description link)))
+    (pcase format
+      (`html (format "<span class = nolinks><a target=\"_blank\" href=\"%s\">%s</a></span>" path desc))
+      (`latex (format "\\href{%s}{%s}" path desc))
+      (`texinfo (format "@uref{%s,%s}" path desc))
+      (`ascii (format "%s (%s)" desc path))
+      (t path))))
 
-         (defun my/blue-color-link (text)
-           (org-insert-link nil "color:blue" text))
+(defun my/blue-color-link (text)
+  (org-insert-link nil "color:blue" text))
 
-         (defun my/color-link-region ()
-           (interactive)
-           (if (region-active-p)
-               (my/blue-color-link (buffer-substring-no-properties (region-beginning) (region-end)))
-             (message "There is no active region.")))
-  (org-add-link-type
-   "color"
-   (lambda (path)
-     (message (concat "color "
-                      (progn (add-text-properties
-                              0 (length path)
-                              (list 'face `((t (:foreground ,path))))
-                              path) path))))
-   (lambda (path desc format)
-     (cond
-      ((eq format 'html)
-       (format "<span style=\"color:%s;\">%s</span>" path desc))
-      ((eq format 'latex)
-       (format "\\textcolor{%s}{%s}" path desc)))))
+(defun my/color-link-region ()
+  (interactive)
+  (if (region-active-p)
+      (my/blue-color-link (buffer-substring-no-properties (region-beginning) (region-end)))
+    (message "There is no active region.")))
+(org-add-link-type
+ "color"
+ (lambda (path)
+   (message (concat "color "
+                    (progn (add-text-properties
+                            0 (length path)
+                            (list 'face `((t (:foreground ,path))))
+                            path) path))))
+ (lambda (path desc format)
+   (cond
+    ((eq format 'html)
+     (format "<span style=\"color:%s;\">%s</span>" path desc))
+    ((eq format 'latex)
+     (format "\\textcolor{%s}{%s}" path desc)))))
 
-(defun my/upload-doc ()
-(interactive)
-(setq private_repository "~/Documents/Github/linux_connection/")
-(setq filename (read-file-name "File name: "))
-(copy-file filename private_repository)
-(my/find-file private_repository)
-(shell-command "~/Documents/Github/linux_connection/auto-git.sh")
-(kill-buffer "*Shell Command Output*")
-(delete-other-windows))
+;; (defun my/kill-this-buffer ()
+;;     "Kill the current buffer."
+;;     (interactive)
+;;     (setq name (buffer-name))
+;;       (delete-window name)
+;;       (kill-buffer name))
 
-(defun my/actualization-repo ()
-(interactive)
-(shell-command "~/Documents/Github/linux_connection/auto-git.sh")
-(kill-buffer "*Shell Command Output*")
-(delete-other-windows))
+  (defun my/upload-doc ()
+    (interactive)
+    (setq private_repository "~/Documents/Github/linux_connection/")
+    (setq filename (read-file-name "File name: "))
+    (copy-file filename private_repository)
+    (my/find-file private_repository)
+    (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+    (kill-buffer "*Shell Command Output*")
+    (delete-other-windows))
+
+  (defun my/actualization-repo ()
+    (interactive)
+    (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+    (kill-buffer "*Shell Command Output*")
+    (delete-other-windows))
 
 
-     (defun my/svg-to-pdf ()
-       "Get as input an image with svg format for return it as pdf"
-       (interactive)
-       (shell-command (concat "inkscape " (read-file-name "File name: ")  " --export-area-drawing --batch-process --export-type=pdf --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".pdf&")))
+  (defun my/svg-to-pdf ()
+    "Get as input an image with svg format for return it as pdf"
+    (interactive)
+    (shell-command (concat "inkscape " (read-file-name "File name: ")  " --export-area-drawing --batch-process --export-type=pdf --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".pdf&")))
 
-     (defun my/eps-to-pdf ()
-       "Get as input an image with eps format for return it as pdf. It use gs script for do it may be just work in Windows systems."
-       (interactive)
-       (setq filename (read-file-name "File name: "))
-       (setq outputname (read-from-minibuffer (concat "Name output file:")))
-       (shell-command (concat "gswin32 -sDEVICE=pdfwrite -dEPSFitPage -o " outputname ".pdf " filename) ".pdf&"))
+  (defun my/eps-to-pdf ()
+    "Get as input an image with eps format for return it as pdf. It use gs script for do it may be just work in Windows systems."
+    (interactive)
+    (setq filename (read-file-name "File name: "))
+    (setq outputname (read-from-minibuffer (concat "Name output file:")))
+    (shell-command (concat "gswin32 -sDEVICE=pdfwrite -dEPSFitPage -o " outputname ".pdf " filename) ".pdf&"))
 
-     (defun my/pdf-to-svg ()
-       "Get as input a file with pdf format for return it as svg image"
-       (interactive)
-       (shell-command (concat "pdftocairo -svg " (read-file-name "File name: ") " " (read-from-minibuffer (concat "Name output file:")) ".svg&")))
+  (defun my/pdf-to-svg ()
+    "Get as input a file with pdf format for return it as svg image"
+    (interactive)
+    (shell-command (concat "pdftocairo -svg " (read-file-name "File name: ") " " (read-from-minibuffer (concat "Name output file:")) ".svg&")))
 
 (defun my/reload-emacs-configuration ()
   (interactive)
@@ -652,7 +731,7 @@
 ;;     (if (equal now current-theme)
 ;;         nil
 ;;       (setq current-theme now))
-      ;; (eval now))
+;; (eval now))
 
 (defun my/find-file (filename)
   "Open a file in the background"
@@ -677,56 +756,56 @@
 (setq org-export-with-drawers t)
 
 (defun my/org-export-format-drawer (name content)
-"Export :NOTES: and :LOGBOOK: drawers to HTML class
+  "Export :NOTES: and :LOGBOOK: drawers to HTML class
 or LaTeX command"
-(cond
-((string-match "DETAILS" name)
-(setq content (replace-regexp-in-string "<p>" "" content))
-(setq content (replace-regexp-in-string "</p>" "" content))
-(format "<pre class=\"example\">%s</pre>" content))))
+  (cond
+   ((string-match "DETAILS" name)
+    (setq content (replace-regexp-in-string "<p>" "" content))
+    (setq content (replace-regexp-in-string "</p>" "" content))
+    (format "<pre class=\"example\">%s</pre>" content))))
 
 (setq org-html-format-drawer-function 'my/org-export-format-drawer)
 
 ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
 ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
 (defun my/org-generate-custom-ids ()
-"Generate CUSTOM_ID for any headings that are missing one"
-(let ((existing-ids
-;; (when (file-exists-p (buffer-file-name (current-buffer)))
-(org-map-entries
-(lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
-))
+  "Generate CUSTOM_ID for any headings that are missing one"
+  (let ((existing-ids
+         ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+         (org-map-entries
+          (lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
+         ))
 
-          ;; (when (file-exists-p (buffer-file-name (current-buffer)))
-          (org-map-entries
-           (lambda ()
-             (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
-                    (heading (org-heading-components))
-                    (level (nth 0 heading))
-                    (todo (nth 2 heading))
-                    (headline (nth 4 heading))
-                    (slug (my/title-to-filename headline))
-                    (duplicate-id (member slug existing-ids)))
-       (when (and ;; (not custom-id)
-                  (< level 4)
-                  ;; (not todo)
-                  ;; (not duplicate-id)
-                  )
-                 (message "Adding entry %s to %s" slug headline)
-                 (org-entry-put nil "CUSTOM_ID" slug))))));; )
-)
+    ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+    (org-map-entries
+     (lambda ()
+       (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+              (heading (org-heading-components))
+              (level (nth 0 heading))
+              (todo (nth 2 heading))
+              (headline (nth 4 heading))
+              (slug (my/title-to-filename headline))
+              (duplicate-id (member slug existing-ids)))
+         (when (and ;; (not custom-id)
+                (< level 4)
+                ;; (not todo)
+                ;; (not duplicate-id)
+                )
+           (message "Adding entry %s to %s" slug headline)
+           (org-entry-put nil "CUSTOM_ID" slug))))));; )
+  )
 
 (defun my/title-to-filename (title)
-"Convert TITLE to a reasonable filename."
-;; Based on the slug logic in org-roam, but org-roam also uses a
-;; timestamp, and I use only the slug. BTW "slug" comes from
-;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
-(setq title (s-downcase title))
-(setq title (s-replace-regexp "[^a-zA-Z0-9]+" "-" title))
-(setq title (s-replace-regexp "-+" "-" title))
-(setq title (s-replace-regexp "^-" "" title))
-(setq title (s-replace-regexp "-$" "" title))
-title)
+  "Convert TITLE to a reasonable filename."
+  ;; Based on the slug logic in org-roam, but org-roam also uses a
+  ;; timestamp, and I use only the slug. BTW "slug" comes from
+  ;; <https://en.wikipedia.org/wiki/Clean_URL#Slug>
+  (setq title (s-downcase title))
+  (setq title (s-replace-regexp "[^a-zA-Z0-9À-ú]+" "-" title))
+  (setq title (s-replace-regexp "-+" "-" title))
+  (setq title (s-replace-regexp "^-" "" title))
+  (setq title (s-replace-regexp "-$" "" title))
+  title)
 
 (defun my/get-gcal-config-value (key)
   "Return the value of the json file gcal_secret for key"
@@ -737,13 +816,13 @@ title)
     (session body result-type &optional matlabp)
   "Evaluate BODY in SESSION."
   (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
-     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
-     (full-body
-      (pcase result-type
-        (`output
-         (mapconcat
-          #'org-babel-chomp
-          (list (if matlabp
+         (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+         (full-body
+          (pcase result-type
+            (`output
+             (mapconcat
+              #'org-babel-chomp
+              (list (if matlabp
                         (multi-replace-regexp-in-string
                          '(("%.*$"                      . "")    ;Remove comments
                            (";\\s-*\n+"                 . "; ")  ;Concatenate lines
@@ -752,50 +831,50 @@ title)
                          body)
                       body)
                     org-babel-octave-eoe-indicator) "\n"))
-        (`value
-         (if (and matlabp org-babel-matlab-with-emacs-link)
-         (concat
-          (format org-babel-matlab-emacs-link-wrapper-method
-              body
-              (org-babel-process-file-name tmp-file 'noquote)
-              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
-           (mapconcat
-        #'org-babel-chomp
-        (list (format org-babel-octave-wrapper-method
-                  body
-                  (org-babel-process-file-name tmp-file 'noquote)
-                  (org-babel-process-file-name tmp-file 'noquote))
-              org-babel-octave-eoe-indicator) "\n")))))
-     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
-          (save-window-excursion
-            (with-temp-buffer
-              (insert full-body)
-              (write-region "" 'ignored wait-file nil nil nil 'excl)
-              (matlab-shell-run-region (point-min) (point-max))
-              (message "Waiting for Matlab Emacs Link")
-              (while (file-exists-p wait-file) (sit-for 0.01))
-              "")) ;; matlab-shell-run-region doesn't seem to
-        ;; make *matlab* buffer contents easily
-        ;; available, so :results output currently
-        ;; won't work
-        (org-babel-comint-with-output
-            (session
-             (if matlabp
-             org-babel-octave-eoe-indicator
-               org-babel-octave-eoe-output)
-             t full-body)
-          (insert full-body) (comint-send-input nil t)))) results)
+            (`value
+             (if (and matlabp org-babel-matlab-with-emacs-link)
+                 (concat
+                  (format org-babel-matlab-emacs-link-wrapper-method
+                          body
+                          (org-babel-process-file-name tmp-file 'noquote)
+                          (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+               (mapconcat
+                #'org-babel-chomp
+                (list (format org-babel-octave-wrapper-method
+                              body
+                              (org-babel-process-file-name tmp-file 'noquote)
+                              (org-babel-process-file-name tmp-file 'noquote))
+                      org-babel-octave-eoe-indicator) "\n")))))
+         (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+                  (save-window-excursion
+                    (with-temp-buffer
+                      (insert full-body)
+                      (write-region "" 'ignored wait-file nil nil nil 'excl)
+                      (matlab-shell-run-region (point-min) (point-max))
+                      (message "Waiting for Matlab Emacs Link")
+                      (while (file-exists-p wait-file) (sit-for 0.01))
+                      "")) ;; matlab-shell-run-region doesn't seem to
+                ;; make *matlab* buffer contents easily
+                ;; available, so :results output currently
+                ;; won't work
+                (org-babel-comint-with-output
+                    (session
+                     (if matlabp
+                         org-babel-octave-eoe-indicator
+                       org-babel-octave-eoe-output)
+                     t full-body)
+                  (insert full-body) (comint-send-input nil t)))) results)
     (pcase result-type
       (`value
        (org-babel-octave-import-elisp-from-file tmp-file))
       (`output
        (setq results
-         (if matlabp
-         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
-                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
-           (cdr (member org-babel-octave-eoe-output
-                (reverse (mapcar #'org-strip-quotes
-                         (mapcar #'org-trim raw)))))))
+             (if matlabp
+                 (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                                                  (mapcar #'org-trim (remove-car-upto-newline raw))))))
+               (cdr (member org-babel-octave-eoe-output
+                            (reverse (mapcar #'org-strip-quotes
+                                             (mapcar #'org-trim raw)))))))
        (mapconcat #'identity (reverse results) "\n")))))
 
 (defun remove-car-upto-newline (raw)
@@ -818,13 +897,14 @@ title)
 (defun fd-switch-dictionary()
   (interactive)
   (let* ((dic ispell-current-dictionary)
-       (change (if (string= dic "castellano") "english" "castellano")))
+         (change (if (string= dic "castellano") "english" "castellano")))
     (ispell-change-dictionary change)
     (message "Dicionario cambiado desde %s a %s" dic change)
     ))
 
 (global-set-key (kbd "<f2>")   'fd-switch-dictionary)
 
+(setq ido-use-virtual-buffers t)
 ;; Thanks, but no thanks
 (setq inhibit-startup-message t)
 (scroll-bar-mode -1)        ; Disable visible scrollbar
@@ -858,8 +938,8 @@ title)
 (column-number-mode)
 ;; Enable line numbers for some modes
 (dolist (mode '(text-mode-hook
-		prog-mode-hook
-		conf-mode-hook))
+                prog-mode-hook
+                conf-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 1))))
 ;; Override some modes which derive from the above
 (dolist (mode '(org-mode-hook))
@@ -890,12 +970,12 @@ title)
 ;;   :commands emojify-mode)
 
 (setq display-time-format "%H:%M %p %b %y"
-          display-time-default-load-average nil)
-  (setq display-time-day-and-date t
-        display-time-24hr-format t)
-  (display-time)
-  (unless (equal "Battery status not available" (battery)) ;;;Show battery
-(display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+      display-time-default-load-average nil)
+(setq display-time-day-and-date t
+      display-time-24hr-format t)
+(display-time)
+(unless (equal "Battery status not available" (battery)) ;;;Show battery
+  (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 
 ;; (use-package diminish)
 
@@ -973,19 +1053,19 @@ title)
 (setq org-confirm-babel-evaluate nil)
 
 (setq display-time-world-list
-    '(;; ("Etc/UTC" "UTC")
-      ;; ("America/Los_Angeles" "Seattle")
-      ;; ("America/New_York" "New York")
-      ("America/Guayaquil" "Guayaquil")
-      ;; ("Europe/Athens" "Athens")
-      ;; ("Pacific/Auckland" "Auckland")
-      ;; ("Asia/Shanghai" "Shanghai")
-      ;; ("Asia/Kolkata" "Hyderabad")
-      ))
+      '(;; ("Etc/UTC" "UTC")
+        ;; ("America/Los_Angeles" "Seattle")
+        ;; ("America/New_York" "New York")
+        ("America/Guayaquil" "Guayaquil")
+        ;; ("Europe/Athens" "Athens")
+        ;; ("Pacific/Auckland" "Auckland")
+        ;; ("Asia/Shanghai" "Shanghai")
+        ;; ("Asia/Kolkata" "Hyderabad")
+        ))
 (setq display-time-world-time-format "%Z\t%a %d %b %R")
 
-(eval-after-load 'pdf-tools 
-'(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
+(eval-after-load 'pdf-tools
+  '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
 
 (global-set-key (kbd "C-c C-c") 'org-capture)
 (setq org-startup-with-inline-images t)
@@ -1007,6 +1087,9 @@ title)
 (global-set-key (kbd "<f9>") 'my/pwd)
 (global-set-key (kbd "<f8>") 'my/upload-doc)
 (global-set-key (kbd "<f7>") 'my/actualization-repo)
+(global-set-key (kbd "<f12>") 'flyspell-auto-correct-word)
+(global-set-key (kbd "C-x k") 'kill-buffer-and-window)
+(global-set-key (kbd "M-+") 'dired-create-empty-file)
 
 (setq-default tab-width 2)
 (setq-default evil-shift-width tab-width)
@@ -1018,113 +1101,114 @@ title)
          (prog-mode . ws-butler-mode)))
 
 ;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
-    (setq org-agenda-files'("~/Documents/Org/agenda.org"))
+(setq org-agenda-files'("~/Documents/Org/agenda.org"))
+(setq org-latex-prefer-user-labels 1)
 ;; (setq org-latex-listings 'minted
 ;;       org-latex-packages-alist '(("" "minted"))
 ;;       org-latex-pdf-process
 ;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
 ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
 ;; (setq org-latex-listings 'listings)
-      ;; (setq org-agenda-start-with-log-mode t)
-      ;; (setq org-log-done 'time)
-      ;; (setq org-log-into-drawer t)
-      ;; (setq org-image-actual-width 400)
-      ;; ;; (require 'ox-extra)
-      ;; ;; (ox-extras-activate '(ignore-headlines))
-      ;; (setq org-clock-persist 'history)
-      ;; (org-clock-persistence-insinuate)
-      (add-hook 'org-mode-hook 'org-indent-mode)
-      (setq org-startup-folded t)
-      ;; (setq org-latex-listings 'minted
-      ;;       org-latex-packages-alist '(("" "minted"))
-      ;;       org-latex-pdf-process
-      ;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-      ;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
-      ;; ;; (setq org-latex-listings 'listings)
-      ;; (setq org-src-preserve-indentation 1)
-      (setq org-return-follows-link 1)
-      ;; (org-babel-do-load-languages ;; list of babel languages
-      ;;  'org-babel-load-languages
-      ;;  '((matlab . t)
-      ;;    (ditaa . t)
-      ;;    ;; (spice . t)
-      ;;    (gnuplot . t)
-      ;;    (org . t)
-      ;;    (shell . t)
-      ;;    (latex . t)
-      ;;    (python . t)
-      ;;    (asymptote . t)
-      ;;    ))
-      ;; (org-add-link-type
-      ;;  "color"
-      ;;  (lambda (path)
-      ;;    (message (concat "color "
-      ;;                     (progn (add-text-properties
-      ;;                             0 (length path)
-      ;;                             (list 'face `((t (:foreground ,path))))
-      ;;                             path) path))))
-      ;;  (lambda (path desc format)
-      ;;    (cond
-      ;;     ((eq format 'html)
-      ;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
-      ;;     ((eq format 'latex)
-      ;;      (format "\\textcolor{%s}{%s}" path desc)))))
+;; (setq org-agenda-start-with-log-mode t)
+;; (setq org-log-done 'time)
+;; (setq org-log-into-drawer t)
+;; (setq org-image-actual-width 400)
+;; ;; (require 'ox-extra)
+;; ;; (ox-extras-activate '(ignore-headlines))
+;; (setq org-clock-persist 'history)
+;; (org-clock-persistence-insinuate)
+(add-hook 'org-mode-hook 'org-indent-mode)
+(setq org-startup-folded t)
+;; (setq org-latex-listings 'minted
+;;       org-latex-packages-alist '(("" "minted"))
+;;       org-latex-pdf-process
+;;       '("pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+;;         "pdflatex -shell-escape -interaction nonstopmode -output-directory %o %f"))
+;; ;; (setq org-latex-listings 'listings)
+;; (setq org-src-preserve-indentation 1)
+(setq org-return-follows-link 1)
+;; (org-babel-do-load-languages ;; list of babel languages
+;;  'org-babel-load-languages
+;;  '((matlab . t)
+;;    (ditaa . t)
+;;    ;; (spice . t)
+;;    (gnuplot . t)
+;;    (org . t)
+;;    (shell . t)
+;;    (latex . t)
+;;    (python . t)
+;;    (asymptote . t)
+;;    ))
+;; (org-add-link-type
+;;  "color"
+;;  (lambda (path)
+;;    (message (concat "color "
+;;                     (progn (add-text-properties
+;;                             0 (length path)
+;;                             (list 'face `((t (:foreground ,path))))
+;;                             path) path))))
+;;  (lambda (path desc format)
+;;    (cond
+;;     ((eq format 'html)
+;;      (format "<span style=\"color:%s;\">%s</span>" path desc))
+;;     ((eq format 'latex)
+;;      (format "\\textcolor{%s}{%s}" path desc)))))
 
 (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
-    ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
+;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
 ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
-    (add-hook 'org-mode-hook
-    (lambda ()
-    (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
-    (dolist (hook '(text-mode-hook))
-    (add-hook hook (lambda () (flyspell-mode 1))))
-    (eval-after-load "flyspell"
-    '(progn
-    (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
-    (define-key flyspell-mouse-map [mouse-3] #'undefined)))
-    (setq-default ispell-program-name "aspell")
-    (setq ispell-dictionary "castellano")
-    (setq flyspell-default-dictionary "castellano")
-      ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-      ;; (add-hook
-      ;; 'minibuffer-setup-hook
-      ;; (lambda ()
-      ;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
-      ;; (flyspell-mode 1))))
-      ;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
-      ;; (dolist (hook '(text-mode-hook))
-      ;;   (add-hook hook (lambda () (flyspell-mode 1))))
-      ;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
-      ;; (add-hook 'org-mode 'display-line-numbers)
-      ;; (add-hook 'dired-find-file 'pdf-tools-install)
-      ;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
-      ;; (add-hook 'after-init-hook 'global-company-mode)
-      ;; (add-hook 'matlab-mode-hook
-      ;;           (lambda ()
-      ;;             (set (make-local-variable 'compile-command)
-      ;;                  (format "matlab -batch %s" (shell-quote-argument
-      ;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
-      ;; (add-hook 'python-mode-hook
-      ;;           (lambda ()
-      ;;             (set (make-local-variable 'compile-command)
-      ;;                  (format "d:/Software/WPy64-3940/python-3.9.4.amd64/python.exe %s" (shell-quote-argument (buffer-name))))))
+(add-hook 'org-mode-hook
+          (lambda ()
+            (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
+(dolist (hook '(text-mode-hook))
+  (add-hook hook (lambda () (flyspell-mode 1))))
+(eval-after-load "flyspell"
+  '(progn
+     (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
+     (define-key flyspell-mouse-map [mouse-3] #'undefined)))
+(setq-default ispell-program-name "aspell")
+(setq ispell-dictionary "castellano")
+(setq flyspell-default-dictionary "castellano")
+;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+;; (add-hook
+;; 'minibuffer-setup-hook
+;; (lambda ()
+;; (if(string-match "TEXT: \\| search: " (minibuffer-prompt))
+;; (flyspell-mode 1))))
+;; (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+;; (dolist (hook '(text-mode-hook))
+;;   (add-hook hook (lambda () (flyspell-mode 1))))
+;; (add-hook 'pdf-view-mode-hook #'pdf-links-minor-mode)
+;; (add-hook 'org-mode 'display-line-numbers)
+;; (add-hook 'dired-find-file 'pdf-tools-install)
+;; ;; (add-hook 'org-publish-all 'my/load-blog-configuration)
+;; (add-hook 'after-init-hook 'global-company-mode)
+;; (add-hook 'matlab-mode-hook
+;;           (lambda ()
+;;             (set (make-local-variable 'compile-command)
+;;                  (format "matlab -batch %s" (shell-quote-argument
+;; 						 (substring (buffer-name) 0  (- (length (buffer-name) ) 2)))))))
+;; (add-hook 'python-mode-hook
+;;           (lambda ()
+;;             (set (make-local-variable 'compile-command)
+;;                  (format "d:/Software/WPy64-3940/python-3.9.4.amd64/python.exe %s" (shell-quote-argument (buffer-name))))))
 
-      ;; (add-hook 'pdf-view-mode-hook
-      ;;           (lambda ()
-      ;;             (display-line-numbers-mode -1)))
-      ;; (add-hook 'org-mode-hook
-      ;;   (lambda ()
-      ;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
-      ;; (add-hook 'text-mode-hook
-      ;;   (lambda ()
-      ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
-      ;; (add-hook 'text-mode-hook
-      ;;   (lambda ()
-      ;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
+;; (add-hook 'pdf-view-mode-hook
+;;           (lambda ()
+;;             (display-line-numbers-mode -1)))
+;; (add-hook 'org-mode-hook
+;;   (lambda ()
+;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
+;; (add-hook 'text-mode-hook
+;;   (lambda ()
+;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
+;; (add-hook 'text-mode-hook
+;;   (lambda ()
+;;    (local-set-key (kbd "<f3>") 'table-split-cell-horizontally)))
 
-      ;; (add-hook 'message-mode-hook
-      ;;           (lambda ()
-      ;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
-      ;; (add-hook 'org-mode-hook
-      ;;           (lambda ()
-      ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+;; (add-hook 'message-mode-hook
+;;           (lambda ()
+;;             (local-set-key (kbd "C-c M-o") 'org-mime-htmlize)))
+;; (add-hook 'org-mode-hook
+;;           (lambda ()
+;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
