@@ -760,10 +760,11 @@
  ;; If there is more than one, they won't work right.
  '(electric-indent-mode nil)
  '(global-company-mode t)
- '(org-agenda-files '("/home/rhyloo/Documents/Org/agenda.org"))
+ '(org-agenda-files
+   '("/home/rhyloo/Documents/org/personal/2022-02-06-agenda.org"))
  '(org-roam-graph-viewer nil)
  '(package-selected-packages
-   '(deft helm-bibtex citar which-key sci-hub org-roam-ui websocket yasnippet-snippets xkcd ws-butler use-package telega swiper super-save spacegray-theme smartparens simple-httpd scihub request-deferred python-mode persist pdf-tools ox-reveal org-tree-slide org-ref minions matlab-mode magit lua-mode lsp-ui ledger-mode google-translate epresent emojify emms elpy editorconfig doom-themes doom-modeline bufshow bongo blacken benchmark-init auctex alert a)))
+   '(company-arduino arduino-mode deft helm-bibtex citar which-key sci-hub org-roam-ui websocket yasnippet-snippets xkcd ws-butler use-package telega swiper super-save spacegray-theme smartparens simple-httpd scihub request-deferred python-mode persist pdf-tools org-tree-slide minions matlab-mode magit lua-mode lsp-ui ledger-mode google-translate emojify emms elpy editorconfig doom-themes doom-modeline bufshow bongo blacken benchmark-init auctex alert a)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -771,3 +772,4 @@
  ;; If there is more than one, they won't work right.
  '(mode-line ((t (:background "dark grey" :foreground "grey10" :box (:line-width 1 :color "grey10" :style unspecified) :overline "grey10" :underline nil :height 100))))
  '(mode-line-inactive ((t (:height 110)))))
+(put 'dired-find-alternate-file 'disabled nil)

@@ -35,9 +35,9 @@
     :config
     (setq deft-directory "~/Documents/org"
           deft-recursive t
-          deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
-          deft-strip-title-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
-          ;; deft-use-filename-as-title t
+          ;; deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
+          ;; deft-strip-title-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
+          deft-use-filename-as-title t
           )
     :bind
     ("C-c n s" . deft))
@@ -289,6 +289,7 @@
  'org-babel-load-languages
  '((js . t)
    (org . t)
+   (octave . t)
    (css . t)
    (dot . t)
    (latex . t)
@@ -488,18 +489,27 @@
         '(
           ("d" "default" plain "%?"
            :if-new
-           (file+head "${slug}.org"
+           (file+head "%<%Y-%m-%d>-${slug}.org"
                       "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n")
            :immediate-finish t)
           ("p" "programming" plain "%?"
-           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n") :unnarrowed t)
-          ("w" "work" plain "%?"
-           :target (file+head "work/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n") :unnarrowed t)
+           :target (file+head "programming/%<%Y-%m-%d>-${slug}.org"
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
+          ("i" "ideas" plain "%?"
+           :target (file+head "ideas/%<%Y-%m-%d>-${slug}.org"
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
+          ("r" "referencias" plain "%?"
+           :target (file+head "referencias/%<%Y-%m-%d>-${slug}.org"
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
+          ("t" "trabajos" plain "%?"
+           :target (file+head "trabajos/%<%Y-%m-%d>-${slug}.org"
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
+          ("o" "posts" plain "%?"
+           :target (file+head "posts/%<%Y-%m-%d>-${slug}.org"
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
           ("P" "personal" plain "%?"
-           :target (file+head "personal/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n") :unnarrowed t)
+           :target (file+head "personal/%<%Y-%m-%d>-${slug}.org"
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
           )
         time-stamp-start "#\\+lastmod: [\t]*")
   )
@@ -861,31 +871,34 @@ or LaTeX command"
 
 ;; https://emacs-orgmode.gnu.narkive.com/EpuuKxSd/o-non-existent-agenda-file-file-txt-r-emove-from-list-or-a-bort#post11
 ;; https://amitp.blogspot.com/2021/04/automatically-generate-ids-for-emacs.html
+(setq files-to-ignore '("2022-02-06-agenda.org"))
 (defun my/org-generate-custom-ids ()
   "Generate CUSTOM_ID for any headings that are missing one"
-  (let ((existing-ids
-         ;; (when (file-exists-p (buffer-file-name (current-buffer)))
-         (org-map-entries
-          (lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
-         ))
+  (unless (member (buffer-name) files-to-ignore)
+    (let ((existing-ids
+           ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+           (org-map-entries
+            (lambda ()  (org-entry-get nil "CUSTOM_ID")));; )
+           ))
 
-    ;; (when (file-exists-p (buffer-file-name (current-buffer)))
-    (org-map-entries
-     (lambda ()
-       (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
-              (heading (org-heading-components))
-              (level (nth 0 heading))
-              (todo (nth 2 heading))
-              (headline (nth 4 heading))
-              (slug (my/title-to-filename headline))
-              (duplicate-id (member slug existing-ids)))
-         (when (and ;; (not custom-id)
-                (< level 4)
-                ;; (not todo)
-                ;; (not duplicate-id)
-                )
-           (message "Adding entry %s to %s" slug headline)
-           (org-entry-put nil "CUSTOM_ID" slug))))));; )
+      ;; (when (file-exists-p (buffer-file-name (current-buffer)))
+      (org-map-entries
+       (lambda ()
+         (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+                (heading (org-heading-components))
+                (level (nth 0 heading))
+                (todo (nth 2 heading))
+                (headline (nth 4 heading))
+                (slug (my/title-to-filename headline))
+                (duplicate-id (member slug existing-ids)))
+           (when (and ;; (not custom-id)
+                  (< level 4)
+                  ;; (not todo)
+                  ;; (not duplicate-id)
+                  )
+             (message "Adding entry %s to %s" slug headline)
+             (org-entry-put nil "CUSTOM_ID" slug))))));; )
+    )
   )
 
 (defun my/title-to-filename (title)
@@ -1062,7 +1075,7 @@ or LaTeX command"
 ;;   :hook (erc-mode . emojify-mode)
 ;;   :commands emojify-mode)
 
-(setq display-time-format "%H:%M %p %b %y"
+(setq display-time-format "%H:%M %d %b %y"
       display-time-default-load-average nil)
 (setq display-time-day-and-date t
       display-time-24hr-format t)
@@ -1163,6 +1176,21 @@ or LaTeX command"
 (global-set-key (kbd "C-c C-c") 'org-capture)
 (setq org-startup-with-inline-images t)
 (setq org-image-actual-width nil)
+(setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s")
+                                 (todo . " %i %-12:c")
+                                 (tags . " %i %-12:c")
+                                 (search . " %i %-12:c")))
+(setq org-todo-keyword-faces
+      '(
+        ("IN-PROGRESS" . (:foreground "yellow" :weight bold))
+        ))
+
+(setq org-todo-keywords
+      '((sequence "TODO" "IN-PROGRESS" "DONE")))
+
+;;https://yiufung.net/post/org-mode-hidden-gems-pt2
+(setq org-catch-invisible-edits 'show-and-error)
+(setq org-cycle-separator-lines 0)
 
 (global-set-key (kbd "C-c <left>")  'windmove-left)
 (global-set-key (kbd "C-c <right>") 'windmove-right)
@@ -1183,6 +1211,7 @@ or LaTeX command"
 (global-set-key (kbd "<f12>") 'flyspell-auto-correct-word)
 (global-set-key (kbd "C-x k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
+(global-set-key (kbd "C-c a") 'org-agenda)
 
 (setq-default tab-width 2)
 (setq-default evil-shift-width tab-width)
@@ -1194,7 +1223,9 @@ or LaTeX command"
          (prog-mode . ws-butler-mode)))
 
 ;; https://emacs.stackexchange.com/questions/27982/export-code-blocks-in-org-mode-with-minted-environment
-(setq org-agenda-files'("~/Documents/Org/agenda.org"))
+;; (setq org-agenda-files'("~/Documents/org/personal/2022-02-06-agenda.org"))
+(setq calendar-date-style 'european)
+(setq calendar-week-start-day 1)
 (setq org-latex-prefer-user-labels 1)
 ;; (setq org-latex-listings 'minted
 ;;       org-latex-packages-alist '(("" "minted"))
