@@ -31,6 +31,88 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(use-package org-special-block-extras
+  :defer t
+  :hook (org-mode . org-special-block-extras-mode))
+
+(use-package minions
+  :config
+  (minions-mode 1))
+
+(use-package mu4e-alert
+  :ensure t
+  :after mu4e
+  :init
+  (setq mu4e-alert-interesting-mail-query
+        (concat
+         "flag:unread maildir:/INBOX"))
+  (mu4e-alert-enable-mode-line-display)
+  (defun my/mu4e-alert ()
+    (interactive)
+    (mu4e~proc-kill)
+    (mu4e-alert-enable-mode-line-display)
+    )
+  (run-with-timer 0 2700 'my/mu4e-alert)
+  ;; (setq mu4e-alert-enable-notifications t)
+  ;; :config
+  ;; (mu4e-alert-set-default-style 'libnotify)
+  ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+  )
+
+;; (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+(use-package mu4e
+  :ensure nil
+  :config
+  (setq
+   send-mail-function 'smtpmail-send-it
+   smtpmail-smtp-server "correo.uma.es"
+   smtpmail-smtp-service 587)
+
+  (setq mu4e-update-interval (* 45 60))
+  (setq mu4e-get-mail-command "offlineimap")
+  (setq mu4e-change-filenames-when-moving t)
+  (setq mu4e-attachment-dir "~/Downloads")
+  (setq mu4e-maildir "~/Maildir"
+        mu4e-sent-folder "/Sent"
+        mu4e-drafts-folder "/Drafts"
+        mu4e-trash-folder "/Trash")
+  ;; (setq mu4e-refile-folder
+  ;;       (lambda (msg)
+  ;;         (cond
+  ;;          ((mu4e-message-contact-field-matches msg :from
+  ;;                                               "jorge2@uma.es")
+  ;;           "/Sent"))))
+
+  (setq message-kill-buffer-on-exit t)
+  (setq mu4e-sent-messages-behavior 'sent)
+
+  (setq mu4e-contexts
+        `(,(make-mu4e-context
+            :name "University"
+            :enter-func (lambda () (mu4e-message "University mode"))
+            :leave-func (lambda () (mu4e-message "Leaving University mode"))
+            :match-func (lambda (msg) (when msg (mu4e-message-contact-field-matches msg
+                                                                                    :to "jorge2@uma.es")))
+            :vars '((user-mail-address . "jorge2@uma.es")
+                    (user-full-name . "Jorge Benavides M.")
+                    (mu4e-compose-signature . (concat
+                                               "Jorge Benavides M.\n"
+                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
+                                               "\n"))))))
+  (setq mu4e-context-policy 'pick-first)
+  (setq mail-user-agent 'mu4e-user-agent)
+  ;; (add-hook 'mu4e-compose-mode-hook
+  ;;           (defun my-add-bcc ()
+  ;;             "Add a Bcc: header."
+  ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
+  (mu4e t)
+  )
+
+(use-package arduino-mode
+  :defer t)
+(use-package company-arduino
+  :defer t)
+
 (use-package deft
     :config
     (setq deft-directory "~/Documents/org"
@@ -603,8 +685,8 @@
          (org-present-mode . org-present-read-only)
          (org-present-mode-quit . dw/org-present-quit-hook)))
 
-(setq user-full-name "Rhyloo"
-      user-mail-address "rhyloot@gmail.com")
+(setq user-full-name "Jorge Benavides"
+      user-mail-address "jorge2@uma.es")
 
 (require 'ol)
 (org-link-set-parameters "hide-link"
@@ -1170,6 +1252,10 @@ or LaTeX command"
         ))
 (setq display-time-world-time-format "%Z\t%a %d %b %R")
 
+;;I am not sure about this, check it
+  (add-to-list 'safe-local-variable-values
+               '(compile-command . '(concat "pdflatex -shell-escape ")))
+
 (eval-after-load 'pdf-tools
   '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp))
 
@@ -1191,6 +1277,143 @@ or LaTeX command"
 ;;https://yiufung.net/post/org-mode-hidden-gems-pt2
 (setq org-catch-invisible-edits 'show-and-error)
 (setq org-cycle-separator-lines 0)
+(setq org-latex-caption-above nil)
+(add-to-list 'org-latex-classes
+             '("university-works"
+               "\\documentclass{article}
+                   [NO-DEFAULT-PACKAGES]"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+(defun my/org-latex-export-to-pdf-minted
+    (&optional async subtreep visible-only body-only ext-plist)
+  (interactive)
+  (let ((outfile (org-export-output-file-name ".tex" subtreep)))
+    (org-export-to-file 'latex outfile
+      async subtreep visible-only body-only ext-plist
+      #'my/org-latex-compile)))
+
+(defcustom org-latex-pdf-minted-process
+  (if (executable-find "latexmk")
+      '("latexmk -f -pdf -%latex -interaction=nonstopmode  -shell-escape -output-directory=%o %f")
+    '("%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+      "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+      "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"))
+  "Commands to process a LaTeX file to a PDF file.
+
+  This is a list of strings, each of them will be given to the
+  shell as a command.  %f in the command will be replaced by the
+  relative file name, %F by the absolute file name, %b by the file
+  base name (i.e. without directory and extension parts), %o by the
+  base directory of the file, %O by the absolute file name of the
+  output file, %latex is the LaTeX compiler (see
+  `org-latex-compiler'), and %bib is the BibTeX-like compiler (see
+  `org-latex-bib-compiler').
+
+  The reason why this is a list is that it usually takes several
+  runs of `pdflatex', maybe mixed with a call to `bibtex'.  Org
+  does not have a clever mechanism to detect which of these
+  commands have to be run to get to a stable result, and it also
+  does not do any error checking.
+
+  Consider a smart LaTeX compiler such as `texi2dvi' or `latexmk',
+  which calls the \"correct\" combinations of auxiliary programs.
+
+  Alternatively, this may be a Lisp function that does the
+  processing, so you could use this to apply the machinery of
+  AUCTeX or the Emacs LaTeX mode.  This function should accept the
+  file name as its single argument."
+  :group 'org-export-pdf
+  :type '(choice
+          (repeat :tag "Shell command sequence"
+                  (string :tag "Shell command"))
+          (const :tag "2 runs of latex"
+                 ("%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"))
+          (const :tag "3 runs of latex"
+                 ("%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"))
+          (const :tag "latex,bibtex,latex,latex"
+                 ("%latex -interaction nonstopmode -shell-escape -bibtex -output-directory %o %f"
+                  "%bib %b"
+                  "%latex -interaction nonstopmode -shell-escape -bibtex -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -bibtex -output-directory %o %f"))
+          (const :tag "texi2dvi"
+                 ("cd %o; LATEX=\"%latex\" texi2dvi -p -b -V %b.tex"))
+          (const :tag "latexmk"
+                 ("latexmk -f -pdf -%latex -interaction=nonstopmode -shell-escape -output-directory=%o %f"))
+          (function)))
+
+(defun my/org-latex-compile (texfile &optional snippet)
+  (unless snippet (message "Processing LaTeX file %s..." texfile))
+  (let* ((compiler
+          (or (with-temp-buffer
+                (save-excursion (insert-file-contents texfile))
+                (and (search-forward-regexp (regexp-opt org-latex-compilers)
+                                            (line-end-position 2)
+                                            t)
+                     (progn (beginning-of-line) (looking-at-p "%"))
+                     (match-string 0)))
+              "pdflatex"))
+         (process (if (functionp org-latex-pdf-minted-process) org-latex-pdf-minted-process
+                    ;; Replace "%latex" with "%L" and "%bib" and
+                    ;; "%bibtex" with "%B" to adhere to `format-spec'
+                    ;; specifications.
+                    (mapcar (lambda (command)
+                              (replace-regexp-in-string
+                               "%\\(?:\\(?:bib\\|la\\)tex\\|bib\\)\\>"
+                               (lambda (m) (upcase (substring m 0 2)))
+                               command))
+                            org-latex-pdf-minted-process)))
+         (spec `((?B . ,(shell-quote-argument org-latex-bib-compiler))
+                 (?L . ,(shell-quote-argument compiler))))
+         (log-buf-name "*Org PDF LaTeX Output*")
+         (log-buf (and (not snippet) (get-buffer-create log-buf-name)))
+         (outfile (org-compile-file texfile process "pdf"
+                                    (format "See %S for details" log-buf-name)
+                                    log-buf spec)))
+    (unless snippet
+      (when org-latex-remove-logfiles
+        (mapc #'delete-file
+              (directory-files
+               (file-name-directory outfile)
+               t
+               (concat (regexp-quote (file-name-base outfile))
+                       "\\(?:\\.[0-9]+\\)?\\."
+                       (regexp-opt org-latex-logfiles-extensions))
+               t)))
+      (let ((warnings (org-latex--collect-warnings log-buf)))
+        (message (concat "PDF file produced"
+                         (cond
+                          ((eq warnings 'error) " with errors.")
+                          (warnings (concat " with warnings: " warnings))
+                          (t "."))))))
+    ;; Return output file name.
+    outfile))
+
+(org-export-define-derived-backend 'my-latex 'latex
+  :menu-entry
+  '(?l "My export to LaTeX"
+       ((?m "As PDF with minted" my/org-latex-export-to-pdf-minted)))
+  :translate-alist
+  '((testing-block . org-latex-testing-block)))
+
+(defun org-latex-testing-block (special-block contents info)
+  "Transcode a SPECIAL-BLOCK element from Org to LaTeX.
+CONTENTS holds the contents of the block.  INFO is a plist
+holding contextual information."
+  (let ((type (org-element-property :type special-block))
+        (opt (org-export-read-attribute :attr_latex special-block :options))
+        (caption (org-latex--caption/label-string special-block info))
+        (caption-above-p (org-latex--caption-above-p special-block info)))
+    (concat (format "\\begin{%s}%s\n" type (or opt ""))
+            (and caption-above-p caption)
+            contents
+            (and (not caption-above-p) caption)
+            (format "\\ending{%s}" type))))
 
 (global-set-key (kbd "C-c <left>")  'windmove-left)
 (global-set-key (kbd "C-c <right>") 'windmove-right)
@@ -1209,7 +1432,8 @@ or LaTeX command"
 (global-set-key (kbd "<f8>") 'my/upload-doc)
 (global-set-key (kbd "<f7>") 'my/actualization-repo)
 (global-set-key (kbd "<f12>") 'flyspell-auto-correct-word)
-(global-set-key (kbd "C-x k") 'kill-buffer-and-window)
+(global-set-key (kbd "C-x k") 'kill-this-buffer)
+(global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
 (global-set-key (kbd "C-c a") 'org-agenda)
 

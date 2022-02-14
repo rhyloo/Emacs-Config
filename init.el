@@ -759,12 +759,17 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(electric-indent-mode nil)
+ '(enable-local-eval 'maybe)
+ '(enable-local-variables :all)
  '(global-company-mode t)
  '(org-agenda-files
    '("/home/rhyloo/Documents/org/personal/2022-02-06-agenda.org"))
  '(org-roam-graph-viewer nil)
  '(package-selected-packages
-   '(company-arduino arduino-mode deft helm-bibtex citar which-key sci-hub org-roam-ui websocket yasnippet-snippets xkcd ws-butler use-package telega swiper super-save spacegray-theme smartparens simple-httpd scihub request-deferred python-mode persist pdf-tools org-tree-slide minions matlab-mode magit lua-mode lsp-ui ledger-mode google-translate emojify emms elpy editorconfig doom-themes doom-modeline bufshow bongo blacken benchmark-init auctex alert a)))
+   '(org-special-block-extras mu4e-alert mu4 mu mu4e- company-arduino arduino-mode deft helm-bibtex citar which-key sci-hub org-roam-ui websocket yasnippet-snippets xkcd ws-butler use-package telega swiper super-save spacegray-theme smartparens simple-httpd scihub request-deferred python-mode persist pdf-tools org-tree-slide minions matlab-mode magit lua-mode lsp-ui ledger-mode google-translate emojify emms elpy editorconfig doom-themes doom-modeline bufshow bongo blacken benchmark-init auctex alert a))
+ '(send-mail-function 'smtpmail-send-it)
+ '(smtpmail-smtp-server "correo.uma.es")
+ '(smtpmail-smtp-service 587))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
