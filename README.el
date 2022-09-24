@@ -567,6 +567,7 @@
                  (window-parameters . (
                                        ;; (no-other-window . t)
                                        (no-delete-other-windows . t)))))
+
   (setq org-roam-capture-templates
         '(
           ("d" "default" plain "%?"
@@ -585,7 +586,7 @@
                               "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
           ("t" "trabajos" plain "%?"
            :target (file+head "trabajos/%<%Y-%m-%d>-${slug}.org"
-                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
+                              "#+title: ${title}\n#+date: %u\n#+last_modified: \n#+language: es\n#+options: ^:nil tex:t\n#+options: toc:nil author:nil title:nil\n#+latex_class: university-works\n#+latex_class_options: [11pt,a4paper]\n#+latex_header: \\input{config_files/packages}\n#+latex_header: \\datosportada{Grado en ingeniería en electrónica, robótica y mecatrónica}{Ingeniería hidráulica}{Prácticas de laboratorio}{Prácticas con EPANET}{Práctica \# 3}{Diseño y análisis de instalaciones hidráulicas con EPANET}{images/hidrauilica_practica3_instacion_propuesta1.pdf}{2021-2022}{Jorge Benavides Macías \\\\ 05306948-C}\n #+begin_src latex :eval yes\n \\portada \n \\tableofcontents\n \\newpage\n#+end_src\n") :unnarrowed t)
           ("o" "posts" plain "%?"
            :target (file+head "posts/%<%Y-%m-%d>-${slug}.org"
                               "#+title: ${title}\n#+date: %u\n#+last_modified: \n\n") :unnarrowed t)
@@ -637,7 +638,7 @@
   (setq-default tab-width 4)
   (setq indent-line-function 'insert-tab))
 (setq custom-theme-directory "~/.emacs.d/private/themes")
-(load-theme 'minimal t)
+;; (load-theme 'minimal t)
 
 (use-package scihub
   :defer t)
@@ -658,7 +659,7 @@
                                      (org-block (:height 1.25) org-block)
                                      (org-block-begin-line (:height 0.7) org-block)))
   (setq header-line-format " ")
-  (org-display-inline-images)
+  ;; (org-display-inline-images)
   (dw/org-present-prepare-slide))
 
 (defun dw/org-present-quit-hook ()
@@ -1398,22 +1399,9 @@ or LaTeX command"
   :menu-entry
   '(?l "My export to LaTeX"
        ((?m "As PDF with minted" my/org-latex-export-to-pdf-minted)))
-  :translate-alist
-  '((testing-block . org-latex-testing-block)))
-
-(defun org-latex-testing-block (special-block contents info)
-  "Transcode a SPECIAL-BLOCK element from Org to LaTeX.
-CONTENTS holds the contents of the block.  INFO is a plist
-holding contextual information."
-  (let ((type (org-element-property :type special-block))
-        (opt (org-export-read-attribute :attr_latex special-block :options))
-        (caption (org-latex--caption/label-string special-block info))
-        (caption-above-p (org-latex--caption-above-p special-block info)))
-    (concat (format "\\begin{%s}%s\n" type (or opt ""))
-            (and caption-above-p caption)
-            contents
-            (and (not caption-above-p) caption)
-            (format "\\ending{%s}" type))))
+  ;; :translate-alist
+  ;; '((quote-block . org-latex-testing-block))
+  )
 
 (global-set-key (kbd "C-c <left>")  'windmove-left)
 (global-set-key (kbd "C-c <right>") 'windmove-right)
@@ -1560,3 +1548,222 @@ holding contextual information."
 ;; (add-hook 'org-mode-hook
 ;;           (lambda ()
 ;;             (local-set-key (kbd "C-c M-o") 'org-mime-org-buffer-htmlize)))
+
+(use-package vscode-dark-plus-theme
+  :ensure t
+  :config
+  (load-theme 'vscode-dark-plus t))
+(use-package solaire-mode
+  :ensure t
+  :config
+  (solaire-global-mode +1))
+(use-package treemacs
+  :ensure t)
+(defun org-latex-math-block (_math-block contents _info)
+  "Transcode a MATH-BLOCK object from Org to LaTeX.
+                  CONTENTS is a string.  INFO is a plist used as a communication
+                  channel."
+  (when (org-string-nw-p contents)
+    (format "$%s$" (org-trim contents))))
+(defun create-temp-directory ()
+  "This function let you create directories or files
+                    in the tmp directory for testing"
+  (interactive)
+  (let (
+        (choices '("directory" "files"))
+        (name (read-string "Enter name temporary file: ")))
+
+    (find-file (concat "/tmp/" name))
+    (message name)
+
+    ))
+(global-set-key (kbd "\C-c M-+") 'create-temp-directory)
+
+(windmove-default-keybindings 'M) ;; Me muevo por las ventanas
+
+(defun window-toggle-split-direction ()
+  "Switch window split from horizontally to vertically, or vice versa.
+i.e. change right window to bottom, or change bottom window to right."
+  (interactive)
+  (require 'windmove)
+  (let ((done))
+    (dolist (dirs '((right . down) (down . right)))
+      (unless done
+        (let* ((win (selected-window))
+               (nextdir (car dirs))
+               (neighbour-dir (cdr dirs))
+               (next-win (windmove-find-other-window nextdir win))
+               (neighbour1 (windmove-find-other-window neighbour-dir win))
+               (neighbour2 (if next-win (with-selected-window next-win
+                                          (windmove-find-other-window neighbour-dir next-win)))))
+          ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
+          (setq done (and (eq neighbour1 neighbour2)
+                          (not (eq (minibuffer-window) next-win))))
+          (if done
+              (let* ((other-buf (window-buffer next-win)))
+                (delete-window next-win)
+                (if (eq nextdir 'right)
+                    (split-window-vertically)
+                  (split-window-horizontally))
+                (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
+
+
+(global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
+
+(use-package treemacs
+  :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+  :config
+  (progn
+    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+          treemacs-deferred-git-apply-delay        0.5
+          treemacs-directory-name-transformer      #'identity
+          treemacs-display-in-side-window          t
+          treemacs-eldoc-display                   'simple
+          treemacs-file-event-delay                5000
+          treemacs-file-extension-regex            treemacs-last-period-regex-value
+          treemacs-file-follow-delay               0.2
+          treemacs-file-name-transformer           #'identity
+          treemacs-follow-after-init               t
+          treemacs-expand-after-init               t
+          treemacs-find-workspace-method           'find-for-file-or-pick-first
+          treemacs-git-command-pipe                ""
+          treemacs-goto-tag-strategy               'refetch-index
+          treemacs-header-scroll-indicators        '(nil . "^^^^^^")
+          treemacs-hide-dot-git-directory          t
+          treemacs-indentation                     2
+          treemacs-indentation-string              " "
+          treemacs-is-never-other-window           nil
+          treemacs-max-git-entries                 5000
+          treemacs-missing-project-action          'ask
+          treemacs-move-forward-on-expand          nil
+          treemacs-no-png-images                   nil
+          treemacs-no-delete-other-windows         t
+          treemacs-project-follow-cleanup          nil
+          treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+          treemacs-position                        'left
+          treemacs-read-string-input               'from-child-frame
+          treemacs-recenter-distance               0.1
+          treemacs-recenter-after-file-follow      nil
+          treemacs-recenter-after-tag-follow       nil
+          treemacs-recenter-after-project-jump     'always
+          treemacs-recenter-after-project-expand   'on-distance
+          treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+          treemacs-show-cursor                     nil
+          treemacs-show-hidden-files               t
+          treemacs-silent-filewatch                nil
+          treemacs-silent-refresh                  nil
+          treemacs-sorting                         'alphabetic-asc
+          treemacs-select-when-already-in-treemacs 'move-back
+          treemacs-space-between-root-nodes        t
+          treemacs-tag-follow-cleanup              t
+          treemacs-tag-follow-delay                1.5
+          treemacs-text-scale                      nil
+          treemacs-user-mode-line-format           nil
+          treemacs-user-header-line-format         nil
+          treemacs-wide-toggle-width               70
+          treemacs-width                           35
+          treemacs-width-increment                 1
+          treemacs-width-is-initially-locked       t
+          treemacs-workspace-switch-cleanup        nil)
+
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode 'always)
+    (when treemacs-python-executable
+      (treemacs-git-commit-diff-mode t))
+
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple)))
+
+    (treemacs-hide-gitignored-files-mode nil))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t d"   . treemacs-select-directory)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag)))
+;; (ido-mode 1)
+(global-set-key (kbd "M-o") 'ace-window)
+
+;; (defcustom TeX-buf-close-at-warnings-only t
+;;   "Close TeX buffer if there are only warnings."
+;;   :group 'TeX-output
+;;   :type 'boolean)
+
+;; (defun my-tex-close-TeX-buffer (_output)
+;;   "Close compilation buffer if there are no errors.
+;; Hook this function into `TeX-after-compilation-finished-functions'."
+;;   (let ((buf (TeX-active-buffer)))
+;;     (when (buffer-live-p buf)
+;;       (with-current-buffer buf
+;;         (when (progn (TeX-parse-all-errors)
+;;                      (or
+;;                       (and TeX-buf-close-at-warnings-only
+;;                            (null (cl-assoc 'error TeX-error-list)))
+;;                       (null TeX-error-list)))
+;;           (cl-loop for win in (window-list)
+;;                    if (eq (window-buffer win) (current-buffer))
+;;                    do (delete-window win)))))))
+
+;; (add-hook 'TeX-after-compilation-finished-functions #'my-tex-close-TeX-buffer)
+
+;; (defun bury-compile-buffer-if-successful (buffer string)
+;;   "Bury a compilation buffer if succeeded without warnings "
+;;   (if (and
+;;        (string-match "compilation" (buffer-name buffer))
+;;        (string-match "finished" string)
+;;        (not
+;;         (with-current-buffer buffer
+;;           **(goto-char 1)**
+;;           (search-forward "warning" nil t))))
+;;       (run-with-timer 1 nil
+;;                       (lambda (buf)
+;;                         (bury-buffer buf)
+;;                         (switch-to-prev-buffer (get-buffer-window buf) 'kill))
+;;                       buffer)))
+;; (add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
+;; (setq org-image-actual-width nil)
+;; (use-package exec-path-from-shell)
+;;    (setq org-latex-create-formula-image-program 'dvipng)
+;;    (setq org-latex-listings 'minted)
+;;  (require 'ox-latex)
+;;  (add-to-list 'org-latex-packages-alist '("" "minted"))
+;;  (add-to-list 'org-latex-packages-alist '("" "minted" nil))
+;; (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.2))
+;; (use-package org-fragtog)
+;; (add-hook 'org-mode-hook 'org-fragtog-mode)
+;; (global-visual-line-mode 1)
+
+;; If there were no compilation errors, delete the compilation window
+(setq compilation-exit-message-function
+      (lambda (status code msg)
+        ;; If M-x compile exists with a 0
+        (when (and (eq status 'exit) (zerop code))
+          ;; then bury the *compilation* buffer, so that C-x b doesn't go there
+          (bury-buffer "*compilation*")
+          ;; and return to whatever were looking at before
+          (replace-buffer-in-windows "*compilation*"))
+        ;; Always return the anticipated result of compilation-exit-message-function
+        (cons msg code)))
+(use-package lsp-ltex
+  :ensure t
+  :hook (text-mode . (lambda ()
+                       (require 'lsp-ltex)
+                       (lsp)))  ; or lsp-deferred
+  :init
+  (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
