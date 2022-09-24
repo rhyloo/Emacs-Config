@@ -766,7 +766,7 @@
    '("/home/rhyloo/Documents/org/personal/2022-02-06-agenda.org"))
  '(org-roam-graph-viewer nil)
  '(package-selected-packages
-   '(org-special-block-extras mu4e-alert mu4 mu mu4e- company-arduino arduino-mode deft helm-bibtex citar which-key sci-hub org-roam-ui websocket yasnippet-snippets xkcd ws-butler use-package telega swiper super-save spacegray-theme smartparens simple-httpd scihub request-deferred python-mode persist pdf-tools org-tree-slide minions matlab-mode magit lua-mode lsp-ui ledger-mode google-translate emojify emms elpy editorconfig doom-themes doom-modeline bufshow bongo blacken benchmark-init auctex alert a))
+   '(all-the-icons org-special-block-extras mu4e-alert mu4 mu mu4e- company-arduino arduino-mode deft helm-bibtex citar which-key sci-hub org-roam-ui websocket yasnippet-snippets xkcd ws-butler use-package telega swiper super-save spacegray-theme smartparens simple-httpd scihub request-deferred python-mode persist pdf-tools org-tree-slide minions matlab-mode magit lua-mode lsp-ui ledger-mode google-translate emojify emms elpy editorconfig doom-themes doom-modeline bufshow bongo blacken benchmark-init auctex alert a))
  '(send-mail-function 'smtpmail-send-it)
  '(smtpmail-smtp-server "correo.uma.es")
  '(smtpmail-smtp-service 587))

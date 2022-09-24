@@ -95,6 +95,12 @@ After all this time... I think is the moment for writing a good emacs configurat
   - [[#automatically-clean-whitespace][Automatically clean whitespace]]
 - [[#org-mode-settings][Org Mode settings]]
 - [[#hooks][Hooks]]
+- [[#testing][testing]]
+- [[#modifications-01][Modifications [0/1]​]]
+  - [[#properties02][PROPERTIES[0/2]​]]
+    - [[#they-are-good-but-annoying-some-times-i-dont-wanna-watch-them][They are good but annoying, some times I dont wanna watch them]]
+    - [[#2-sections-can-be-label-equal][2 sections can be label equal]]
+- [[#testing-2][testing 2]]
 :END:
 * Startup Performance
 :PROPERTIES:
@@ -2594,6 +2600,9 @@ I need a way to enable or disable from an org file, like a tag or something, not
                        (lsp)))  ; or lsp-deferred
   :init
   (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
+
+(use-package all-the-icons
+  :if (display-graphic-p))
 #+end_src
 
 #+RESULTS:
