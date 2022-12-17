@@ -1,3 +1,1185 @@
+(setq user-full-name "Jorge Benavides"
+      user-mail-address "jorge2@uma.es")
+
+(scroll-bar-mode -1)        ;; Disable visible scrollbar
+(tool-bar-mode -1)          ;; Disable the toolbar
+(tooltip-mode -1)           ;; Disable tooltips
+(menu-bar-mode -1)          ;; Disable the menu bar
+(set-fringe-mode 15)        ;; Give some breathing room
+(show-paren-mode 1)         ;; Show parens
+(global-hl-line-mode 1)     ;; Highlight lines
+(global-visual-line-mode 1)                    ;;Better than fix the lines with set-fill-column
+(set-frame-parameter (selected-frame) 'alpha '(100 . 100)) ;;  Set frame transparency
+(add-to-list 'default-frame-alist '(alpha . (100 . 100))) ;;  Set frame transparency
+(setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
+(setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
+(setq-default indent-tabs-mode nil) ;;Use spaces instead of tabs for indentation
+(display-time) ;; Show the time in the bar
+(setq display-time-format "%H:%M %d %b %y" ;; Show hour minute day month and year
+display-time-default-load-average nil)
+(setq display-time-day-and-date t
+display-time-24hr-format t) ;; Change format
+(unless (equal "Battery status not available" (battery)) ;;Show battery
+  (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+(setq-default frame-title-format '("%b [%m]")) ;;Title bar name
+(column-number-mode) ;; Enable column mode
+(setq inhibit-startup-message t) ;; Avoid startup message
+(dolist (mode '(text-mode-hook
+		prog-mode-hook
+    matlab-mode-hook
+		conf-mode-hook
+		lisp-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 1))))    ;; Enable line numbers for some modes
+(dolist (mode '(org-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode -1))))   ;; Override modes which derive from the above
+
+(setq read-file-name-completion-ignore-case t) ;;Insensitive letter case
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+(setq scroll-step 1) ;; keyboard scroll one line at a time
+(setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
+(setq large-file-warning-threshold nil) ;;Dont warn for large files
+(setq org-confirm-babel-evaluate nil) ;;Stop the confirmation to evaluate source code
+(fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
+(set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
+(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
+(delete-selection-mode 1) ;;Let you select and replace with yank or write
+(setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
+(global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
+(setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
+(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
+
+;;(setq completion-ignore-case  t)             ;;Tab completion in minibuffer: case insensitive
+;; (setq read-buffer-completion-ignore-case t)
+;; (setq visible-bell t) ;; Set up the visible bell
+
+(eval-after-load 'pdf-tools
+  '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp)) ;; Set C-s for searching in pdf-tools
+
+  (global-set-key (kbd "C-c <left>")  'windmove-left)
+  (global-set-key (kbd "C-c <right>") 'windmove-right)
+  (global-set-key (kbd "C-c <up>")    'windmove-up)
+  (global-set-key (kbd "C-c <down>")  'windmove-down)
+  (global-set-key (kbd "C-x wti")  'display-time-world)
+
+  (global-set-key (kbd "C-c l") 'my/svg-to-pdf)
+  (global-set-key (kbd "C-x q") 'compile)
+
+  (global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
+  (global-set-key (kbd "<f4>") 'org-publish-all)
+  (global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
+  (global-set-key (kbd "<f6>") 'org-publish-current-file)
+  (global-set-key (kbd "<f9>") 'my/pwd)
+  (global-set-key (kbd "<f8>") 'my/upload-doc)
+  (global-set-key (kbd "<f7>") 'my/actualization-repo)
+  (global-set-key (kbd "<f12>") 'flyspell-auto-correct-word)
+  (global-set-key (kbd "C-x k") 'kill-this-buffer)
+  (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
+  (global-set-key (kbd "M-+") 'dired-create-empty-file)
+  (global-set-key (kbd "C-c a") 'org-agenda)
+  ;; FUNCION PARA CREAR ARCHIVOS TEMPORALES, PARA PROBAR COSAS O ESCRIBIR x COSAS
+  (lambda ()
+    (with-temp-buffer
+      (setq temp-file-name (read-string "Temporary file name: "))
+      (message temp-file-name)
+      (find-file (concat "/tmp/" temp-file-name))))
+
+(defun my/reload-emacs-configuration ()
+  (interactive)
+  (load-file "~/.emacs.d/init.el"))
+
+(defun my/load-blog-configuration ()
+  (interactive)
+  (load-file "~/.emacs.d/blog.el"))
+
+(defun my/find-emacs-configuration ()
+  (interactive)
+  (find-file (concat user-emacs-directory my-user-init-file)))
+
+(defun my/find-file (filename)
+  "Open a file in the background"
+  (interactive "FFind file: ")
+  (set-buffer (find-file-noselect filename)))
+
+(defun my/pwd ()
+  "Put the current file name (include directory) on the clipboard"
+  (interactive)
+  (let ((filename (if (equal major-mode 'dired-mode)
+		      default-directory
+		    (buffer-file-name))))
+    (when filename
+      (with-temp-buffer
+	(insert filename)
+	(clipboard-kill-region (point-min) (point-max)))
+      (message filename))))
+
+  (require 'ol)
+  (org-link-set-parameters "hide-link"
+                           :follow #'org-hide-link-open
+                           :export #'org-hide-link-export
+                           ;; :store #'org-hide-link-store-link
+                           :complete #'org-hide-link-complete-file)
+
+  (defcustom org-hide-link-complete-file 'hide-link
+    "The Emacs command to be used to display a man page."
+    :group 'org-link
+    :type 'string)
+
+  (defun org-hide-link-open (path _)
+    (find-file path))
+
+  (defun org-hide-link-complete-file (&optional arg)
+    "Create a file link using completion."
+    (let ((file (read-file-name "File: "))
+          (pwd (file-name-as-directory (expand-file-name ".")))
+          (pwd1 (file-name-as-directory (abbreviate-file-name
+                                         (expand-file-name ".")))))
+      (cond ((equal arg '(16))
+             (concat "hide-link:"
+                     (abbreviate-file-name (expand-file-name file))))
+            ((string-match
+              (concat "^" (regexp-quote pwd1) "\\(.+\\)") file)
+             (concat "hide-link:" (match-string 1 file)))
+            ((string-match
+              (concat "^" (regexp-quote pwd) "\\(.+\\)")
+              (expand-file-name file))
+             (concat "hide-link:"
+                     (match-string 1 (expand-file-name file))))
+            (t (concat "hide-link:" file)))))
+
+  (defun org-hide-link-export (link description format)
+    "Export a man page link from Org files."
+    (let ((path (format "¿Buscas algo?"))
+          (desc (or description link)))
+      (pcase format
+        (`html (format "<span class = nolinks><a target=\"_blank\" href=\"%s\">%s</a></span>" path desc))
+        (`latex (format "\\href{%s}{%s}" path desc))
+        (`texinfo (format "@uref{%s,%s}" path desc))
+        (`ascii (format "%s (%s)" desc path))
+        (t path))))
+
+  (defun my/blue-color-link (text)
+    (org-insert-link nil "color:blue" text))
+
+  (defun my/color-link-region ()
+    (interactive)
+    (if (region-active-p)
+        (my/blue-color-link (buffer-substring-no-properties (region-beginning) (region-end)))
+      (message "There is no active region.")))
+  (org-add-link-type
+   "color"
+   (lambda (path)
+     (message (concat "color "
+                      (progn (add-text-properties
+                              0 (length path)
+                              (list 'face `((t (:foreground ,path))))
+                              path) path))))
+   (lambda (path desc format)
+     (cond
+      ((eq format 'html)
+       (format "<span style=\"color:%s;\">%s</span>" path desc))
+      ((eq format 'latex)
+       (format "\\textcolor{%s}{%s}" path desc)))))
+
+  ;; (defun my/kill-this-buffer ()
+  ;;     "Kill the current buffer."
+  ;;     (interactive)
+  ;;     (setq name (buffer-name))
+  ;;       (delete-window name)
+  ;;       (kill-buffer name))
+
+  ;;--------------------------
+  ;; Handling file properties for ‘CREATED’ & ‘LAST_MODIFIED’
+  ;;--------------------------
+
+  (defun zp/org-find-time-file-property (property &optional anywhere)
+    "Return the position of the time file PROPERTY if it exists.
+  When ANYWHERE is non-nil, search beyond the preamble."
+    (save-excursion
+      (goto-char (point-min))
+      (let ((first-heading
+             (save-excursion
+               (re-search-forward org-outline-regexp-bol nil t))))
+        (when (re-search-forward (format "^#\\+%s:" property)
+                                 (if anywhere nil first-heading)
+                                 t)
+          (point)))))
+
+  (defun zp/org-has-time-file-property-p (property &optional anywhere)
+    "Return the position of time file PROPERTY if it is defined.
+  As a special case, return -1 if the time file PROPERTY exists but
+  is not defined."
+    (when-let ((pos (zp/org-find-time-file-property property anywhere)))
+      (save-excursion
+        (goto-char pos)
+        (if (and (looking-at-p " ")
+                 (progn (forward-char)
+                        (org-at-timestamp-p 'lax)))
+            pos
+          -1))))
+
+  (defun zp/org-set-time-file-property (property &optional anywhere pos)
+    "Set the time file PROPERTY in the preamble.
+  When ANYWHERE is non-nil, search beyond the preamble.
+  If the position of the file PROPERTY has already been computed,
+  it can be passed in POS."
+    (when-let ((pos (or pos
+                        (zp/org-find-time-file-property property))))
+      (save-excursion
+        (goto-char pos)
+        (if (looking-at-p " ")
+            (forward-char)
+          (insert " "))
+        (delete-region (point) (line-end-position))
+        (let* ((now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+          (insert now)))))
+
+  (defun zp/org-set-last-modified ()
+    "Update the LAST_MODIFIED file property in the preamble."
+    (when (derived-mode-p 'org-mode)
+      (zp/org-set-time-file-property "LAST_MODIFIED")))
+
+
+  (defun my/upload-doc ()
+    (interactive)
+    (setq private_repository "~/Documents/Github/linux_connection/")
+    (setq filename (read-file-name "File name: "))
+    (copy-file filename private_repository)
+    (my/find-file private_repository)
+    (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+    (kill-buffer "*Shell Command Output*")
+    (delete-other-windows))
+
+  (defun my/actualization-repo ()
+    (interactive)
+    (shell-command "~/Documents/Github/linux_connection/auto-git.sh")
+    (kill-buffer "*Shell Command Output*")
+    (delete-other-windows))
+
+
+  (defun my/svg-to-pdf ()
+    "Get as input an image with svg format for return it as pdf"
+    (interactive)
+    (shell-command (concat "inkscape " (read-file-name "File name: ")  " --export-area-drawing --batch-process --export-type=pdf --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".pdf&")))
+
+  (defun my/eps-to-pdf ()
+    "Get as input an image with eps format for return it as pdf. It use gs script for do it may be just work in Windows systems."
+    (interactive)
+    (setq filename (read-file-name "File name: "))
+    (setq outputname (read-from-minibuffer (concat "Name output file:")))
+    (shell-command (concat "gswin32 -sDEVICE=pdfwrite -dEPSFitPage -o " outputname ".pdf " filename) ".pdf&"))
+
+  (defun my/pdf-to-svg ()
+    "Get as input a file with pdf format for return it as svg image"
+    (interactive)
+    (shell-command (concat "pdftocairo -svg " (read-file-name "File name: ") " " (read-from-minibuffer (concat "Name output file:")) ".svg&")))
+
+;; Initialize package sources
+(require 'package)
+(setq package-archives
+      '(;; ("org"     .       "https://orgmode.org/elpa/")
+        ("gnu"     .       "https://elpa.gnu.org/packages/")
+        ("melpa-stable" . "http://stable.melpa.org/packages/")
+        ("melpa" . "http://melpa.org/packages/")))
+
+(package-initialize)
+(when (memq window-system '(mac ns x))
+  (exec-path-from-shell-initialize))
+
+;; Use-package for civilized configuration
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+(use-package vscode-dark-plus-theme
+:ensure t
+:config
+(load-theme 'vscode-dark-plus t))
+
+(use-package minions
+  :config
+  (minions-mode 1))
+
+(use-package ws-butler
+  :hook ((text-mode . ws-butler-mode)
+         (prog-mode . ws-butler-mode)))
+
+(use-package doom-modeline
+  :ensure t
+  :hook (after-init . doom-modeline-mode))
+
+
+;; If non-nil, cause imenu to see `doom-modeline' declarations.
+;; This is done by adjusting `lisp-imenu-generic-expression' to
+;; include support for finding `doom-modeline-def-*' forms.
+;; Must be set before loading doom-modeline.
+(setq doom-modeline-support-imenu t)
+
+;; How tall the mode-line should be. It's only respected in GUI.
+;; If the actual char height is larger, it respects the actual height.
+(setq doom-modeline-height 25)
+
+;; How wide the mode-line bar should be. It's only respected in GUI.
+(setq doom-modeline-bar-width 4)
+
+;; Whether to use hud instead of default bar. It's only respected in GUI.
+(setq doom-modeline-hud nil)
+
+;; The limit of the window width.
+;; If `window-width' is smaller than the limit, some information won't be
+;; displayed. It can be an integer or a float number. `nil' means no limit."
+(setq doom-modeline-window-width-limit 85)
+
+;; How to detect the project root.
+;; nil means to use `default-directory'.
+;; The project management packages have some issues on detecting project root.
+;; e.g. `projectile' doesn't handle symlink folders well, while `project' is unable
+;; to hanle sub-projects.
+;; You can specify one if you encounter the issue.
+(setq doom-modeline-project-detection 'auto)
+
+;; Determines the style used by `doom-modeline-buffer-file-name'.
+;;
+;; Given ~/Projects/FOSS/emacs/lisp/comint.el
+;;   auto => emacs/l/comint.el (in a project) or comint.el
+;;   truncate-upto-project => ~/P/F/emacs/lisp/comint.el
+;;   truncate-from-project => ~/Projects/FOSS/emacs/l/comint.el
+;;   truncate-with-project => emacs/l/comint.el
+;;   truncate-except-project => ~/P/F/emacs/l/comint.el
+;;   truncate-upto-root => ~/P/F/e/lisp/comint.el
+;;   truncate-all => ~/P/F/e/l/comint.el
+;;   truncate-nil => ~/Projects/FOSS/emacs/lisp/comint.el
+;;   relative-from-project => emacs/lisp/comint.el
+;;   relative-to-project => lisp/comint.el
+;;   file-name => comint.el
+;;   buffer-name => comint.el<2> (uniquify buffer name)
+;;
+;; If you are experiencing the laggy issue, especially while editing remote files
+;; with tramp, please try `file-name' style.
+;; Please refer to https://github.com/bbatsov/projectile/issues/657.
+(setq doom-modeline-buffer-file-name-style 'auto)
+
+;; Whether display icons in the mode-line.
+;; While using the server mode in GUI, should set the value explicitly.
+(setq doom-modeline-icon t)
+
+;; Whether display the icon for `major-mode'. It respects `doom-modeline-icon'.
+(setq doom-modeline-major-mode-icon t)
+
+;; Whether display the colorful icon for `major-mode'.
+;; It respects `all-the-icons-color-icons'.
+(setq doom-modeline-major-mode-color-icon t)
+
+;; Whether display the icon for the buffer state. It respects `doom-modeline-icon'.
+(setq doom-modeline-buffer-state-icon t)
+
+;; Whether display the modification icon for the buffer.
+;; It respects `doom-modeline-icon' and `doom-modeline-buffer-state-icon'.
+(setq doom-modeline-buffer-modification-icon t)
+
+;; Whether display the time icon. It respects variable `doom-modeline-icon'.
+(setq doom-modeline-time-icon t)
+
+;; Whether to use unicode as a fallback (instead of ASCII) when not using icons.
+(setq doom-modeline-unicode-fallback nil)
+
+;; Whether display the buffer name.
+(setq doom-modeline-buffer-name t)
+
+;; Whether display the minor modes in the mode-line.
+(setq doom-modeline-minor-modes nil)
+
+;; If non-nil, a word count will be added to the selection-info modeline segment.
+(setq doom-modeline-enable-word-count nil)
+
+;; Major modes in which to display word count continuously.
+;; Also applies to any derived modes. Respects `doom-modeline-enable-word-count'.
+;; If it brings the sluggish issue, disable `doom-modeline-enable-word-count' or
+;; remove the modes from `doom-modeline-continuous-word-count-modes'.
+(setq doom-modeline-continuous-word-count-modes '(markdown-mode gfm-mode org-mode))
+
+;; Whether display the buffer encoding.
+(setq doom-modeline-buffer-encoding t)
+
+;; Whether display the indentation information.
+(setq doom-modeline-indent-info nil)
+
+;; If non-nil, only display one number for checker information if applicable.
+(setq doom-modeline-checker-simple-format t)
+
+;; The maximum number displayed for notifications.
+(setq doom-modeline-number-limit 99)
+
+;; The maximum displayed length of the branch name of version control.
+(setq doom-modeline-vcs-max-length 12)
+
+;; Whether display the workspace name. Non-nil to display in the mode-line.
+(setq doom-modeline-workspace-name t)
+
+;; Whether display the perspective name. Non-nil to display in the mode-line.
+(setq doom-modeline-persp-name t)
+
+;; If non nil the default perspective name is displayed in the mode-line.
+(setq doom-modeline-display-default-persp-name nil)
+
+;; If non nil the perspective name is displayed alongside a folder icon.
+(setq doom-modeline-persp-icon t)
+
+;; Whether display the `lsp' state. Non-nil to display in the mode-line.
+(setq doom-modeline-lsp t)
+
+;; Whether display the GitHub notifications. It requires `ghub' package.
+(setq doom-modeline-github nil)
+
+;; The interval of checking GitHub.
+(setq doom-modeline-github-interval (* 30 60))
+
+;; Whether display the modal state icon.
+;; Including `evil', `overwrite', `god', `ryo' and `xah-fly-keys', etc.
+(setq doom-modeline-modal-icon t)
+
+;; Whether display the mu4e notifications. It requires `mu4e-alert' package.
+(setq doom-modeline-mu4e nil)
+;; also enable the start of mu4e-alert
+(mu4e-alert-enable-mode-line-display)
+
+;; Whether display the gnus notifications.
+(setq doom-modeline-gnus t)
+
+;; Whether gnus should automatically be updated and how often (set to 0 or smaller than 0 to disable)
+(setq doom-modeline-gnus-timer 2)
+
+;; Wheter groups should be excludede when gnus automatically being updated.
+(setq doom-modeline-gnus-excluded-groups '("dummy.group"))
+
+;; Whether display the IRC notifications. It requires `circe' or `erc' package.
+(setq doom-modeline-irc t)
+
+;; Function to stylize the irc buffer names.
+(setq doom-modeline-irc-stylize 'identity)
+
+;; Whether display the time. It respects `display-time-mode'.
+(setq doom-modeline-time t)
+
+;; Whether display the misc segment on all mode lines.
+;; If nil, display only if the mode line is active.
+(setq doom-modeline-display-misc-in-all-mode-lines t)
+
+;; Whether display the environment version.
+(setq doom-modeline-env-version t)
+;; Or for individual languages
+(setq doom-modeline-env-enable-python t)
+(setq doom-modeline-env-enable-ruby t)
+(setq doom-modeline-env-enable-perl t)
+(setq doom-modeline-env-enable-go t)
+(setq doom-modeline-env-enable-elixir t)
+(setq doom-modeline-env-enable-rust t)
+
+;; Change the executables to use for the language version string
+(setq doom-modeline-env-python-executable "python") ; or `python-shell-interpreter'
+(setq doom-modeline-env-ruby-executable "ruby")
+(setq doom-modeline-env-perl-executable "perl")
+(setq doom-modeline-env-go-executable "go")
+(setq doom-modeline-env-elixir-executable "iex")
+(setq doom-modeline-env-rust-executable "rustc")
+
+;; What to display as the version while a new one is being loaded
+(setq doom-modeline-env-load-string "...")
+
+;; Hooks that run before/after the modeline version string is updated
+(setq doom-modeline-before-update-env-hook nil)
+(setq doom-modeline-after-update-env-hook nil)
+
+(use-package all-the-icons
+  :ensure t)
+
+(use-package lsp-ltex
+  :ensure t
+  :hook (text-mode . (lambda ()
+                       (require 'lsp-ltex)
+                       (lsp)))  ; or lsp-deferred
+  :init
+  (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
+
+(use-package arduino-mode
+  :defer t)
+(use-package company-arduino
+       :defer t)
+
+(use-package matlab-mode
+  :defer t
+  :mode "\\.m\\'"
+  :interpreter ("matlab -nodesktop -nosplash -r" . matlab-mode)
+  )
+ (autoload 'matlab-mode "matlab" "Matlab Editing Mode" t)
+ (add-to-list
+  'auto-mode-alist
+  '("\\.m$" . matlab-mode))
+ (setq matlab-indent-function t)
+ (setq matlab-shell-command "matlab")
+
+;; setup matlab in babel
+(setq org-babel-default-header-args:matlab
+  '((:results . "output") (:session . "*MATLAB*")))
+
+;; list of babel languages
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((matlab . t)
+   ))
+
+;; Session evaluation of MATLAB in org-babel is broken, this goes some
+;; way towards addressing the problem.
+;;
+;;- I replaced a `delq' with `delete', the `eq' test was failing on
+;; blank strings
+;;
+;;- For results of type `output', concatenate all statements in the
+;; block with appropriate separators (";", "," etc) and run one long
+;; statment instead. Remove this statement from the raw result. This
+;; produces much cleaner output.
+
+(defun org-babel-octave-evaluate-session
+    (session body result-type &optional matlabp)
+  "Evaluate BODY in SESSION."
+  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
+     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+     (full-body
+      (pcase result-type
+        (`output
+         (mapconcat
+          #'org-babel-chomp
+          (list (if matlabp
+                        (multi-replace-regexp-in-string
+                         '(("%.*$"                      . "")    ;Remove comments
+                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
+                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
+                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
+                         body)
+                      body)
+                    org-babel-octave-eoe-indicator) "\n"))
+        (`value
+         (if (and matlabp org-babel-matlab-with-emacs-link)
+         (concat
+          (format org-babel-matlab-emacs-link-wrapper-method
+              body
+              (org-babel-process-file-name tmp-file 'noquote)
+              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+           (mapconcat
+        #'org-babel-chomp
+        (list (format org-babel-octave-wrapper-method
+                  body
+                  (org-babel-process-file-name tmp-file 'noquote)
+                  (org-babel-process-file-name tmp-file 'noquote))
+              org-babel-octave-eoe-indicator) "\n")))))
+     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+          (save-window-excursion
+            (with-temp-buffer
+              (insert full-body)
+              (write-region "" 'ignored wait-file nil nil nil 'excl)
+              (matlab-shell-run-region (point-min) (point-max))
+              (message "Waiting for Matlab Emacs Link")
+              (while (file-exists-p wait-file) (sit-for 0.01))
+              "")) ;; matlab-shell-run-region doesn't seem to
+        ;; make *matlab* buffer contents easily
+        ;; available, so :results output currently
+        ;; won't work
+        (org-babel-comint-with-output
+            (session
+             (if matlabp
+             org-babel-octave-eoe-indicator
+               org-babel-octave-eoe-output)
+             t full-body)
+          (insert full-body) (comint-send-input nil t)))) results)
+    (pcase result-type
+      (`value
+       (org-babel-octave-import-elisp-from-file tmp-file))
+      (`output
+       (setq results
+         (if matlabp
+         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
+           (cdr (member org-babel-octave-eoe-output
+                (reverse (mapcar #'org-strip-quotes
+                         (mapcar #'org-trim raw)))))))
+       (mapconcat #'identity (reverse results) "\n")))))
+
+(defun remove-car-upto-newline (raw)
+  "Truncate the first string in a list of strings `RAW' up to the first newline"
+  (cons (mapconcat #'identity
+                   (cdr (split-string-and-unquote (car raw) "\n"))
+                   "\n") (cdr raw)))
+
+(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
+  (interactive)
+  "Replace multiple regexps in a string. Order matters."
+  (if (null replacements-list)
+      string
+    (let ((regex (caar replacements-list))
+          (replacement (cdar replacements-list)))
+      (multi-replace-regexp-in-string (cdr replacements-list)
+                                      (replace-regexp-in-string regex replacement
+                                                                string rest)))))
+
+(provide 'ob-octave-fix)
+
+(use-package vhdl-mode
+  :defer t)
+
+(use-package lua-mode
+  :defer t)
+
+(defun efs/lsp-mode-setup()
+  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+  (lsp-headerline-breadcrumb-mode))
+
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . efs/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t)
+  (setq lsp-vhdl-server-path "~/bin/vhdl-tool")
+  (use-package lsp-mode
+       :config
+       (add-hook 'vhdl-mode-hook 'lsp)))
+
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode))
+
+(flycheck-define-checker vhdl-tool
+  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
+
+See URL `http://vhdltool.com'."
+  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
+            )
+  :standard-input t
+  :error-patterns
+  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
+   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
+  :modes (vhdl-mode))
+
+(add-to-list 'flycheck-checkers 'vhdl-tool)
+
+
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-doc-position 'bottom))
+
+(use-package pyvenv
+  :config
+  (pyvenv-mode 1))
+
+(use-package python-mode
+  :ensure t
+  :hook (python-mode . lsp-deferred)
+  :custom
+  (python-shell-interpreter "python3")
+  (setq python-indent-offset 4)
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 4)
+  (setq indent-line-function 'insert-tab))
+;; (setq custom-theme-directory "~/.emacs.d/private/themes")
+;; (load-theme 'minimal t)
+
+(use-package magit
+  :defer t
+  :bind ("C-x g" . magit-status)
+  :config
+  (setq magit-auto-revert-mode t)
+  (setq magit-auto-revert-immediately t)
+  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+
+;; ;;Auctex highlight syntax
+(use-package auctex
+  :defer t)
+
+;; ;;Company-mode
+(use-package company
+  :config
+  (add-hook 'after-init-hook 'global-company-mode))
+
+(use-package swiper
+  :bind ("C-s" . swiper-isearch))
+
+(use-package pdf-tools
+  :config
+  (pdf-loader-install)
+  (setq-default pdf-view-display-size 'fit-page)
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t
+        TeX-source-correlate-method 'synctex))
+
+(use-package org
+  :pin gnu
+  :hook
+  ((before-save . zp/org-set-last-modified))
+  :config
+  (ivy-mode 1)
+  (setq org-src-tab-acts-natively t))
+
+(org-babel-do-load-languages
+   'org-babel-load-languages
+   '((js . t)
+     (org . t)
+     (octave . t)
+     (css . t)
+     (dot . t)
+     (latex . t)
+     (shell . t)
+     (python . t)
+     (matlab . t)
+     (emacs-lisp . t)))
+(setq org-startup-folded t)
+(setq org-return-follows-link 1)
+(setq org-src-preserve-indentation nil
+	org-edit-src-content-indentation 0) ;; Respect parent buffer indentation
+(add-hook 'org-mode-hook 'org-indent-mode)
+(setq org-hide-leading-stars t)
+(global-set-key (kbd "C-c C-c") 'org-capture)
+(setq org-startup-with-inline-images nil)
+(setq org-image-actual-width nil)
+(setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s")
+                                 (todo . " %i %-12:c")
+                                 (tags . " %i %-12:c")
+                                 (search . " %i %-12:c")))
+(setq org-todo-keyword-faces
+      '(
+        ("IN-PROGRESS" . (:foreground "yellow" :weight bold))
+        ))
+
+(setq org-todo-keywords
+      '((sequence "TODO" "IN-PROGRESS" "DONE")))
+
+;;https://yiufung.net/post/org-mode-hidden-gems-pt2
+(setq org-catch-invisible-edits 'show-and-error)
+(setq org-cycle-separator-lines 0)
+(setq org-latex-caption-above nil)
+(require 'ox-latex)
+(add-to-list 'org-latex-classes
+             '("university-works"
+               "\\documentclass{article}
+                   [NO-DEFAULT-PACKAGES]"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+(defun my/org-latex-export-to-pdf-minted
+    (&optional async subtreep visible-only body-only ext-plist)
+  (interactive)
+  (let ((outfile (org-export-output-file-name ".tex" subtreep)))
+    (org-export-to-file 'latex outfile
+      async subtreep visible-only body-only ext-plist
+      #'my/org-latex-compile)))
+
+(defcustom org-latex-pdf-minted-process
+  (if (executable-find "latexmk")
+      '("latexmk -f -pdf -%latex -bibtex -interaction=nonstopmode  -shell-escape -output-directory=%o %f")
+    '("%latexmk -interaction nonstopmode -shell-escape -output-directory %o %f"
+      "%bib -interaction nonstopmode -shell-escape -output-directory %o %f"
+      "%latexmk -interaction nonstopmode -shell-escape -output-directory %o %f"
+      "%latexxmk -interaction nonstopmode -shell-escape -output-directory %o %f"))
+  "Commands to process a LaTeX file to a PDF file.
+
+  This is a list of strings, each of them will be given to the
+  shell as a command.  %f in the command will be replaced by the
+  relative file name, %F by the absolute file name, %b by the file
+  base name (i.e. without directory and extension parts), %o by the
+  base directory of the file, %O by the absolute file name of the
+  output file, %latex is the LaTeX compiler (see
+  `org-latex-compiler'), and %bib is the BibTeX-like compiler (see
+  `org-latex-bib-compiler').
+
+  The reason why this is a list is that it usually takes several
+  runs of `pdflatex', maybe mixed with a call to `bibtex'.  Org
+  does not have a clever mechanism to detect which of these
+  commands have to be run to get to a stable result, and it also
+  does not do any error checking.
+
+  Consider a smart LaTeX compiler such as `texi2dvi' or `latexmk',
+  which calls the \"correct\" combinations of auxiliary programs.
+
+  Alternatively, this may be a Lisp function that does the
+  processing, so you could use this to apply the machinery of
+  AUCTeX or the Emacs LaTeX mode.  This function should accept the
+  file name as its single argument."
+  :group 'org-export-pdf
+  :type '(choice
+          (repeat :tag "Shell command sequence"
+                  (string :tag "Shell command"))
+          (const :tag "2 runs of latex"
+                 ("%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"))
+          (const :tag "3 runs of latex"
+                 ("%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -output-directory %o %f"))
+          (const :tag "latex,bibtex,latex,latex"
+                 ("%latex -interaction nonstopmode -shell-escape -%bib -output-directory %o %f"
+                  "%bib %b"
+                  "%latex -interaction nonstopmode -shell-escape -%bib -output-directory %o %f"
+                  "%latex -interaction nonstopmode -shell-escape -%bib -output-directory %o %f"))
+          (const :tag "texi2dvi"
+                 ("cd %o; LATEX=\"%latex\" texi2dvi -p -b -V %b.tex"))
+          (const :tag "latexmk"
+                 ("latexmk -f -pdf -%latex -interaction=nonstopmode -shell-escape -output-directory=%o %f"))
+          (function)))
+
+(defun my/org-latex-compile (texfile &optional snippet)
+  (unless snippet (message "Processing LaTeX file %s..." texfile))
+  (let* ((compiler
+          (or (with-temp-buffer
+                (save-excursion (insert-file-contents texfile))
+                (and (search-forward-regexp (regexp-opt org-latex-compilers)
+                                            (line-end-position 2)
+                                            t)
+                     (progn (beginning-of-line) (looking-at-p "%"))
+                     (match-string 0)))
+              "pdflatex"))
+         (process (if (functionp org-latex-pdf-minted-process) org-latex-pdf-minted-process
+                    ;; Replace "%latex" with "%L" and "%bib" and
+                    ;; "%bibtex" with "%B" to adhere to `format-spec'
+                    ;; specifications.
+                    (mapcar (lambda (command)
+                              (replace-regexp-in-string
+                               "%\\(?:\\(?:bib\\|la\\)tex\\|bib\\)\\>"
+                               (lambda (m) (upcase (substring m 0 2)))
+                               command))
+                            org-latex-pdf-minted-process)))
+         (spec `((?B . ,(shell-quote-argument org-latex-bib-compiler))
+                 (?L . ,(shell-quote-argument compiler))))
+         (log-buf-name "*Org PDF LaTeX Output*")
+         (log-buf (and (not snippet) (get-buffer-create log-buf-name)))
+         (outfile (org-compile-file texfile process "pdf"
+                                    (format "See %S for details" log-buf-name)
+                                    log-buf spec)))
+    (unless snippet
+      (when org-latex-remove-logfiles
+        (mapc #'delete-file
+              (directory-files
+               (file-name-directory outfile)
+               t
+               (concat (regexp-quote (file-name-base outfile))
+                       "\\(?:\\.[0-9]+\\)?\\."
+                       (regexp-opt org-latex-logfiles-extensions))
+               t)))
+      (let ((warnings (org-latex--collect-warnings log-buf)))
+        (message (concat "PDF file produced"
+                         (cond
+                          ((eq warnings 'error) " with errors.")
+                          (warnings (concat " with warnings: " warnings))
+                          (t "."))))))
+    ;; Return output file name.
+    outfile))
+
+(org-export-define-derived-backend 'my-latex 'latex
+  :menu-entry
+  '(?l "My export to LaTeX"
+       ((?m "As PDF with minted" my/org-latex-export-to-pdf-minted)))
+  ;; :translate-alist
+  ;; '((quote-block . org-latex-testing-block))
+  )
+
+(require 'midnight)
+                              (setq ido-use-virtual-buffers t) ;; Save buffers in the memory even if you close them
+
+                                (use-package treemacs
+                                :ensure t)
+                              (defun org-latex-math-block (_math-block contents _info)
+                                "Transcode a MATH-BLOCK object from Org to LaTeX.
+                                                CONTENTS is a string.  INFO is a plist used as a communication
+                                                channel."
+                                (when (org-string-nw-p contents)
+                                  (format "$%s$" (org-trim contents))))
+                              (defun create-temp-directory ()
+                                "This function let you create directories or files
+                                                  in the tmp directory for testing"
+                                (interactive)
+                                (let (
+                                      (choices '("directory" "files"))
+                                      (name (read-string "Enter name temporary file: ")))
+
+                                  (find-file (concat "/tmp/" name))
+                                  (message name)
+
+                                  ))
+                              (global-set-key (kbd "\C-c M-+") 'create-temp-directory)
+
+                              (windmove-default-keybindings 'M) ;; Me muevo por las ventanas
+
+                              (defun window-toggle-split-direction ()
+                                "Switch window split from horizontally to vertically, or vice versa.
+                              i.e. change right window to bottom, or change bottom window to right."
+                                (interactive)
+                                (require 'windmove)
+                                (let ((done))
+                                  (dolist (dirs '((right . down) (down . right)))
+                                    (unless done
+                                      (let* ((win (selected-window))
+                                             (nextdir (car dirs))
+                                             (neighbour-dir (cdr dirs))
+                                             (next-win (windmove-find-other-window nextdir win))
+                                             (neighbour1 (windmove-find-other-window neighbour-dir win))
+                                             (neighbour2 (if next-win (with-selected-window next-win
+                                                                        (windmove-find-other-window neighbour-dir next-win)))))
+                                        ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
+                                        (setq done (and (eq neighbour1 neighbour2)
+                                                        (not (eq (minibuffer-window) next-win))))
+                                        (if done
+                                            (let* ((other-buf (window-buffer next-win)))
+                                              (delete-window next-win)
+                                              (if (eq nextdir 'right)
+                                                  (split-window-vertically)
+                                                (split-window-horizontally))
+                                              (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
+
+
+                              (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
+
+                              (use-package treemacs
+                                :ensure t
+                                :defer t
+                                :init
+                                (with-eval-after-load 'winum
+                                  (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+                                :config
+                                (progn
+                                  (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+                                        treemacs-deferred-git-apply-delay        0.5
+                                        treemacs-directory-name-transformer      #'identity
+                                        treemacs-display-in-side-window          t
+                                        treemacs-eldoc-display                   'simple
+                                        treemacs-file-event-delay                5000
+                                        treemacs-file-extension-regex            treemacs-last-period-regex-value
+                                        treemacs-file-follow-delay               0.2
+                                        treemacs-file-name-transformer           #'identity
+                                        treemacs-follow-after-init               t
+                                        treemacs-expand-after-init               t
+                                        treemacs-find-workspace-method           'find-for-file-or-pick-first
+                                        treemacs-git-command-pipe                ""
+                                        treemacs-goto-tag-strategy               'refetch-index
+                                        treemacs-header-scroll-indicators        '(nil . "^^^^^^")
+                                        treemacs-hide-dot-git-directory          t
+                                        treemacs-indentation                     2
+                                        treemacs-indentation-string              " "
+                                        treemacs-is-never-other-window           nil
+                                        treemacs-max-git-entries                 5000
+                                        treemacs-missing-project-action          'ask
+                                        treemacs-move-forward-on-expand          nil
+                                        treemacs-no-png-images                   nil
+                                        treemacs-no-delete-other-windows         t
+                                        treemacs-project-follow-cleanup          nil
+                                        treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+                                        treemacs-position                        'left
+                                        treemacs-read-string-input               'from-child-frame
+                                        treemacs-recenter-distance               0.1
+                                        treemacs-recenter-after-file-follow      nil
+                                        treemacs-recenter-after-tag-follow       nil
+                                        treemacs-recenter-after-project-jump     'always
+                                        treemacs-recenter-after-project-expand   'on-distance
+                                        treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+                                        treemacs-show-cursor                     nil
+                                        treemacs-show-hidden-files               t
+                                        treemacs-silent-filewatch                nil
+                                        treemacs-silent-refresh                  nil
+                                        treemacs-sorting                         'alphabetic-asc
+                                        treemacs-select-when-already-in-treemacs 'move-back
+                                        treemacs-space-between-root-nodes        t
+                                        treemacs-tag-follow-cleanup              t
+                                        treemacs-tag-follow-delay                1.5
+                                        treemacs-text-scale                      nil
+                                        treemacs-user-mode-line-format           nil
+                                        treemacs-user-header-line-format         nil
+                                        treemacs-wide-toggle-width               70
+                                        treemacs-width                           35
+                                        treemacs-width-increment                 1
+                                        treemacs-width-is-initially-locked       t
+                                        treemacs-workspace-switch-cleanup        nil)
+
+                                  ;; The default width and height of the icons is 22 pixels. If you are
+                                  ;; using a Hi-DPI display, uncomment this to double the icon size.
+                                  ;;(treemacs-resize-icons 44)
+
+                                  (treemacs-follow-mode t)
+                                  (treemacs-filewatch-mode t)
+                                  (treemacs-fringe-indicator-mode 'always)
+                                  (when treemacs-python-executable
+                                    (treemacs-git-commit-diff-mode t))
+
+                                  (pcase (cons (not (null (executable-find "git")))
+                                               (not (null treemacs-python-executable)))
+                                    (`(t . t)
+                                     (treemacs-git-mode 'deferred))
+                                    (`(t . _)
+                                     (treemacs-git-mode 'simple)))
+
+                                  (treemacs-hide-gitignored-files-mode nil))
+                                :bind
+                                (:map global-map
+                                      ("M-0"       . treemacs-select-window)
+                                      ("C-x t 1"   . treemacs-delete-other-windows)
+                                      ("C-x t t"   . treemacs)
+                                      ("C-x t d"   . treemacs-select-directory)
+                                      ("C-x t B"   . treemacs-bookmark)
+                                      ("C-x t C-t" . treemacs-find-file)
+                                      ("C-x t M-t" . treemacs-find-tag)))
+                              ;; (ido-mode 1)
+                              (global-set-key (kbd "M-o") 'ace-window)
+
+
+                          ;; If there were no compilation errors, delete the compilation window
+                            (setq compilation-exit-message-function
+                                  (lambda (status code msg)
+                                    ;; If M-x compile exists with a 0
+                                    (when (and (eq status 'exit) (zerop code))
+                                      ;; then bury the *compilation* buffer, so that C-x b doesn't go there
+                                      (bury-buffer "*compilation*")
+                                      ;; and return to whatever were looking at before
+                                      (replace-buffer-in-windows "*compilation*"))
+                                    ;; Always return the anticipated result of compilation-exit-message-function
+                                    (cons msg code)))
+                        (use-package forge)
+                        (setq auth-sources '("~/.authinfo"))
+                        (use-package magit-pretty-graph
+                          :ensure nil
+                          :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
+                        ;(magit-pg-repo "/some/path")
+
+                           (defun my-clear ()
+                              (interactive)
+                              ;; (erase-buffer)
+                              (comint-clear-buffer))
+
+                            (defun my-shell-hook ()
+                              (local-set-key "\C-l" 'my-clear))
+
+                            (add-hook 'shell-mode-hook 'my-shell-hook)
+
+                      (add-hook 'compilation-finish-functions
+                        (lambda (buf str)
+                          (if (null (string-match ".*exited abnormally.*" str))
+                              ;;no errors, make the compilation window go away in a few seconds
+                              (progn
+                                (run-at-time
+                                 "2 sec" nil 'delete-windows-on
+                                 (get-buffer-create "*compilation*"))
+                                (message "No Compilation Errors!")))))
+                      (setq compilation-window-height 10)
+
+                      (defun ct/create-proper-compilation-window ()
+                        "Setup the *compilation* window with custom settings."
+                        (when (not (get-buffer-window "*compilation*"))
+                          (save-selected-window
+                            (save-excursion
+                              (let* ((w (split-window-vertically))
+                                     (h (window-height w)))
+                                (select-window w)
+                                (switch-to-buffer "*compilation*")
+
+                                ;; Reduce window height
+                                (shrink-window (- h compilation-window-height))
+
+                                ;; Prevent other buffers from displaying inside
+                                (set-window-dedicated-p w t)
+                        )))))
+                      (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
+
+                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      ;; Full width comment box                                                 ;;
+                      ;; from http://irreal.org/blog/?p=374                                     ;;
+                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+              (defun bjm-comment-box (b e)
+              "Draw a box comment around the region but arrange for the region to extend to at least the fill column. Place the point after the comment box."
+
+              (interactive "r")
+
+              (let ((e (copy-marker e t)))
+                (goto-char b)
+                (end-of-line)
+                (insert-char 49  (+ 0 0))
+                ;; (insert-char ?  (- (/ fill-column ) (current-column)))
+                (comment-box b e 1)
+                (goto-char e)
+                (set-marker e nil)))
+
+              (global-set-key (kbd "C-c b b") 'bjm-comment-box)
+              (add-hook 'c-mode-hook 'display-fill-column-indicator-mode)
+              (add-hook 'arduino-mode-hook 'display-fill-column-indicator-mode)
+              (add-hook 'c-mode-hook 'turn-on-auto-fill)
+              (add-hook 'arduino-mode-hook 'turn-on-auto-fill)
+              (defun my-arduino-hook ()
+                ;;(auto-fill-mode 1)
+                (setq fill-column 80))
+              (add-hook 'arduino-mode-hook 'my-arduino-hook)
+               (add-hook 'c-mode-common-hook
+                          (lambda ()
+                            (auto-fill-mode 1)
+                            (set (make-local-variable 'fill-nobreak-predicate)
+                                 (lambda ()
+                                   (not (eq (get-text-property (point) 'face)
+                                            'font-lock-comment-face))))))
+               (add-hook 'arduino-mode-common-hook
+                          (lambda ()
+                            (auto-fill-mode 1)
+                            (set (make-local-variable 'fill-nobreak-predicate)
+                                 (lambda ()
+                                   (not (eq (get-text-property (point) 'face)
+                                            'font-lock-comment-face))))))
+      (add-hook 'c-mode-hook (lambda () (c-toggle-comment-style 1)))
+      (add-hook 'c-mode-hook (lambda () (setq comment-start "/*"
+                                              comment-end   "*/")))
+
+      (add-hook 'c-mode-common-hook (lambda () (setq comment-start "/*"
+                                              comment-end   "*/")))
+
+      (add-hook 'c++-mode-hook (lambda () (setq comment-start "/*"
+                                              comment-end   "*/")))
+
+      (add-hook 'arduino-mode-hook (lambda () (setq comment-start "/*"
+                                              comment-end   "*/")))
+            (use-package json-mode)
+            (setq auth-sources '("~/.authinfo"))
+            (use-package markdown-mode
+              :ensure t
+              :commands (markdown-mode gfm-mode)
+              :mode (("README\\.md\\'" . gfm-mode))
+              :init (setq markdown-command "/usr/local/bin/multimarkdown"))
+            (custom-set-variables
+             '(markdown-command "/usr/bin/markdown")
+             ;; '(markdown-open-command "/usr/bin/grip")
+             )
+          (use-package markdown-preview-eww)
+          (use-package taskwarrior
+            :load-path "~/.emacs.d/private/packages/taskwarrior"
+            :bind
+            (("C-x t" . taskwarrior)
+             ("C-x t" . taskwarrior)))
+        (add-to-list 'lsp-language-id-configuration '(forge-post-mode . "markdown"))
+    (auto-fill-mode 1)
+    (setq comment-auto-fill-only-comments t)
+    ;; (add-hook 'text-mode-hook
+    ;;           (lambda () (auto-fill-mode -1)))
+(add-hook 'c-mode-common-hook
+	  (lambda ()
+	    (when (featurep 'filladapt)
+	      (c-setup-filladapt))))
+(add-hook 'cc-mode-common-hook
+	  (lambda ()
+	    (when (featurep 'filladapt)
+	      (c-setup-filladapt))))
+(add-hook 'arduino-mode-hook
+	  (lambda ()
+	    (when (featurep 'filladapt)
+	      (c-setup-filladapt))))
+
 ;; Minimize garbage collection during startup
 (setq gc-cons-threshold most-positive-fixnum)
 ;; ;; The default is 800 kilobytes.  Measured in bytes.
@@ -21,7 +1203,7 @@
         ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
         ("melpa" . "http://melpa.org/packages/")))
 
-(package-initialize)
+;; (package-initialize)
 
 ;; Use-package for civilized configuration
 (unless (package-installed-p 'use-package)
@@ -31,82 +1213,82 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(use-package org-special-block-extras
-  :defer t
-  :hook (org-mode . org-special-block-extras-mode))
+;; (use-package org-special-block-extras
+;;   :defer t
+;;   :hook (org-mode . org-special-block-extras-mode))
 
 (use-package minions
   :config
   (minions-mode 1))
 
-(use-package mu4e-alert
-  :ensure t
-  :after mu4e
-  :init
-  (setq mu4e-alert-interesting-mail-query
-        (concat
-         "flag:unread maildir:/INBOX"))
-  (mu4e-alert-enable-mode-line-display)
-  (defun my/mu4e-alert ()
-    (interactive)
-    (mu4e~proc-kill)
-    (mu4e-alert-enable-mode-line-display)
-    )
-  (run-with-timer 0 2700 'my/mu4e-alert)
-  ;; (setq mu4e-alert-enable-notifications t)
-  ;; :config
-  ;; (mu4e-alert-set-default-style 'libnotify)
-  ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
-  )
+;; (use-package mu4e-alert
+;;   :ensure t
+;;   :after mu4e
+;;   :init
+;;   (setq mu4e-alert-interesting-mail-query
+;;         (concat
+;;          "flag:unread maildir:/INBOX"))
+;;   (mu4e-alert-enable-mode-line-display)
+;;   (defun my/mu4e-alert ()
+;;     (interactive)
+;;     (mu4e~proc-kill)
+;;     (mu4e-alert-enable-mode-line-display)
+;;     )
+;;   (run-with-timer 0 2700 'my/mu4e-alert)
+;;   ;; (setq mu4e-alert-enable-notifications t)
+;;   ;; :config
+;;   ;; (mu4e-alert-set-default-style 'libnotify)
+;;   ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+;;   )
 
 ;; (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
-(use-package mu4e
-  :ensure nil
-  :config
-  (setq
-   send-mail-function 'smtpmail-send-it
-   smtpmail-smtp-server "correo.uma.es"
-   smtpmail-smtp-service 587)
+;; (use-package mu4e
+;;   :ensure nil
+;;   :config
+;;   (setq
+;;    send-mail-function 'smtpmail-send-it
+;;    smtpmail-smtp-server "correo.uma.es"
+;;    smtpmail-smtp-service 587)
 
-  (setq mu4e-update-interval (* 45 60))
-  (setq mu4e-get-mail-command "offlineimap")
-  (setq mu4e-change-filenames-when-moving t)
-  (setq mu4e-attachment-dir "~/Downloads")
-  (setq mu4e-maildir "~/Maildir"
-        mu4e-sent-folder "/Sent"
-        mu4e-drafts-folder "/Drafts"
-        mu4e-trash-folder "/Trash")
-  ;; (setq mu4e-refile-folder
-  ;;       (lambda (msg)
-  ;;         (cond
-  ;;          ((mu4e-message-contact-field-matches msg :from
-  ;;                                               "jorge2@uma.es")
-  ;;           "/Sent"))))
+;;   (setq mu4e-update-interval (* 45 60))
+;;   (setq mu4e-get-mail-command "offlineimap")
+;;   (setq mu4e-change-filenames-when-moving t)
+;;   (setq mu4e-attachment-dir "~/Downloads")
+;;   (setq mu4e-maildir "~/Maildir"
+;;         mu4e-sent-folder "/Sent"
+;;         mu4e-drafts-folder "/Drafts"
+;;         mu4e-trash-folder "/Trash")
+;;   ;; (setq mu4e-refile-folder
+;;   ;;       (lambda (msg)
+;;   ;;         (cond
+;;   ;;          ((mu4e-message-contact-field-matches msg :from
+;;   ;;                                               "jorge2@uma.es")
+;;   ;;           "/Sent"))))
 
-  (setq message-kill-buffer-on-exit t)
-  (setq mu4e-sent-messages-behavior 'sent)
+;;   (setq message-kill-buffer-on-exit t)
+;;   (setq mu4e-sent-messages-behavior 'sent)
 
-  (setq mu4e-contexts
-        `(,(make-mu4e-context
-            :name "University"
-            :enter-func (lambda () (mu4e-message "University mode"))
-            :leave-func (lambda () (mu4e-message "Leaving University mode"))
-            :match-func (lambda (msg) (when msg (mu4e-message-contact-field-matches msg
-                                                                                    :to "jorge2@uma.es")))
-            :vars '((user-mail-address . "jorge2@uma.es")
-                    (user-full-name . "Jorge Benavides M.")
-                    (mu4e-compose-signature . (concat
-                                               "Jorge Benavides M.\n"
-                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
-                                               "\n"))))))
-  (setq mu4e-context-policy 'pick-first)
-  (setq mail-user-agent 'mu4e-user-agent)
-  ;; (add-hook 'mu4e-compose-mode-hook
-  ;;           (defun my-add-bcc ()
-  ;;             "Add a Bcc: header."
-  ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
-  (mu4e t)
-  )
+;;   (setq mu4e-contexts
+;;         `(,(make-mu4e-context
+;;             :name "University"
+;;             :enter-func (lambda () (mu4e-message "University mode"))
+;;             :leave-func (lambda () (mu4e-message "Leaving University mode"))
+;;             :match-func (lambda (msg) (when msg (mu4e-message-contact-field-matches msg
+;;                                                                                     :to "jorge2@uma.es")))
+;;             :vars '((user-mail-address . "jorge2@uma.es")
+;;                     (user-full-name . "Jorge Benavides M.")
+;;                     (mu4e-compose-signature . (concat
+;;                                                "Jorge Benavides M.\n"
+;;                                                "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
+;;                                                "\n"))))))
+;;   (setq mu4e-context-policy 'pick-first)
+;;   (setq mail-user-agent 'mu4e-user-agent)
+;;   ;; (add-hook 'mu4e-compose-mode-hook
+;;   ;;           (defun my-add-bcc ()
+;;   ;;             "Add a Bcc: header."
+;;   ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
+;;   (mu4e t)
+;;   )
 
 (use-package arduino-mode
   :defer t)
@@ -252,16 +1434,16 @@
 ;;               (make-local-variable 'company-backends)
 ;;               (add-to-list 'company-backends 'hledger-company))))
 
-;; ;; (use-package guess-language         ; Automatically detect language for Flyspell
-;; ;;   :ensure t
-;; ;;   :defer t
-;; ;;   :init (add-hook 'text-mode-hook #'guess-language-mode)
-;; ;;   :config
-;; ;;   (setq guess-language-langcodes '((en . ("en_GB" "English"))
-;; ;;                                    (es . ("es" "Spanish")))
-;; ;;         guess-language-languages '(en es)
-;; ;;         guess-language-min-paragraph-length 45)
-;; ;;   :diminish guess-language-mode)
+(use-package guess-language         ; Automatically detect language for Flyspell
+  :ensure t
+  :defer t
+  :init (add-hook 'text-mode-hook #'guess-language-mode)
+  :config
+  (setq guess-language-langcodes '((en . ("en_GB" "English"))
+                                   (es . ("es" "Spanish")))
+        guess-language-languages '(en es)
+        guess-language-min-paragraph-length 45)
+  :diminish guess-language-mode)
 
 ;; (use-package yasnippet                  ; Snippets
 ;;   :ensure t
@@ -637,7 +1819,7 @@
   (setq-default indent-tabs-mode nil)
   (setq-default tab-width 4)
   (setq indent-line-function 'insert-tab))
-(setq custom-theme-directory "~/.emacs.d/private/themes")
+;; (setq custom-theme-directory "~/.emacs.d/private/themes")
 ;; (load-theme 'minimal t)
 
 (use-package scihub
@@ -869,7 +2051,7 @@ it can be passed in POS."
 ;; (set-face-attribute 'mode-line-inactive nil :background nil :box nil :foreground "gray" :overline "white")
 ;; (set-face-attribute 'vertical-border nil :background nil :foreground "white")
 ;; )
-(set-face-attribute 'mode-line nil :height 100)
+;; (set-face-attribute 'mode-line nil :height 100)
 
 ;; (defun my/setup-color-theme-dark ()
 ;;   (interactive)
@@ -1105,7 +2287,7 @@ or LaTeX command"
 (global-hl-line-mode 0) ;; Highlight lines
 (global-visual-line-mode 1) ;;Better than fix the lines with set-fill-column
 (setq read-file-name-completion-ignore-case t)
-(add-hook 'split-window-right-hook 'my/theme-configuration)
+;; (add-hook 'split-window-right-hook 'my/theme-configuration)
 ;; (setq completion-ignore-case  t);;Tab completion in minibuffer: case insensitive
 ;; (setq read-buffer-completion-ignore-case t)
 ;; Set up the visible bell
@@ -1493,18 +2675,18 @@ or LaTeX command"
 (add-hook 'org-mode-hook #'org-make-toc-mode) ;automtically update a file'sTOC with the save
 ;; (add-hook 'org-mode-hook 'my/org-generate-custom-ids) ;automatically custom_ids
 ;; puedes poner un (and (not (null (buffer-file-name ..) (file-exist-p ......))12:32
-(add-hook 'org-mode-hook
-          (lambda ()
-            (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
+;; (add-hook 'org-mode-hook
+;;           (lambda ()
+;;             (add-hook 'after-save-hook 'my/org-generate-custom-ids)))
 (dolist (hook '(text-mode-hook))
   (add-hook hook (lambda () (flyspell-mode 1))))
-(eval-after-load "flyspell"
-  '(progn
-     (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
-     (define-key flyspell-mouse-map [mouse-3] #'undefined)))
-(setq-default ispell-program-name "aspell")
-(setq ispell-dictionary "castellano")
-(setq flyspell-default-dictionary "castellano")
+;; (eval-after-load "flyspell"
+;;   '(progn
+;;      (define-key flyspell-mouse-map [down-mouse-3] #'flyspell-correct-word)
+;;      (define-key flyspell-mouse-map [mouse-3] #'undefined)))
+;; (setq-default ispell-program-name "aspell")
+;; (setq ispell-dictionary "castellano")
+;; (setq flyspell-default-dictionary "castellano")
 ;; (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 ;; (add-hook
 ;; 'minibuffer-setup-hook
@@ -1759,7 +2941,8 @@ i.e. change right window to bottom, or change bottom window to right."
           ;; and return to whatever were looking at before
           (replace-buffer-in-windows "*compilation*"))
         ;; Always return the anticipated result of compilation-exit-message-function
-        (cons msg code)))
+        (cons msg code)
+        ))
 (use-package lsp-ltex
   :ensure t
   :hook (text-mode . (lambda ()
@@ -1767,3 +2950,36 @@ i.e. change right window to bottom, or change bottom window to right."
                        (lsp)))  ; or lsp-deferred
   :init
   (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
+
+(use-package all-the-icons
+  :if (display-graphic-p))
+
+; from enberg on #emacs
+(add-hook 'compilation-finish-functions
+  (lambda (buf str)
+    (if (null (string-match ".*exited abnormally.*" str))
+        ;;no errors, make the compilation window go away in a few seconds
+        (progn
+          (run-at-time
+           "2 sec" nil 'delete-windows-on
+           (get-buffer-create "*compilation*"))
+          (message "No Compilation Errors!")))))
+(setq compilation-window-height 10)
+
+(defun ct/create-proper-compilation-window ()
+  "Setup the *compilation* window with custom settings."
+  (when (not (get-buffer-window "*compilation*"))
+    (save-selected-window
+      (save-excursion
+        (let* ((w (split-window-vertically))
+               (h (window-height w)))
+          (select-window w)
+          (switch-to-buffer "*compilation*")
+
+          ;; Reduce window height
+          (shrink-window (- h compilation-window-height))
+
+          ;; Prevent other buffers from displaying inside
+          (set-window-dedicated-p w t)
+  )))))
+(add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
