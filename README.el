@@ -73,6 +73,12 @@
 
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
+(use-package org
+  :defer t
+  :pin gnu
+  :hook
+  ((before-save . zp/org-set-last-modified))
+  :config)
 
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
@@ -168,9 +174,58 @@
         (name (read-string "Enter name temporary file: ")))
 
     (find-file (concat "/tmp/" name))
-    (message name)
+    (message name)))
 
-    ))
+;; --------------------------
+;; Handling file properties for 'CREATED' & 'LAST_MODIFIED'
+;; --------------------------
+
+(defun zp/org-find-time-file-property (property &optional anywhere)
+  "Return the position of the time file PROPERTY if it exists.
+  When ANYWHERE is non-nil, search beyond the preamble."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((first-heading
+           (save-excursion
+             (re-search-forward org-outline-regexp-bol nil t))))
+      (when (re-search-forward (format "^#\\+%s:" property)
+                               (if anywhere nil first-heading)
+                               t)
+        (point)))))
+
+(defun zp/org-has-time-file-property-p (property &optional anywhere)
+  "Return the position of time file PROPERTY if it is defined.
+  As a special case, return -1 if the time file PROPERTY exists but
+  is not defined."
+  (when-let ((pos (zp/org-find-time-file-property property anywhere)))
+    (save-excursion
+      (goto-char pos)
+      (if (and (looking-at-p " ")
+               (progn (forward-char)
+                      (org-at-timestamp-p 'lax)))
+          pos
+        -1))))
+
+(defun zp/org-set-time-file-property (property &optional anywhere pos)
+  "Set the time file PROPERTY in the preamble.
+  When ANYWHERE is non-nil, search beyond the preamble.
+  If the position of the file PROPERTY has already been computed,
+  it can be passed in POS."
+  (when-let ((pos (or pos
+                      (zp/org-find-time-file-property property))))
+    (save-excursion
+      (goto-char pos)
+      (if (looking-at-p " ")
+          (forward-char)
+        (insert " "))
+      (delete-region (point) (line-end-position))
+      (let* ((now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+        (insert now)))))
+
+(defun zp/org-set-last-modified ()
+  "Update the LAST_MODIFIED file property in the preamble."
+  (when (derived-mode-p 'org-mode)
+    (zp/org-set-time-file-property "LAST_MODIFIED")))
 
 (eval-after-load 'pdf-tools
   '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp)) ;; Set C-s for searching in pdf-tools
@@ -205,6 +260,8 @@
 ;;     (message temp-file-name)
 ;;     (find-file (concat "/tmp/" temp-file-name))))
 
+(put 'dired-find-alternate-file 'disabled nil)
+
 (use-package minions
   :defer t
   :config
@@ -237,8 +294,18 @@
   (after-init . global-undo-tree-mode))
 
 (use-package swiper
+    :defer t
+    :bind 
+    ("C-s" . swiper-isearch)
+    :config
+    (ivy-mode 1)
+    (setq ivy-use-virtual-buffers t)
+    (setq enable-recursive-minibuffers t))
+
+(use-package counsel
   :defer t
-  :bind ("C-s" . swiper-isearch))
+  :bind     
+  ("M-x" counsel-M-x))
 
 (use-package lsp-ltex
   :defer t
