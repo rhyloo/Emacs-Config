@@ -416,6 +416,24 @@ Magit is a complete text-based user interface to Git.
   :config
   (add-hook 'after-init-hook 'global-company-mode))
 #+end_src
+
+** Pdf-tools
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :defert
+  :config
+  (pdf-loader-install)
+  (setq-default pdf-view-display-size 'fit-page)
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t
+        TeX-source-correlate-method 'synctex))
+#+end_src
+** Auctex
+#+begin_src emacs-lisp
+  ;; ;;Auctex highlight syntax
+  (use-package auctex
+    :defer t)
+#+end_src
 * Experimental
 #+begin_src emacs-lisp
 
@@ -927,39 +945,7 @@ Magit is a complete text-based user interface to Git.
 
 
 
-# # ***** auctex
-# # #+begin_src emacs-lisp :results none
-# #   ;; ;;Auctex highlight syntax
-# #   (use-package auctex
-# #     :defer t)
-# # #+end_src
 
-# # ***** Company
-# # #+begin_src emacs-lisp :results none
-# #   ;; ;;Company-mode
-# #   (use-package company
-# #     :config
-# #     (add-hook 'after-init-hook 'global-company-mode))
-# # #+end_src
-
-# # **** Functional
-# # :PROPERTIES:
-# # :CUSTOM_ID: functional
-# # :END:
-
-
-
-# # #+end_src
-# # ***** Pdf-tools
-# # #+begin_src emacs-lisp :results none
-# #   (use-package pdf-tools
-# #     :config
-# #     (pdf-loader-install)
-# #     (setq-default pdf-view-display-size 'fit-page)
-# #     (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
-# #           TeX-source-correlate-start-server t
-# #           TeX-source-correlate-method 'synctex))
-# # #+end_src
 # # **** Org mode
 # # :PROPERTIES:
 # # :CUSTOM_ID: org-mode
