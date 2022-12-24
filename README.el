@@ -160,6 +160,18 @@
 	      (clipboard-kill-region (point-min) (point-max)))
       (message filename))))
 
+(defun my/create-temp-directory ()
+  "This function let you create directories or files in the tmp directory for testing"
+  (interactive)
+  (let (
+        (choices '("directory" "files"))
+        (name (read-string "Enter name temporary file: ")))
+
+    (find-file (concat "/tmp/" name))
+    (message name)
+
+    ))
+
 (eval-after-load 'pdf-tools
   '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp)) ;; Set C-s for searching in pdf-tools
 
@@ -184,6 +196,7 @@
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
 (global-set-key (kbd "C-c a") 'org-agenda)
+(global-set-key (kbd "\C-c M-+") 'my/create-temp-directory)
 
 ;; ;; FUNCION PARA CREAR ARCHIVOS TEMPORALES, PARA PROBAR COSAS O ESCRIBIR x COSAS
 ;; (lambda ()
@@ -311,5 +324,18 @@ See URL `http://vhdltool.com'."
 (use-package company
   :config
   (add-hook 'after-init-hook 'global-company-mode))
+
+(use-package pdf-tools
+  :defer t
+  :config
+  (pdf-loader-install)
+  (setq-default pdf-view-display-size 'fit-page)
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t
+        TeX-source-correlate-method 'synctex))
+
+;; ;;Auctex highlight syntax
+(use-package auctex
+  :defer t)
 
 

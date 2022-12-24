@@ -116,6 +116,13 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 #+begin_src emacs-lisp
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
+(use-package org
+  :pin gnu
+  :hook
+  ((before-save . zp/org-set-last-modified))
+  :config
+  (ivy-mode 1)
+  (setq org-src-tab-acts-natively t))
 #+end_src
 **** Org babel
 #+begin_src emacs-lisp
@@ -222,6 +229,67 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 	      (insert filename)
 	      (clipboard-kill-region (point-min) (point-max)))
       (message filename))))
+
+(defun my/create-temp-directory ()
+  "This function let you create directories or files in the tmp directory for testing"
+  (interactive)
+  (let (
+        (choices '("directory" "files"))
+        (name (read-string "Enter name temporary file: ")))
+
+    (find-file (concat "/tmp/" name))
+    (message name)))
+
+;; --------------------------
+;; Handling file properties for 'CREATED' & 'LAST_MODIFIED'
+;; --------------------------
+
+(defun zp/org-find-time-file-property (property &optional anywhere)
+  "Return the position of the time file PROPERTY if it exists.
+  When ANYWHERE is non-nil, search beyond the preamble."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((first-heading
+           (save-excursion
+             (re-search-forward org-outline-regexp-bol nil t))))
+      (when (re-search-forward (format "^#\\+%s:" property)
+                               (if anywhere nil first-heading)
+                               t)
+        (point)))))
+
+(defun zp/org-has-time-file-property-p (property &optional anywhere)
+  "Return the position of time file PROPERTY if it is defined.
+  As a special case, return -1 if the time file PROPERTY exists but
+  is not defined."
+  (when-let ((pos (zp/org-find-time-file-property property anywhere)))
+    (save-excursion
+      (goto-char pos)
+      (if (and (looking-at-p " ")
+               (progn (forward-char)
+                      (org-at-timestamp-p 'lax)))
+          pos
+        -1))))
+
+(defun zp/org-set-time-file-property (property &optional anywhere pos)
+  "Set the time file PROPERTY in the preamble.
+  When ANYWHERE is non-nil, search beyond the preamble.
+  If the position of the file PROPERTY has already been computed,
+  it can be passed in POS."
+  (when-let ((pos (or pos
+                      (zp/org-find-time-file-property property))))
+    (save-excursion
+      (goto-char pos)
+      (if (looking-at-p " ")
+          (forward-char)
+        (insert " "))
+      (delete-region (point) (line-end-position))
+      (let* ((now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+        (insert now)))))
+
+(defun zp/org-set-last-modified ()
+  "Update the LAST_MODIFIED file property in the preamble."
+  (when (derived-mode-p 'org-mode)
+    (zp/org-set-time-file-property "LAST_MODIFIED")))
 #+end_src
 
 *** Keybindings
@@ -250,6 +318,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
 (global-set-key (kbd "C-c a") 'org-agenda)
+(global-set-key (kbd "\C-c M-+") 'my/create-temp-directory)
 
 ;; ;; FUNCION PARA CREAR ARCHIVOS TEMPORALES, PARA PROBAR COSAS O ESCRIBIR x COSAS
 ;; (lambda ()
@@ -259,6 +328,10 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 ;;     (find-file (concat "/tmp/" temp-file-name))))
 #+end_src
 
+** Commands enabled
+#+begin_src emacs-lisp
+(put 'dired-find-alternate-file 'disabled nil)
+#+end_src
 * Packages
 ** Minions
 #+begin_src emacs-lisp
@@ -420,7 +493,7 @@ Magit is a complete text-based user interface to Git.
 ** Pdf-tools
 #+begin_src emacs-lisp
 (use-package pdf-tools
-  :defert
+  :defer t
   :config
   (pdf-loader-install)
   (setq-default pdf-view-display-size 'fit-page)
@@ -959,6 +1032,7 @@ Magit is a complete text-based user interface to Git.
 # #     (ivy-mode 1)
 # #     (setq org-src-tab-acts-natively t))
 # # #+end_src
+
 # # ** Org mode
 # # :PROPERTIES:
 # # :CUSTOM_ID: org-mode
@@ -1133,19 +1207,9 @@ Magit is a complete text-based user interface to Git.
 # #                                                         channel."
 # #                                         (when (org-string-nw-p contents)
 # #                                           (format "$%s$" (org-trim contents))))
-# #                                       (defun create-temp-directory ()
-# #                                         "This function let you create directories or files
-# #                                                           in the tmp directory for testing"
-# #                                         (interactive)
-# #                                         (let (
-# #                                               (choices '("directory" "files"))
-# #                                               (name (read-string "Enter name temporary file: ")))
 
-# #                                           (find-file (concat "/tmp/" name))
-# #                                           (message name)
 
-# #                                           ))
-# #                                       (global-set-key (kbd "\C-c M-+") 'create-temp-directory)
+
 
 # #                                       (windmove-default-keybindings 'M) ;; Me muevo por las ventanas
 
