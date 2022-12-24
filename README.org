@@ -96,6 +96,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (show-paren-mode 1)          ;; Show parens
 (global-hl-line-mode 1)      ;; Highlight lines
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
+(windmove-default-keybindings 'M) ;; Move windows
 #+end_src
 
 *** Theme
@@ -122,6 +123,20 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   :hook
   ((before-save . zp/org-set-last-modified))
   :config)
+
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")))
+
+;; (setq org-todo-keywords
+;;       '((sequence "TODO(t)" "|" "DONE(d)")
+;;         (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")
+;;         (sequence "|" "CANCELED(c)")))
+
+(setq org-todo-keyword-faces
+      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "yellow"))
+        ))
+
+
 #+end_src
 **** Org babel
 #+begin_src emacs-lisp
@@ -169,6 +184,10 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (dolist (mode '(org-mode-hook))
   (add-hook mode (lambda () 
                    (display-line-numbers-mode -1))))   
+
+;; Startup with inline images (disable)
+(setq org-startup-with-inline-images nil)
+(setq org-image-actual-width nil)
 #+end_src
 
 *** Writting
@@ -773,46 +792,21 @@ Magit is a complete text-based user interface to Git.
 
 
 
-# # **** Org mode
-# # :PROPERTIES:
-# # :CUSTOM_ID: org-mode
-# # :END:
-# # #+begin_src emacs-lisp :results none
-# #   (use-package org
-# #     :pin gnu
-# #     :hook
-# #     ((before-save . zp/org-set-last-modified))
-# #     :config
-# #     (ivy-mode 1)
-# #     (setq org-src-tab-acts-natively t))
-# # #+end_src
-
-# # ** Org mode
-# # :PROPERTIES:
-# # :CUSTOM_ID: org-mode
-# # :END:
 
 # # #+begin_src emacs-lisp :results none
 
 
-# # (setq org-src-preserve-indentation nil
-# # 	org-edit-src-content-indentation 0) ;; Respect parent buffer indentation
-# # (add-hook 'org-mode-hook 'org-indent-mode)
-# # (setq org-hide-leading-stars t)
 # # (global-set-key (kbd "C-c C-c") 'org-capture)
-# # (setq org-startup-with-inline-images nil)
+
+
 # # (setq org-image-actual-width nil)
 # # (setq org-agenda-prefix-format '((agenda . " %i %-12:c%?-12t% s")
 # #                                  (todo . " %i %-12:c")
 # #                                  (tags . " %i %-12:c")
 # #                                  (search . " %i %-12:c")))
-# # (setq org-todo-keyword-faces
-# #       '(
-# #         ("IN-PROGRESS" . (:foreground "yellow" :weight bold))
-# #         ))
 
-# # (setq org-todo-keywords
-# #       '((sequence "TODO" "IN-PROGRESS" "DONE")))
+
+
 
 # # ;;https://yiufung.net/post/org-mode-hidden-gems-pt2
 # # (setq org-catch-invisible-edits 'show-and-error)
@@ -965,7 +959,7 @@ Magit is a complete text-based user interface to Git.
 
 
 
-# #                                       (windmove-default-keybindings 'M) ;; Me muevo por las ventanas
+
 
 # #                                       (defun window-toggle-split-direction ()
 # #                                         "Switch window split from horizontally to vertically, or vice versa.

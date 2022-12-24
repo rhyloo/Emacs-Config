@@ -80,6 +80,18 @@
   ((before-save . zp/org-set-last-modified))
   :config)
 
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")))
+
+;; (setq org-todo-keywords
+;;       '((sequence "TODO(t)" "|" "DONE(d)")
+;;         (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")
+;;         (sequence "|" "CANCELED(c)")))
+
+(setq org-todo-keyword-faces
+      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "yellow"))
+        ))
+
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
 (org-babel-do-load-languages
@@ -305,7 +317,7 @@
 (use-package counsel
   :defer t
   :bind     
-  ("M-x" counsel-M-x))
+  ("M-x" . counsel-M-x))
 
 (use-package lsp-ltex
   :defer t
