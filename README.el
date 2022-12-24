@@ -61,6 +61,7 @@
 (show-paren-mode 1)          ;; Show parens
 (global-hl-line-mode 1)      ;; Highlight lines
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
+(windmove-default-keybindings 'M) ;; Move windows
 
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
 (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
@@ -132,7 +133,11 @@
 ;; Override modes which derive from the above
 (dolist (mode '(org-mode-hook))
   (add-hook mode (lambda () 
-                   (display-line-numbers-mode -1))))
+                   (display-line-numbers-mode -1))))   
+
+;; Startup with inline images (disable)
+(setq org-startup-with-inline-images nil)
+(setq org-image-actual-width nil)
 
 (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
 (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
