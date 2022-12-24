@@ -56,9 +56,24 @@
   :init
   (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
 
+(setq org-startup-folded t)
+(setq org-return-follows-link 1)
+
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
-
+(org-babel-do-load-languages
+   'org-babel-load-languages
+   '((js . t)
+     (org . t)
+     (octave . t)
+     (css . t)
+     (dot . t)
+     (latex . t)
+     (lua . t)
+     (shell . t)
+     (python . t)
+     (matlab . t)
+     (emacs-lisp . t)))
 ;; (add-to-list 'org-structure-template-alist ;; Add #+begin_structure
 ;; 	      '(("ec" . "emacs-lisp")
 ;; 		("py" . "python")))
@@ -172,13 +187,13 @@
   :hook 
   (after-init . doom-modeline-mode))
   :config
-(setq doom-modeline-height 20)
 (setq doom-modeline-bar-width 4)
 (setq doom-modeline-window-width-limit 35)
 (setq doom-modeline-buffer-name t)
 (setq doom-modeline-enable-word-count t)
 (setq doom-modeline-lsp t)
 (setq doom-modeline-github-interval (* 30 60))
+;; (setq doom-modeline-height 20)
 ;; (setq doom-modeline-mu4e nil)
 ;; (mu4e-alert-enable-mode-line-display)
 ;; (setq doom-modeline-gnus t)
@@ -207,6 +222,23 @@
 
 (use-package vhdl-mode
   :defer t)
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode))
+
+(flycheck-define-checker vhdl-tool
+  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
+
+See URL `http://vhdltool.com'."
+  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
+            )
+  :standard-input t
+  :error-patterns
+  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
+   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
+  :modes (vhdl-mode))
+
+(add-to-list 'flycheck-checkers 'vhdl-tool)
 
 (defun efs/lsp-mode-setup()
   (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
@@ -224,5 +256,70 @@
   :config
   (setq lsp-vhdl-server-path "~/.local/Software/vhdl-tool")
   (add-hook 'vhdl-mode-hook 'lsp))
+
+(use-package lua-mode
+  :defer t)
+
+(defun efs/lsp-mode-setup()
+  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+  (lsp-headerline-breadcrumb-mode))
+
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . efs/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t)
+  (setq lsp-vhdl-server-path "~/bin/vhdl-tool")
+  (use-package lsp-mode
+       :config
+       (add-hook 'vhdl-mode-hook 'lsp)))
+
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode))
+
+(flycheck-define-checker vhdl-tool
+  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
+
+See URL `http://vhdltool.com'."
+  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
+            )
+  :standard-input t
+  :error-patterns
+  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
+   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
+  :modes (vhdl-mode))
+
+(add-to-list 'flycheck-checkers 'vhdl-tool)
+
+
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-doc-position 'bottom))
+
+(use-package pyvenv
+  :config
+  (pyvenv-mode 1))
+
+(use-package python-mode
+  :ensure t
+  :hook (python-mode . lsp-deferred)
+  :custom
+  (python-shell-interpreter "python3")
+  (setq python-indent-offset 4)
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 4)
+  (setq indent-line-function 'insert-tab))
+
+(use-package magit
+  :defer t
+  :bind ("C-x g" . magit-status)
+  :config
+  (setq magit-auto-revert-mode t)
+  (setq magit-auto-revert-immediately t)
+  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
 
