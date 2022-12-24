@@ -7,30 +7,51 @@
 * Config
 ** Setting data
 #+begin_src emacs-lisp 
-   (setq user-full-name "Jorge L. Benavides M."
-   user-real-login-name "Rhyloo"
-   user-mail-address "jorge2@uma.es")   
+(setq user-full-name "Jorge L. Benavides M."
+      user-real-login-name "Rhyloo"
+      user-mail-address "jorge2@uma.es")   
 #+end_src
 
 ** Theme and visual config
 
-Clean up Emacs' user interface, make it more minimal.
+Clean up the Emacs user interface, make it more minimalistic or not.
+
 *** Emacs's visual config
-
+**** UI
 #+begin_src emacs-lisp 
-(scroll-bar-mode -1)                       ;; Disable visible scrollbar
-(tool-bar-mode -1)                         ;; Disable the toolbar
-(tooltip-mode -1)                          ;; Disable tooltips
-(menu-bar-mode -1)                         ;; Disable the menu bar
-(set-fringe-mode 15)                       ;; Give some breathing room (borders)
+(scroll-bar-mode -1)         ;; Disable visible scrollbar
+(tool-bar-mode -1)           ;; Disable the toolbar
+(tooltip-mode -1)            ;; Disable tooltips
+(menu-bar-mode -1)           ;; Disable the menu bar
+(set-fringe-mode 15)         ;; Give some breathing room (borders)
+(setq-default frame-title-format '("%b [%m]")) ;; Title bar name
+(setq inhibit-startup-message t) ;; Avoid startup message
+#+end_src
 
-(show-paren-mode 1)                        ;; Show parens
-(global-hl-line-mode 1)                    ;; Highlight lines
-(global-visual-line-mode 1)                ;; Better than fix the lines with set-fill-column
+**** Bar
+***** Time
+#+begin_src emacs-lisp 
+(display-time)               ;; Show the time in the bar
+(setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
+(setq display-time-day-and-date t display-time-24hr-format t) ;; Change format
+#+end_src
 
-(display-time)                             ;; Show the time in the bar
-(setq display-time-format "%H:%M %d %b %y" ;; Show hour minute day month and year
-display-time-default-load-average nil)
+***** Battery
+#+begin_src emacs-lisp 
+(unless (equal "Battery status not available" (battery)) ;;Show battery
+  (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
+#+end_src
+***** Writting
+#+begin_src emacs-lisp
+(column-number-mode)                  ;; Enable column mode
+#+end_src
+
+
+**** Interface
+#+begin_src emacs-lisp
+(show-paren-mode 1)          ;; Show parens
+(global-hl-line-mode 1)      ;; Highlight lines
+(global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 #+end_src
 
 *** Theme
@@ -45,41 +66,52 @@ display-time-default-load-average nil)
 
 ** Features
 *** Org mode
+**** Org babel
 #+begin_src emacs-lisp
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
+(setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
 
-(setq org-adapt-indentation t         ;; Modifies paragraph filling
-org-hide-leading-stars t              ;; Leading stars invisible
-org-odd-levels-only nil               ;; Org use only odd levels (disable)
-org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
-org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
-
-(org-indent-mode 1)
+;; (add-to-list 'org-structure-template-alist ;; Add #+begin_structure
+;; 	      '(("ec" . "emacs-lisp")
+;; 		("py" . "python")))
 #+end_src
 
+**** Interface
+#+begin_src emacs-lisp
+(setq org-adapt-indentation t         ;; Modifies paragraph filling
+      org-hide-leading-stars t              ;; Leading stars invisible
+      org-odd-levels-only nil               ;; Org use only odd levels (disable)
+      org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
+      org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
 
+(org-indent-mode 1)
 
+;; Enable line numbers for some modes
+(dolist (mode '(text-mode-hook
+                prog-mode-hook
+                matlab-mode-hook
+                conf-mode-hook
+                lisp-mode-hook))
+  (add-hook mode (lambda () 
+                   (display-line-numbers-mode 1))))    
 
-# # (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
-# # (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
-# # (setq-default indent-tabs-mode nil) ;;Use spaces instead of tabs for indentation
+;; Override modes which derive from the above
+(dolist (mode '(org-mode-hook))
+  (add-hook mode (lambda () 
+                   (display-line-numbers-mode -1))))   
+#+end_src
+*** Writting
+#+begin_src emacs-lisp
+(setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
+(setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
+(setq-default indent-tabs-mode nil) ;;Use spaces instead of tabs for indentation
+#+end_src
 
-# # (setq display-time-day-and-date t
-# # display-time-24hr-format t) ;; Change format
-# # (unless (equal "Battery status not available" (battery)) ;;Show battery
-# #   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
-# # (setq-default frame-title-format '("%b [%m]")) ;;Title bar name
-# # (column-number-mode) ;; Enable column mode
-# # (setq inhibit-startup-message t) ;; Avoid startup message
-# # (dolist (mode '(text-mode-hook
-# # 		prog-mode-hook
-# #     matlab-mode-hook
-# # 		conf-mode-hook
-# # 		lisp-mode-hook))
-# #   (add-hook mode (lambda () (display-line-numbers-mode 1))))    ;; Enable line numbers for some modes
-# # (dolist (mode '(org-mode-hook))
-# #   (add-hook mode (lambda () (display-line-numbers-mode -1))))   ;; Override modes which derive from the above
-# #   #+end_src
+* Experimental
+#+begin_src emacs-lisp
+
+#+end_src
+
 
 # # *** Functional
 # # :PROPERTIES:
