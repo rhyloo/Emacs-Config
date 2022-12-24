@@ -535,6 +535,15 @@ Magit is a complete text-based user interface to Git.
   (use-package auctex
     :defer t)
 #+end_src
+** Treemacs
+#+begin_src emacs-lisp
+(use-package treemacs
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
+#+end_src
+
 * Experimental
 #+begin_src emacs-lisp
 (defun window-toggle-split-direction ()
