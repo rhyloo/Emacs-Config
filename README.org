@@ -622,8 +622,7 @@ This allows Emacs to be used in place of the MATLAB Editor for editing your MATL
 ;; list of babel languages
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((matlab . t)
-   ))
+ '((matlab . t)))
 
 ;; Session evaluation of MATLAB in org-babel is broken, this goes some
 ;; way towards addressing the problem.
@@ -868,6 +867,7 @@ Swiper, an Ivy-enhanced alternative to Isearch.
      (css . t)
      (dot . t)
      (latex . t)
+     (lua . t)
      (shell . t)
      (python . t)
      (matlab . t)
@@ -1027,305 +1027,304 @@ Swiper, an Ivy-enhanced alternative to Isearch.
 ** Experimental
 :PROPERTIES:
 :CUSTOM_ID: experimental
-:ORDERED:  t
 :END:
   #+begin_src emacs-lisp :results none
-                                (require 'midnight)
-                                (setq ido-use-virtual-buffers t) ;; Save buffers in the memory even if you close them
+                                  (require 'midnight)
+                                  (setq ido-use-virtual-buffers t) ;; Save buffers in the memory even if you close them
+
+                                    (use-package treemacs
+                                    :ensure t)
+                                  (defun org-latex-math-block (_math-block contents _info)
+                                    "Transcode a MATH-BLOCK object from Org to LaTeX.
+                                                    CONTENTS is a string.  INFO is a plist used as a communication
+                                                    channel."
+                                    (when (org-string-nw-p contents)
+                                      (format "$%s$" (org-trim contents))))
+                                  (defun create-temp-directory ()
+                                    "This function let you create directories or files
+                                                      in the tmp directory for testing"
+                                    (interactive)
+                                    (let (
+                                          (choices '("directory" "files"))
+                                          (name (read-string "Enter name temporary file: ")))
+
+                                      (find-file (concat "/tmp/" name))
+                                      (message name)
+
+                                      ))
+                                  (global-set-key (kbd "\C-c M-+") 'create-temp-directory)
+
+                                  (windmove-default-keybindings 'M) ;; Me muevo por las ventanas
+
+                                  (defun window-toggle-split-direction ()
+                                    "Switch window split from horizontally to vertically, or vice versa.
+                                  i.e. change right window to bottom, or change bottom window to right."
+                                    (interactive)
+                                    (require 'windmove)
+                                    (let ((done))
+                                      (dolist (dirs '((right . down) (down . right)))
+                                        (unless done
+                                          (let* ((win (selected-window))
+                                                 (nextdir (car dirs))
+                                                 (neighbour-dir (cdr dirs))
+                                                 (next-win (windmove-find-other-window nextdir win))
+                                                 (neighbour1 (windmove-find-other-window neighbour-dir win))
+                                                 (neighbour2 (if next-win (with-selected-window next-win
+                                                                            (windmove-find-other-window neighbour-dir next-win)))))
+                                            ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
+                                            (setq done (and (eq neighbour1 neighbour2)
+                                                            (not (eq (minibuffer-window) next-win))))
+                                            (if done
+                                                (let* ((other-buf (window-buffer next-win)))
+                                                  (delete-window next-win)
+                                                  (if (eq nextdir 'right)
+                                                      (split-window-vertically)
+                                                    (split-window-horizontally))
+                                                  (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
+
+
+                                  (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
 
                                   (use-package treemacs
-                                  :ensure t)
-                                (defun org-latex-math-block (_math-block contents _info)
-                                  "Transcode a MATH-BLOCK object from Org to LaTeX.
-                                                  CONTENTS is a string.  INFO is a plist used as a communication
-                                                  channel."
-                                  (when (org-string-nw-p contents)
-                                    (format "$%s$" (org-trim contents))))
-                                (defun create-temp-directory ()
-                                  "This function let you create directories or files
-                                                    in the tmp directory for testing"
+                                    :ensure t
+                                    :defer t
+                                    :init
+                                    (with-eval-after-load 'winum
+                                      (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+                                    :config
+                                    (progn
+                                      (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
+                                            treemacs-deferred-git-apply-delay        0.5
+                                            treemacs-directory-name-transformer      #'identity
+                                            treemacs-display-in-side-window          t
+                                            treemacs-eldoc-display                   'simple
+                                            treemacs-file-event-delay                5000
+                                            treemacs-file-extension-regex            treemacs-last-period-regex-value
+                                            treemacs-file-follow-delay               0.2
+                                            treemacs-file-name-transformer           #'identity
+                                            treemacs-follow-after-init               t
+                                            treemacs-expand-after-init               t
+                                            treemacs-find-workspace-method           'find-for-file-or-pick-first
+                                            treemacs-git-command-pipe                ""
+                                            treemacs-goto-tag-strategy               'refetch-index
+                                            treemacs-header-scroll-indicators        '(nil . "^^^^^^")
+                                            treemacs-hide-dot-git-directory          t
+                                            treemacs-indentation                     2
+                                            treemacs-indentation-string              " "
+                                            treemacs-is-never-other-window           nil
+                                            treemacs-max-git-entries                 5000
+                                            treemacs-missing-project-action          'ask
+                                            treemacs-move-forward-on-expand          nil
+                                            treemacs-no-png-images                   nil
+                                            treemacs-no-delete-other-windows         t
+                                            treemacs-project-follow-cleanup          nil
+                                            treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+                                            treemacs-position                        'left
+                                            treemacs-read-string-input               'from-child-frame
+                                            treemacs-recenter-distance               0.1
+                                            treemacs-recenter-after-file-follow      nil
+                                            treemacs-recenter-after-tag-follow       nil
+                                            treemacs-recenter-after-project-jump     'always
+                                            treemacs-recenter-after-project-expand   'on-distance
+                                            treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
+                                            treemacs-show-cursor                     nil
+                                            treemacs-show-hidden-files               t
+                                            treemacs-silent-filewatch                nil
+                                            treemacs-silent-refresh                  nil
+                                            treemacs-sorting                         'alphabetic-asc
+                                            treemacs-select-when-already-in-treemacs 'move-back
+                                            treemacs-space-between-root-nodes        t
+                                            treemacs-tag-follow-cleanup              t
+                                            treemacs-tag-follow-delay                1.5
+                                            treemacs-text-scale                      nil
+                                            treemacs-user-mode-line-format           nil
+                                            treemacs-user-header-line-format         nil
+                                            treemacs-wide-toggle-width               70
+                                            treemacs-width                           35
+                                            treemacs-width-increment                 1
+                                            treemacs-width-is-initially-locked       t
+                                            treemacs-workspace-switch-cleanup        nil)
+
+                                      ;; The default width and height of the icons is 22 pixels. If you are
+                                      ;; using a Hi-DPI display, uncomment this to double the icon size.
+                                      ;;(treemacs-resize-icons 44)
+
+                                      (treemacs-follow-mode t)
+                                      (treemacs-filewatch-mode t)
+                                      (treemacs-fringe-indicator-mode 'always)
+                                      (when treemacs-python-executable
+                                        (treemacs-git-commit-diff-mode t))
+
+                                      (pcase (cons (not (null (executable-find "git")))
+                                                   (not (null treemacs-python-executable)))
+                                        (`(t . t)
+                                         (treemacs-git-mode 'deferred))
+                                        (`(t . _)
+                                         (treemacs-git-mode 'simple)))
+
+                                      (treemacs-hide-gitignored-files-mode nil))
+                                    :bind
+                                    (:map global-map
+                                          ("M-0"       . treemacs-select-window)
+                                          ("C-x t 1"   . treemacs-delete-other-windows)
+                                          ("C-x t t"   . treemacs)
+                                          ("C-x t d"   . treemacs-select-directory)
+                                          ("C-x t B"   . treemacs-bookmark)
+                                          ("C-x t C-t" . treemacs-find-file)
+                                          ("C-x t M-t" . treemacs-find-tag)))
+                                  ;; (ido-mode 1)
+                                  (global-set-key (kbd "M-o") 'ace-window)
+
+
+                              ;; If there were no compilation errors, delete the compilation window
+                                (setq compilation-exit-message-function
+                                      (lambda (status code msg)
+                                        ;; If M-x compile exists with a 0
+                                        (when (and (eq status 'exit) (zerop code))
+                                          ;; then bury the *compilation* buffer, so that C-x b doesn't go there
+                                          (bury-buffer "*compilation*")
+                                          ;; and return to whatever were looking at before
+                                          (replace-buffer-in-windows "*compilation*"))
+                                        ;; Always return the anticipated result of compilation-exit-message-function
+                                        (cons msg code)))
+                            (use-package forge)
+                            (setq auth-sources '("~/.authinfo"))
+                            (use-package magit-pretty-graph
+                              :ensure nil
+                              :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
+                            ;(magit-pg-repo "/some/path")
+
+                               (defun my-clear ()
                                   (interactive)
-                                  (let (
-                                        (choices '("directory" "files"))
-                                        (name (read-string "Enter name temporary file: ")))
+                                  ;; (erase-buffer)
+                                  (comint-clear-buffer))
 
-                                    (find-file (concat "/tmp/" name))
-                                    (message name)
+                                (defun my-shell-hook ()
+                                  (local-set-key "\C-l" 'my-clear))
 
-                                    ))
-                                (global-set-key (kbd "\C-c M-+") 'create-temp-directory)
+                                (add-hook 'shell-mode-hook 'my-shell-hook)
 
-                                (windmove-default-keybindings 'M) ;; Me muevo por las ventanas
-
-                                (defun window-toggle-split-direction ()
-                                  "Switch window split from horizontally to vertically, or vice versa.
-                                i.e. change right window to bottom, or change bottom window to right."
-                                  (interactive)
-                                  (require 'windmove)
-                                  (let ((done))
-                                    (dolist (dirs '((right . down) (down . right)))
-                                      (unless done
-                                        (let* ((win (selected-window))
-                                               (nextdir (car dirs))
-                                               (neighbour-dir (cdr dirs))
-                                               (next-win (windmove-find-other-window nextdir win))
-                                               (neighbour1 (windmove-find-other-window neighbour-dir win))
-                                               (neighbour2 (if next-win (with-selected-window next-win
-                                                                          (windmove-find-other-window neighbour-dir next-win)))))
-                                          ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
-                                          (setq done (and (eq neighbour1 neighbour2)
-                                                          (not (eq (minibuffer-window) next-win))))
-                                          (if done
-                                              (let* ((other-buf (window-buffer next-win)))
-                                                (delete-window next-win)
-                                                (if (eq nextdir 'right)
-                                                    (split-window-vertically)
-                                                  (split-window-horizontally))
-                                                (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
-
-
-                                (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
-
-                                (use-package treemacs
-                                  :ensure t
-                                  :defer t
-                                  :init
-                                  (with-eval-after-load 'winum
-                                    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
-                                  :config
+                          (add-hook 'compilation-finish-functions
+                            (lambda (buf str)
+                              (if (null (string-match ".*exited abnormally.*" str))
+                                  ;;no errors, make the compilation window go away in a few seconds
                                   (progn
-                                    (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
-                                          treemacs-deferred-git-apply-delay        0.5
-                                          treemacs-directory-name-transformer      #'identity
-                                          treemacs-display-in-side-window          t
-                                          treemacs-eldoc-display                   'simple
-                                          treemacs-file-event-delay                5000
-                                          treemacs-file-extension-regex            treemacs-last-period-regex-value
-                                          treemacs-file-follow-delay               0.2
-                                          treemacs-file-name-transformer           #'identity
-                                          treemacs-follow-after-init               t
-                                          treemacs-expand-after-init               t
-                                          treemacs-find-workspace-method           'find-for-file-or-pick-first
-                                          treemacs-git-command-pipe                ""
-                                          treemacs-goto-tag-strategy               'refetch-index
-                                          treemacs-header-scroll-indicators        '(nil . "^^^^^^")
-                                          treemacs-hide-dot-git-directory          t
-                                          treemacs-indentation                     2
-                                          treemacs-indentation-string              " "
-                                          treemacs-is-never-other-window           nil
-                                          treemacs-max-git-entries                 5000
-                                          treemacs-missing-project-action          'ask
-                                          treemacs-move-forward-on-expand          nil
-                                          treemacs-no-png-images                   nil
-                                          treemacs-no-delete-other-windows         t
-                                          treemacs-project-follow-cleanup          nil
-                                          treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
-                                          treemacs-position                        'left
-                                          treemacs-read-string-input               'from-child-frame
-                                          treemacs-recenter-distance               0.1
-                                          treemacs-recenter-after-file-follow      nil
-                                          treemacs-recenter-after-tag-follow       nil
-                                          treemacs-recenter-after-project-jump     'always
-                                          treemacs-recenter-after-project-expand   'on-distance
-                                          treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
-                                          treemacs-show-cursor                     nil
-                                          treemacs-show-hidden-files               t
-                                          treemacs-silent-filewatch                nil
-                                          treemacs-silent-refresh                  nil
-                                          treemacs-sorting                         'alphabetic-asc
-                                          treemacs-select-when-already-in-treemacs 'move-back
-                                          treemacs-space-between-root-nodes        t
-                                          treemacs-tag-follow-cleanup              t
-                                          treemacs-tag-follow-delay                1.5
-                                          treemacs-text-scale                      nil
-                                          treemacs-user-mode-line-format           nil
-                                          treemacs-user-header-line-format         nil
-                                          treemacs-wide-toggle-width               70
-                                          treemacs-width                           35
-                                          treemacs-width-increment                 1
-                                          treemacs-width-is-initially-locked       t
-                                          treemacs-workspace-switch-cleanup        nil)
+                                    (run-at-time
+                                     "2 sec" nil 'delete-windows-on
+                                     (get-buffer-create "*compilation*"))
+                                    (message "No Compilation Errors!")))))
+                          (setq compilation-window-height 10)
 
-                                    ;; The default width and height of the icons is 22 pixels. If you are
-                                    ;; using a Hi-DPI display, uncomment this to double the icon size.
-                                    ;;(treemacs-resize-icons 44)
+                          (defun ct/create-proper-compilation-window ()
+                            "Setup the *compilation* window with custom settings."
+                            (when (not (get-buffer-window "*compilation*"))
+                              (save-selected-window
+                                (save-excursion
+                                  (let* ((w (split-window-vertically))
+                                         (h (window-height w)))
+                                    (select-window w)
+                                    (switch-to-buffer "*compilation*")
 
-                                    (treemacs-follow-mode t)
-                                    (treemacs-filewatch-mode t)
-                                    (treemacs-fringe-indicator-mode 'always)
-                                    (when treemacs-python-executable
-                                      (treemacs-git-commit-diff-mode t))
+                                    ;; Reduce window height
+                                    (shrink-window (- h compilation-window-height))
 
-                                    (pcase (cons (not (null (executable-find "git")))
-                                                 (not (null treemacs-python-executable)))
-                                      (`(t . t)
-                                       (treemacs-git-mode 'deferred))
-                                      (`(t . _)
-                                       (treemacs-git-mode 'simple)))
+                                    ;; Prevent other buffers from displaying inside
+                                    (set-window-dedicated-p w t)
+                            )))))
+                          (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
-                                    (treemacs-hide-gitignored-files-mode nil))
-                                  :bind
-                                  (:map global-map
-                                        ("M-0"       . treemacs-select-window)
-                                        ("C-x t 1"   . treemacs-delete-other-windows)
-                                        ("C-x t t"   . treemacs)
-                                        ("C-x t d"   . treemacs-select-directory)
-                                        ("C-x t B"   . treemacs-bookmark)
-                                        ("C-x t C-t" . treemacs-find-file)
-                                        ("C-x t M-t" . treemacs-find-tag)))
-                                ;; (ido-mode 1)
-                                (global-set-key (kbd "M-o") 'ace-window)
+                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                          ;; Full width comment box                                                 ;;
+                          ;; from http://irreal.org/blog/?p=374                                     ;;
+                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                  (defun bjm-comment-box (b e)
+                  "Draw a box comment around the region but arrange for the region to extend to at least the fill column. Place the point after the comment box."
 
+                  (interactive "r")
 
-                            ;; If there were no compilation errors, delete the compilation window
-                              (setq compilation-exit-message-function
-                                    (lambda (status code msg)
-                                      ;; If M-x compile exists with a 0
-                                      (when (and (eq status 'exit) (zerop code))
-                                        ;; then bury the *compilation* buffer, so that C-x b doesn't go there
-                                        (bury-buffer "*compilation*")
-                                        ;; and return to whatever were looking at before
-                                        (replace-buffer-in-windows "*compilation*"))
-                                      ;; Always return the anticipated result of compilation-exit-message-function
-                                      (cons msg code)))
-                          (use-package forge)
-                          (setq auth-sources '("~/.authinfo"))
-                          (use-package magit-pretty-graph
-                            :ensure nil
-                            :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
-                          ;(magit-pg-repo "/some/path")
+                  (let ((e (copy-marker e t)))
+                    (goto-char b)
+                    (end-of-line)
+                    (insert-char 49  (+ 0 0))
+                    ;; (insert-char ?  (- (/ fill-column ) (current-column)))
+                    (comment-box b e 1)
+                    (goto-char e)
+                    (set-marker e nil)))
 
-                             (defun my-clear ()
-                                (interactive)
-                                ;; (erase-buffer)
-                                (comint-clear-buffer))
+                  (global-set-key (kbd "C-c b b") 'bjm-comment-box)
+                  (add-hook 'c-mode-hook 'display-fill-column-indicator-mode)
+                  (add-hook 'arduino-mode-hook 'display-fill-column-indicator-mode)
+                  (add-hook 'c-mode-hook 'turn-on-auto-fill)
+                  (add-hook 'arduino-mode-hook 'turn-on-auto-fill)
+                  (defun my-arduino-hook ()
+                    ;;(auto-fill-mode 1)
+                    (setq fill-column 80))
+                  (add-hook 'arduino-mode-hook 'my-arduino-hook)
+                   (add-hook 'c-mode-common-hook
+                              (lambda ()
+                                (auto-fill-mode 1)
+                                (set (make-local-variable 'fill-nobreak-predicate)
+                                     (lambda ()
+                                       (not (eq (get-text-property (point) 'face)
+                                                'font-lock-comment-face))))))
+                   (add-hook 'arduino-mode-common-hook
+                              (lambda ()
+                                (auto-fill-mode 1)
+                                (set (make-local-variable 'fill-nobreak-predicate)
+                                     (lambda ()
+                                       (not (eq (get-text-property (point) 'face)
+                                                'font-lock-comment-face))))))
+          (add-hook 'c-mode-hook (lambda () (c-toggle-comment-style 1)))
+          (add-hook 'c-mode-hook (lambda () (setq comment-start "/*"
+                                                  comment-end   "*/")))
 
-                              (defun my-shell-hook ()
-                                (local-set-key "\C-l" 'my-clear))
+          (add-hook 'c-mode-common-hook (lambda () (setq comment-start "/*"
+                                                  comment-end   "*/")))
 
-                              (add-hook 'shell-mode-hook 'my-shell-hook)
+          (add-hook 'c++-mode-hook (lambda () (setq comment-start "/*"
+                                                  comment-end   "*/")))
 
-                        (add-hook 'compilation-finish-functions
-                          (lambda (buf str)
-                            (if (null (string-match ".*exited abnormally.*" str))
-                                ;;no errors, make the compilation window go away in a few seconds
-                                (progn
-                                  (run-at-time
-                                   "2 sec" nil 'delete-windows-on
-                                   (get-buffer-create "*compilation*"))
-                                  (message "No Compilation Errors!")))))
-                        (setq compilation-window-height 10)
+          (add-hook 'arduino-mode-hook (lambda () (setq comment-start "/*"
+                                                  comment-end   "*/")))
+                (use-package json-mode)
+                (setq auth-sources '("~/.authinfo"))
+                (use-package markdown-mode
+                  :ensure t
+                  :commands (markdown-mode gfm-mode)
+                  :mode (("README\\.md\\'" . gfm-mode))
+                  :init (setq markdown-command "/usr/local/bin/multimarkdown"))
+                (custom-set-variables
+                 '(markdown-command "/usr/bin/markdown")
+                 ;; '(markdown-open-command "/usr/bin/grip")
+                 )
+              (use-package markdown-preview-eww)
+              (use-package taskwarrior
+                :load-path "~/.emacs.d/private/packages/taskwarrior"
+                :bind
+                (("C-x t" . taskwarrior)
+                 ("C-x t" . taskwarrior)))
+            (add-to-list 'lsp-language-id-configuration '(forge-post-mode . "markdown"))
+        (auto-fill-mode 1)
+        (setq comment-auto-fill-only-comments t)
+        ;; (add-hook 'text-mode-hook
+        ;;           (lambda () (auto-fill-mode -1)))
+    (add-hook 'c-mode-common-hook
+        (lambda ()
+          (when (featurep 'filladapt)
+            (c-setup-filladapt))))
+    (add-hook 'cc-mode-common-hook
+        (lambda ()
+          (when (featurep 'filladapt)
+            (c-setup-filladapt))))
+    (add-hook 'arduino-mode-hook
+        (lambda ()
+          (when (featurep 'filladapt)
+            (c-setup-filladapt))))
 
-                        (defun ct/create-proper-compilation-window ()
-                          "Setup the *compilation* window with custom settings."
-                          (when (not (get-buffer-window "*compilation*"))
-                            (save-selected-window
-                              (save-excursion
-                                (let* ((w (split-window-vertically))
-                                       (h (window-height w)))
-                                  (select-window w)
-                                  (switch-to-buffer "*compilation*")
-
-                                  ;; Reduce window height
-                                  (shrink-window (- h compilation-window-height))
-
-                                  ;; Prevent other buffers from displaying inside
-                                  (set-window-dedicated-p w t)
-                          )))))
-                        (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
-
-                        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                        ;; Full width comment box                                                 ;;
-                        ;; from http://irreal.org/blog/?p=374                                     ;;
-                        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                (defun bjm-comment-box (b e)
-                "Draw a box comment around the region but arrange for the region to extend to at least the fill column. Place the point after the comment box."
-
-                (interactive "r")
-
-                (let ((e (copy-marker e t)))
-                  (goto-char b)
-                  (end-of-line)
-                  (insert-char 49  (+ 0 0))
-                  ;; (insert-char ?  (- (/ fill-column ) (current-column)))
-                  (comment-box b e 1)
-                  (goto-char e)
-                  (set-marker e nil)))
-
-                (global-set-key (kbd "C-c b b") 'bjm-comment-box)
-                (add-hook 'c-mode-hook 'display-fill-column-indicator-mode)
-                (add-hook 'arduino-mode-hook 'display-fill-column-indicator-mode)
-                (add-hook 'c-mode-hook 'turn-on-auto-fill)
-                (add-hook 'arduino-mode-hook 'turn-on-auto-fill)
-                (defun my-arduino-hook ()
-                  ;;(auto-fill-mode 1)
-                  (setq fill-column 80))
-                (add-hook 'arduino-mode-hook 'my-arduino-hook)
-                 (add-hook 'c-mode-common-hook
-                            (lambda ()
-                              (auto-fill-mode 1)
-                              (set (make-local-variable 'fill-nobreak-predicate)
-                                   (lambda ()
-                                     (not (eq (get-text-property (point) 'face)
-                                              'font-lock-comment-face))))))
-                 (add-hook 'arduino-mode-common-hook
-                            (lambda ()
-                              (auto-fill-mode 1)
-                              (set (make-local-variable 'fill-nobreak-predicate)
-                                   (lambda ()
-                                     (not (eq (get-text-property (point) 'face)
-                                              'font-lock-comment-face))))))
-        (add-hook 'c-mode-hook (lambda () (c-toggle-comment-style 1)))
-        (add-hook 'c-mode-hook (lambda () (setq comment-start "/*"
-                                                comment-end   "*/")))
-
-        (add-hook 'c-mode-common-hook (lambda () (setq comment-start "/*"
-                                                comment-end   "*/")))
-
-        (add-hook 'c++-mode-hook (lambda () (setq comment-start "/*"
-                                                comment-end   "*/")))
-
-        (add-hook 'arduino-mode-hook (lambda () (setq comment-start "/*"
-                                                comment-end   "*/")))
-              (use-package json-mode)
-              (setq auth-sources '("~/.authinfo"))
-              (use-package markdown-mode
-                :ensure t
-                :commands (markdown-mode gfm-mode)
-                :mode (("README\\.md\\'" . gfm-mode))
-                :init (setq markdown-command "/usr/local/bin/multimarkdown"))
-              (custom-set-variables
-               '(markdown-command "/usr/bin/markdown")
-               ;; '(markdown-open-command "/usr/bin/grip")
-               )
-            (use-package markdown-preview-eww)
-            (use-package taskwarrior
-              :load-path "~/.emacs.d/private/packages/taskwarrior"
-              :bind
-              (("C-x t" . taskwarrior)
-               ("C-x t" . taskwarrior)))
-          (add-to-list 'lsp-language-id-configuration '(forge-post-mode . "markdown"))
-      (auto-fill-mode 1)
-      (setq comment-auto-fill-only-comments t)
-      ;; (add-hook 'text-mode-hook
-      ;;           (lambda () (auto-fill-mode -1)))
-  (add-hook 'c-mode-common-hook
-      (lambda ()
-        (when (featurep 'filladapt)
-          (c-setup-filladapt))))
-  (add-hook 'cc-mode-common-hook
-      (lambda ()
-        (when (featurep 'filladapt)
-          (c-setup-filladapt))))
-  (add-hook 'arduino-mode-hook
-      (lambda ()
-        (when (featurep 'filladapt)
-          (c-setup-filladapt))))
-
-  ;; (use-package helm
-  ;; :ensure t)
-  (delete-selection-mode 1) ;;Let you select and replace with yank or write
-
+    ;; (use-package helm
+    ;; :ensure t)
+    (delete-selection-mode 1) ;;Let you select and replace with yank or write
+  (setq dired-listing-switches "-ls")
   #+end_src
 
 ** Modifications [0/2]
@@ -1393,7 +1392,6 @@ I need a way to enable or disable from an org file, like a tag or something, not
       - [[#they-are-good-but-annoying-sometimes-i-dont-want-to-watch-them][They are good but annoying, sometimes I don't want to watch them]]
       - [[#2-sections-can-be-label-equal][2 sections can be label equal]]
     - [[#align-comments][Align comments?]]
-- [[#old-config][Old config]]
   - [[#startup-performance][Startup Performance]]
   - [[#package-management][Package Management]]
     - [[#packages][Packages]]
@@ -3729,7 +3727,7 @@ Default to an indentation size of 2 spaces since it's the norm for pretty much e
 ;;             (display-line-numbers-mode -1)))
 ;; (add-hook 'org-mode-hook
 ;;   (lambda ()
-;; 	(local-set-key (kbd "C-c b") 'my/color-link-region)))
+	(local-set-key (kbd "C-c b") 'my/color-link-region)))
 ;; (add-hook 'text-mode-hook
 ;;   (lambda ()
 ;; 	(local-set-key (kbd "<f2>") 'table-split-cell-vertically)))
