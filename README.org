@@ -306,7 +306,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   :defer t)
 #+end_src
 *** VHDL
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp
 (use-package vhdl-mode
   :defer t)
 (use-package flycheck
@@ -347,12 +347,12 @@ See URL `http://vhdltool.com'."
   (add-hook 'vhdl-mode-hook 'lsp))
 #+end_src
 *** Lua
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp
   (use-package lua-mode
     :defer t)
 #+end_src
 *** Python
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp
 
 (defun efs/lsp-mode-setup()
   (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
@@ -410,7 +410,7 @@ See URL `http://vhdltool.com'."
 #+end_src
 *** Magit
 Magit is a complete text-based user interface to Git.
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp
   (use-package magit
     :defer t
     :bind ("C-x g" . magit-status)
@@ -418,6 +418,12 @@ Magit is a complete text-based user interface to Git.
     (setq magit-auto-revert-mode t)
     (setq magit-auto-revert-immediately t)
     (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+#+end_src
+** Company
+#+begin_src emacs-lisp
+(use-package company
+  :config
+  (add-hook 'after-init-hook 'global-company-mode))
 #+end_src
 * Experimental
 #+begin_src emacs-lisp
@@ -608,6 +614,7 @@ Magit is a complete text-based user interface to Git.
 # #     :hook ((text-mode . ws-butler-mode)
 # #            (prog-mode . ws-butler-mode)))
 # # #+end_src
+
 # # ***** doom-modeline
 # # #+begin_src emacs-lisp :results none
 # # (use-package doom-modeline
