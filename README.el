@@ -167,4 +167,62 @@
   :init
   (add-hook 'after-init-hook (minions-mode 1)))
 
+(use-package doom-modeline
+  :defer t
+  :hook 
+  (after-init . doom-modeline-mode))
+  :config
+(setq doom-modeline-height 20)
+(setq doom-modeline-bar-width 4)
+(setq doom-modeline-window-width-limit 35)
+(setq doom-modeline-buffer-name t)
+(setq doom-modeline-enable-word-count t)
+(setq doom-modeline-lsp t)
+(setq doom-modeline-github-interval (* 30 60))
+;; (setq doom-modeline-mu4e nil)
+;; (mu4e-alert-enable-mode-line-display)
+;; (setq doom-modeline-gnus t)
+;; (setq doom-modeline-gnus-timer 2)
+
+(use-package undo-tree
+  :defer t
+  :hook 
+  (after-init . global-undo-tree-mode))
+
+(use-package swiper
+  :bind ("C-s" . swiper-isearch))
+
+(use-package lsp-ltex
+  :defer t
+  :hook (text-mode . (lambda ()
+                       (require 'lsp-ltex)
+                       (lsp)))  ; or lsp-deferred
+  :init
+  (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
+
+(use-package arduino-mode
+  :defer t)
+(use-package company-arduino
+  :defer t)
+
+(use-package vhdl-mode
+  :defer t)
+
+(defun efs/lsp-mode-setup()
+  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
+  (lsp-headerline-breadcrumb-mode))
+
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . efs/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
+
+(use-package lsp-mode
+  :config
+  (setq lsp-vhdl-server-path "~/.local/Software/vhdl-tool")
+  (add-hook 'vhdl-mode-hook 'lsp))
+
 
