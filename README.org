@@ -3,16 +3,25 @@
 #+startup: hideblocks
 #+OPTIONS: broken-links:t
 
-* Newconfig
-** Personal information
-     :PROPERTIES:
+* Config
+** Setting data
+   #+begin_src emacs-lisp :results none
+     (setq 
+     user-full-name "Jorge L. Benavides M."
+     user-real-login-name "Rhyloo"
+     user-mail-address "jorge2@uma.es")   
+   #+end_src
+
+# #* Newconfig
+# #** Personal information
+# #     :PROPERTIES:
  :CUSTOM_ID: personal-information
  :END:
-     Mail address and full name for email and metadata.
-     #+begin_src emacs-lisp
-     (setq user-full-name "Jorge Benavides"
-     user-mail-address "jorge2@uma.es")
-     #+end_src
+# #     Mail address and full name for email and metadata.
+# #     #+begin_src emacs-lisp
+# #     (setq user-full-name "Jorge Benavides"
+# #     user-mail-address "jorge2@uma.es")
+# #     #+end_src
 
 # # ** Emacs core modifications
 # # :PROPERTIES:
