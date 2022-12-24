@@ -13,15 +13,34 @@
 #+end_src
 
 ** Theme and visual config
+
+Clean up Emacs' user interface, make it more minimal.
+*** Emacs's visual config
+
 #+begin_src emacs-lisp 
-(scroll-bar-mode -1)         ;; Disable visible scrollbar
-(tool-bar-mode -1)           ;; Disable the toolbar
-(tooltip-mode -1)            ;; Disable tooltips
-(menu-bar-mode -1)           ;; Disable the menu bar
-(set-fringe-mode 15)         ;; Give some breathing room (borders)
-(show-paren-mode 1)          ;; Show parens
-(global-hl-line-mode 1)      ;; Highlight lines
-(global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
+(scroll-bar-mode -1)                       ;; Disable visible scrollbar
+(tool-bar-mode -1)                         ;; Disable the toolbar
+(tooltip-mode -1)                          ;; Disable tooltips
+(menu-bar-mode -1)                         ;; Disable the menu bar
+(set-fringe-mode 15)                       ;; Give some breathing room (borders)
+
+(show-paren-mode 1)                        ;; Show parens
+(global-hl-line-mode 1)                    ;; Highlight lines
+(global-visual-line-mode 1)                ;; Better than fix the lines with set-fill-column
+
+(display-time)                             ;; Show the time in the bar
+(setq display-time-format "%H:%M %d %b %y" ;; Show hour minute day month and year
+display-time-default-load-average nil)
+#+end_src
+
+*** Theme
+#+begin_src emacs-lisp
+(set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
+(add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
+;; (use-package vscode-dark-plus-theme                         ;; Set theme VScode
+;; :ensure t
+;; :config
+;; (load-theme 'vscode-dark-plus t))
 #+end_src
 
 ** Features
@@ -38,46 +57,13 @@ org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
 (org-indent-mode 1)
 #+end_src
 
-# # * Newconfig
-# # ** Personal information
-# #    :PROPERTIES:
-# # :CUSTOM_ID: personal-information
-# # :END:
-# #   Mail address and full name for email and metadata.
-# #   #+begin_src emacs-lisp
-# #   (setq user-full-name "Jorge Benavides"
-# #   user-mail-address "jorge2@uma.es")
-# #   #+end_src
 
-# # ** Emacs core modifications
-# # :PROPERTIES:
-# # :CUSTOM_ID: emacs-core-modifications
-# # :END:
-# # I need some configurations just for being comfortable, for this I don't need any package.
 
-# # *** Visual
-# # :PROPERTIES:
-# # :CUSTOM_ID: visual
-# # :END:
-# # Clean up Emacs' user interface, make it more minimal.
 
-# # #+begin_src emacs-lisp :results none
-# # (scroll-bar-mode -1)        ;; Disable visible scrollbar
-# # (tool-bar-mode -1)          ;; Disable the toolbar
-# # (tooltip-mode -1)           ;; Disable tooltips
-# # (menu-bar-mode -1)          ;; Disable the menu bar
-# # (set-fringe-mode 15)        ;; Give some breathing room
-# # (show-paren-mode 1)         ;; Show parens
-# # (global-hl-line-mode 1)     ;; Highlight lines
-# # (global-visual-line-mode 1)                    ;;Better than fix the lines with set-fill-column
-# # (set-frame-parameter (selected-frame) 'alpha '(100 . 100)) ;;  Set frame transparency
-# # (add-to-list 'default-frame-alist '(alpha . (100 . 100))) ;;  Set frame transparency
 # # (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
 # # (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
 # # (setq-default indent-tabs-mode nil) ;;Use spaces instead of tabs for indentation
-# # (display-time) ;; Show the time in the bar
-# # (setq display-time-format "%H:%M %d %b %y" ;; Show hour minute day month and year
-# # display-time-default-load-average nil)
+
 # # (setq display-time-day-and-date t
 # # display-time-24hr-format t) ;; Change format
 # # (unless (equal "Battery status not available" (battery)) ;;Show battery
