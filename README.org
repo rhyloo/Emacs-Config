@@ -4,6 +4,24 @@
 #+OPTIONS: broken-links:t
 #+PROPERTY: header-args :results silent
 
+* Startup
+#+begin_src emacs-lisp
+;; Minimize garbage collection during startup
+(setq gc-cons-threshold most-positive-fixnum)
+;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold (* 511 1024 1024))
+(setq gc-cons-percentage 0.5)
+(run-with-idle-timer 5 t #'garbage-collect)
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
+#+end_src
+
 * Config
 ** Package Management
 Set up ELPA, MELPA, and Org package repositories and load =use-package= to manage package configuration.
@@ -246,7 +264,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 #+begin_src emacs-lisp
 (use-package minions
   :defer t
-  :init
+  :config
   (add-hook 'after-init-hook (minions-mode 1)))
 #+end_src
 
@@ -270,6 +288,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 ;; (setq doom-modeline-gnus-timer 2)
 
 (use-package all-the-icons
+  :defer t
   :if (display-graphic-p))
 #+end_src
 
@@ -284,6 +303,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 ** Ivy/Swiper
 #+begin_src emacs-lisp
   (use-package swiper
+    :defer t
     :bind ("C-s" . swiper-isearch))
 #+end_src
 
@@ -298,6 +318,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   :init
   (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
 #+end_src
+
 *** Arduino
 #+begin_src emacs-lisp
 (use-package arduino-mode
@@ -305,13 +326,19 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (use-package company-arduino
   :defer t)
 #+end_src
+
+*** Flycheck
+#+begin_src emacs-lisp
+(use-package flycheck
+  :defer t
+  :ensure t
+  :init (global-flycheck-mode))
+#+end_src
+
 *** VHDL
 #+begin_src emacs-lisp
 (use-package vhdl-mode
   :defer t)
-(use-package flycheck
-  :ensure t
-  :init (global-flycheck-mode))
 
 (flycheck-define-checker vhdl-tool
   "A VHDL syntax checker, type checker and linter using VHDL-Tool.
@@ -327,6 +354,7 @@ See URL `http://vhdltool.com'."
 
 (add-to-list 'flycheck-checkers 'vhdl-tool)
 #+end_src
+
 *** LSP
 #+begin_src emacs-lisp
 (defun efs/lsp-mode-setup()
@@ -334,17 +362,21 @@ See URL `http://vhdltool.com'."
   (lsp-headerline-breadcrumb-mode))
 
 (use-package lsp-mode
+  :defer t
   :commands (lsp lsp-deferred)
   :hook (lsp-mode . efs/lsp-mode-setup)
   :init
   (setq lsp-keymap-prefix "C-c l")
   :config
-  (lsp-enable-which-key-integration t))
-
-(use-package lsp-mode
-  :config
-  (setq lsp-vhdl-server-path "~/.local/Software/vhdl-tool")
+  (lsp-enable-which-key-integration t)
+  (setq lsp-enable-symbol-highlighting nil)
+  ;; (setq lsp-vhdl-server-path "/home/rhyloo/.local/Software/vhdl-tool")
   (add-hook 'vhdl-mode-hook 'lsp))
+
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :custom
+  (lsp-ui-doc-position 'bottom))
 #+end_src
 *** Lua
 #+begin_src emacs-lisp
@@ -353,47 +385,6 @@ See URL `http://vhdltool.com'."
 #+end_src
 *** Python
 #+begin_src emacs-lisp
-
-(defun efs/lsp-mode-setup()
-  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
-  (lsp-headerline-breadcrumb-mode))
-
-(use-package lsp-mode
-  :commands (lsp lsp-deferred)
-  :hook (lsp-mode . efs/lsp-mode-setup)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :config
-  (lsp-enable-which-key-integration t)
-  (setq lsp-vhdl-server-path "~/bin/vhdl-tool")
-  (use-package lsp-mode
-       :config
-       (add-hook 'vhdl-mode-hook 'lsp)))
-
-(use-package flycheck
-  :ensure t
-  :init (global-flycheck-mode))
-
-(flycheck-define-checker vhdl-tool
-  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
-
-See URL `http://vhdltool.com'."
-  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
-            )
-  :standard-input t
-  :error-patterns
-  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
-   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
-  :modes (vhdl-mode))
-
-(add-to-list 'flycheck-checkers 'vhdl-tool)
-
-
-(use-package lsp-ui
-  :hook (lsp-mode . lsp-ui-mode)
-  :custom
-  (lsp-ui-doc-position 'bottom))
-
 (use-package pyvenv
   :config
   (pyvenv-mode 1))

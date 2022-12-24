@@ -1,3 +1,18 @@
+;; Minimize garbage collection during startup
+(setq gc-cons-threshold most-positive-fixnum)
+;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold (* 511 1024 1024))
+(setq gc-cons-percentage 0.5)
+(run-with-idle-timer 5 t #'garbage-collect)
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
+
 (require 'package) ;; Initialize package sources
 (setq package-archives
       '(;; ("org"     .       "https://orgmode.org/elpa/")
@@ -179,7 +194,7 @@
 
 (use-package minions
   :defer t
-  :init
+  :config
   (add-hook 'after-init-hook (minions-mode 1)))
 
 (use-package doom-modeline
@@ -199,12 +214,17 @@
 ;; (setq doom-modeline-gnus t)
 ;; (setq doom-modeline-gnus-timer 2)
 
+(use-package all-the-icons
+  :defer t
+  :if (display-graphic-p))
+
 (use-package undo-tree
   :defer t
   :hook 
   (after-init . global-undo-tree-mode))
 
 (use-package swiper
+  :defer t
   :bind ("C-s" . swiper-isearch))
 
 (use-package lsp-ltex
@@ -220,11 +240,13 @@
 (use-package company-arduino
   :defer t)
 
-(use-package vhdl-mode
-  :defer t)
 (use-package flycheck
+  :defer t
   :ensure t
   :init (global-flycheck-mode))
+
+(use-package vhdl-mode
+  :defer t)
 
 (flycheck-define-checker vhdl-tool
   "A VHDL syntax checker, type checker and linter using VHDL-Tool.
@@ -245,60 +267,24 @@ See URL `http://vhdltool.com'."
   (lsp-headerline-breadcrumb-mode))
 
 (use-package lsp-mode
-  :commands (lsp lsp-deferred)
-  :hook (lsp-mode . efs/lsp-mode-setup)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :config
-  (lsp-enable-which-key-integration t))
-
-(use-package lsp-mode
-  :config
-  (setq lsp-vhdl-server-path "~/.local/Software/vhdl-tool")
-  (add-hook 'vhdl-mode-hook 'lsp))
-
-(use-package lua-mode
-  :defer t)
-
-(defun efs/lsp-mode-setup()
-  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
-  (lsp-headerline-breadcrumb-mode))
-
-(use-package lsp-mode
+  :defer t
   :commands (lsp lsp-deferred)
   :hook (lsp-mode . efs/lsp-mode-setup)
   :init
   (setq lsp-keymap-prefix "C-c l")
   :config
   (lsp-enable-which-key-integration t)
-  (setq lsp-vhdl-server-path "~/bin/vhdl-tool")
-  (use-package lsp-mode
-       :config
-       (add-hook 'vhdl-mode-hook 'lsp)))
-
-(use-package flycheck
-  :ensure t
-  :init (global-flycheck-mode))
-
-(flycheck-define-checker vhdl-tool
-  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
-
-See URL `http://vhdltool.com'."
-  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
-            )
-  :standard-input t
-  :error-patterns
-  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
-   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
-  :modes (vhdl-mode))
-
-(add-to-list 'flycheck-checkers 'vhdl-tool)
-
+  (setq lsp-enable-symbol-highlighting nil)
+  ;; (setq lsp-vhdl-server-path "/home/rhyloo/.local/Software/vhdl-tool")
+  (add-hook 'vhdl-mode-hook 'lsp))
 
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
   :custom
   (lsp-ui-doc-position 'bottom))
+
+(use-package lua-mode
+  :defer t)
 
 (use-package pyvenv
   :config
@@ -321,5 +307,9 @@ See URL `http://vhdltool.com'."
   (setq magit-auto-revert-mode t)
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+
+(use-package company
+  :config
+  (add-hook 'after-init-hook 'global-company-mode))
 
 
