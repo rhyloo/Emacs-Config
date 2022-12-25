@@ -401,6 +401,25 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (put 'dired-find-alternate-file 'disabled nil)
 #+end_src
 * Packages
+** Magit
+Magit is a complete text-based user interface to Git.
+#+begin_src emacs-lisp
+(use-package magit
+  :defer t
+  :bind ("C-x g" . magit-status)
+  :config
+  (setq magit-auto-revert-mode t)
+  (setq magit-auto-revert-immediately t)
+  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+
+(use-package forge
+  :defer t)
+(setq auth-sources '("~/.authinfo"))
+
+(use-package magit-pretty-graph
+  :defer t
+  :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
+#+end_src
 ** Minions
 #+begin_src emacs-lisp
 (use-package minions
@@ -549,17 +568,6 @@ See URL `http://vhdltool.com'."
   (setq-default indent-tabs-mode nil)
   (setq-default tab-width 4)
   (setq indent-line-function 'insert-tab))
-#+end_src
-*** Magit
-Magit is a complete text-based user interface to Git.
-#+begin_src emacs-lisp
-  (use-package magit
-    :defer t
-    :bind ("C-x g" . magit-status)
-    :config
-    (setq magit-auto-revert-mode t)
-    (setq magit-auto-revert-immediately t)
-    (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 #+end_src
 ** Company
 #+begin_src emacs-lisp
