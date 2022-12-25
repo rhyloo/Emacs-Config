@@ -82,7 +82,8 @@
   :config)
 
 (setq org-todo-keywords
-      '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")))
+      '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
+        (sequence "EXPERIMENTAL(e)")))
 
 ;; (setq org-todo-keywords
 ;;       '((sequence "TODO(t)" "|" "DONE(d)")
@@ -90,7 +91,8 @@
 ;;         (sequence "|" "CANCELED(c)")))
 
 (setq org-todo-keyword-faces
-      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "yellow"))
+      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
+        ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
         ))
 
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
@@ -148,9 +150,19 @@
 (setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
 (setq large-file-warning-threshold nil)        ;; Dont warn for large files
 (fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
+(setq dired-listing-switches "-ls")
 
 (global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
 (setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
+
+(defun my-clear ()
+  (interactive)
+  (comint-clear-buffer))
+
+(defun my-shell-hook ()
+  (local-set-key "\C-l" 'my-clear))
+
+(add-hook 'shell-mode-hook 'my-shell-hook)
 
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
 
@@ -276,8 +288,68 @@
 ;;     (setq temp-file-name (read-string "Temporary file name: "))
 ;;     (message temp-file-name)
 ;;     (find-file (concat "/tmp/" temp-file-name))))
+;; (global-set-key (kbd "M-o") 'ace-window)
+
+;; If there were no compilation errors, delete the compilation window
+(setq compilation-exit-message-function
+      (lambda (status code msg)
+        ;; If M-x compile exists with a 0
+        (when (and (eq status 'exit) (zerop code))
+          ;; then bury the *compilation* buffer, so that C-x b doesn't go there
+          (bury-buffer "*compilation*")
+          ;; and return to whatever were looking at before
+          (replace-buffer-in-windows "*compilation*"))
+        ;; Always return the anticipated result of compilation-exit-message-function
+        (cons msg code)))
+
+
+;; Experimental from here, I am not sure whats do with compilations buffers
+(add-hook 'compilation-finish-functions
+          (lambda (buf str)
+            (if (null (string-match ".*exited abnormally.*" str))
+                ;;no errors, make the compilation window go away in a few seconds
+                (progn
+                  (run-at-time
+                   "2 sec" nil 'delete-windows-on
+                   (get-buffer-create "*compilation*"))
+                  (message "No Compilation Errors!")))))
+(setq compilation-window-height 10)
+
+(defun ct/create-proper-compilation-window ()
+  "Setup the *compilation* window with custom settings."
+  (when (not (get-buffer-window "*compilation*"))
+    (save-selected-window
+      (save-excursion
+        (let* ((w (split-window-vertically))
+               (h (window-height w)))
+          (select-window w)
+          (switch-to-buffer "*compilation*")
+
+          ;; Reduce window height
+          (shrink-window (- h compilation-window-height))
+
+          ;; Prevent other buffers from displaying inside
+          (set-window-dedicated-p w t)
+          )))))
+(add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
 (put 'dired-find-alternate-file 'disabled nil)
+
+(use-package magit
+  :defer t
+  :bind ("C-x g" . magit-status)
+  :config
+  (setq magit-auto-revert-mode t)
+  (setq magit-auto-revert-immediately t)
+  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+
+(use-package forge
+  :defer t)
+(setq auth-sources '("~/.authinfo"))
+
+(use-package magit-pretty-graph
+  :defer t
+  :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
 
 (use-package minions
   :defer t
@@ -397,13 +469,11 @@ See URL `http://vhdltool.com'."
   (setq-default tab-width 4)
   (setq indent-line-function 'insert-tab))
 
-(use-package magit
+(use-package matlab-mode
   :defer t
-  :bind ("C-x g" . magit-status)
-  :config
-  (setq magit-auto-revert-mode t)
-  (setq magit-auto-revert-immediately t)
-  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+  :mode "\\.m\\'")
+
+(setq matlab-shell-command-switches '("-nodesktop" "-softwareopengl"))
 
 (use-package company
   :config
@@ -422,4 +492,52 @@ See URL `http://vhdltool.com'."
 (use-package auctex
   :defer t)
 
+(use-package treemacs
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
 
+(use-package json-mode
+:defer t)
+
+(use-package markdown-mode
+  :defer t
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode))
+  :init (setq markdown-command "/usr/local/bin/multimarkdown"))
+(custom-set-variables
+ '(markdown-command "/usr/bin/markdown")
+ )
+
+(setq ido-enable-flex-matching t)
+(setq ido-everywhere t)
+(ido-mode 1)
+
+(defun window-toggle-split-direction ()
+  "Switch window split from horizontally to vertically, or vice versa.
+i.e. change right window to bottom, or change bottom window to right."
+  (interactive)
+  (require 'windmove)
+  (let ((done))
+    (dolist (dirs '((right . down) (down . right)))
+      (unless done
+        (let* ((win (selected-window))
+               (nextdir (car dirs))
+               (neighbour-dir (cdr dirs))
+               (next-win (windmove-find-other-window nextdir win))
+               (neighbour1 (windmove-find-other-window neighbour-dir win))
+               (neighbour2 (if next-win (with-selected-window next-win
+                                          (windmove-find-other-window neighbour-dir next-win)))))
+          ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
+          (setq done (and (eq neighbour1 neighbour2)
+                          (not (eq (minibuffer-window) next-win))))
+          (if done
+              (let* ((other-buf (window-buffer next-win)))
+                (delete-window next-win)
+                (if (eq nextdir 'right)
+                    (split-window-vertically)
+                  (split-window-horizontally))
+                (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
+
+(global-set-key (kbd "C-x 4") 'window-toggle-split-direction)

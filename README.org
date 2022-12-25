@@ -580,6 +580,14 @@ See URL `http://vhdltool.com'."
   (setq-default tab-width 4)
   (setq indent-line-function 'insert-tab))
 #+end_src
+*** Matlab
+#+begin_src emacs-lisp
+(use-package matlab-mode
+  :defer t
+  :mode "\\.m\\'")
+
+(setq matlab-shell-command-switches '("-nodesktop" "-softwareopengl"))
+#+end_src
 ** Company
 #+begin_src emacs-lisp
 (use-package company
@@ -666,6 +674,102 @@ i.e. change right window to bottom, or change bottom window to right."
                 (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
 
 (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
+#+end_src
+
+** WORKS Matlab
+#+begin_src emacs-lisp
+;; Session evaluation of MATLAB in org-babel is broken, this goes some
+;; way towards addressing the problem.
+;;
+;;- I replaced a `delq' with `delete', the `eq' test was failing on
+;; blank strings
+;;
+;;- For results of type `output', concatenate all statements in the
+;; block with appropriate separators (";", "," etc) and run one long
+;; statment instead. Remove this statement from the raw result. This
+;; produces much cleaner output.
+
+(defun org-babel-octave-evaluate-session
+    (session body result-type &optional matlabp)
+  "Evaluate BODY in SESSION."
+  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
+     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+     (full-body
+      (pcase result-type
+        (`output
+         (mapconcat
+          #'org-babel-chomp
+          (list (if matlabp
+                        (multi-replace-regexp-in-string
+                         '(("%.*$"                      . "")    ;Remove comments
+                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
+                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
+                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
+                         body)
+                      body)
+                    org-babel-octave-eoe-indicator) "\n"))
+        (`value
+         (if (and matlabp org-babel-matlab-with-emacs-link)
+         (concat
+          (format org-babel-matlab-emacs-link-wrapper-method
+              body
+              (org-babel-process-file-name tmp-file 'noquote)
+              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+           (mapconcat
+        #'org-babel-chomp
+        (list (format org-babel-octave-wrapper-method
+                  body
+                  (org-babel-process-file-name tmp-file 'noquote)
+                  (org-babel-process-file-name tmp-file 'noquote))
+              org-babel-octave-eoe-indicator) "\n")))))
+     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+          (save-window-excursion
+            (with-temp-buffer
+              (insert full-body)
+              (write-region "" 'ignored wait-file nil nil nil 'excl)
+              (matlab-shell-run-region (point-min) (point-max))
+              (message "Waiting for Matlab Emacs Link")
+              (while (file-exists-p wait-file) (sit-for 0.01))
+              "")) ;; matlab-shell-run-region doesn't seem to
+        ;; make *matlab* buffer contents easily
+        ;; available, so :results output currently
+        ;; won't work
+        (org-babel-comint-with-output
+            (session
+             (if matlabp
+             org-babel-octave-eoe-indicator
+               org-babel-octave-eoe-output)
+             t full-body)
+          (insert full-body) (comint-send-input nil t)))) results)
+    (pcase result-type
+      (`value
+       (org-babel-octave-import-elisp-from-file tmp-file))
+      (`output
+       (setq results
+         (if matlabp
+         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
+           (cdr (member org-babel-octave-eoe-output
+                (reverse (mapcar #'org-strip-quotes
+                         (mapcar #'org-trim raw)))))))
+       (mapconcat #'identity (reverse results) "\n")))))
+
+(defun remove-car-upto-newline (raw)
+  "Truncate the first string in a list of strings `RAW' up to the first newline"
+  (cons (mapconcat #'identity
+                   (cdr (split-string-and-unquote (car raw) "\n"))
+                   "\n") (cdr raw)))
+
+(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
+  (interactive)
+  "Replace multiple regexps in a string. Order matters."
+  (if (null replacements-list)
+      string
+    (let ((regex (caar replacements-list))
+          (replacement (cdar replacements-list)))
+      (multi-replace-regexp-in-string (cdr replacements-list)
+                                      (replace-regexp-in-string regex replacement
+                                                                string rest)))))
 #+end_src
 
 * Old configs
@@ -1097,15 +1201,7 @@ i.e. change right window to bottom, or change bottom window to right."
 
 
 
-# #                                    (defun my-clear ()
-# #                                       (interactive)
-# #                                       ;; (erase-buffer)
-# #                                       (comint-clear-buffer))
 
-# #                                     (defun my-shell-hook ()
-# #                                       (local-set-key "\C-l" 'my-clear))
-
-# #                                     (add-hook 'shell-mode-hook 'my-shell-hook)
 
 
 
@@ -1128,6 +1224,13 @@ i.e. change right window to bottom, or change bottom window to right."
 # #                         (set-marker e nil)))
 
 # #                       (global-set-key (kbd "C-c b b") 'bjm-comment-box)
+
+
+
+
+
+
+
 # #                       (add-hook 'c-mode-hook 'display-fill-column-indicator-mode)
 # #                       (add-hook 'arduino-mode-hook 'display-fill-column-indicator-mode)
 # #                       (add-hook 'c-mode-hook 'turn-on-auto-fill)
@@ -1162,28 +1265,25 @@ i.e. change right window to bottom, or change bottom window to right."
 
 # #               (add-hook 'arduino-mode-hook (lambda () (setq comment-start "/*"
 # #                                                       comment-end   "*/")))
-# #                     (use-package json-mode)
-# #                     (setq auth-sources '("~/.authinfo"))
-# #                     (use-package markdown-mode
-# #                       :ensure t
-# #                       :commands (markdown-mode gfm-mode)
-# #                       :mode (("README\\.md\\'" . gfm-mode))
-# #                       :init (setq markdown-command "/usr/local/bin/multimarkdown"))
-# #                     (custom-set-variables
-# #                      '(markdown-command "/usr/bin/markdown")
-# #                      ;; '(markdown-open-command "/usr/bin/grip")
-# #                      )
-# #                   (use-package markdown-preview-eww)
+
+
+
+
+
+
 # #                   (use-package taskwarrior
 # #                     :load-path "~/.emacs.d/private/packages/taskwarrior"
 # #                     :bind
 # #                     (("C-x t" . taskwarrior)
 # #                      ("C-x t" . taskwarrior)))
 # #                 (add-to-list 'lsp-language-id-configuration '(forge-post-mode . "markdown"))
+
 # #             (auto-fill-mode 1)
+
 # #             (setq comment-auto-fill-only-comments t)
 # #             ;; (add-hook 'text-mode-hook
 # #             ;;           (lambda () (auto-fill-mode -1)))
+
 # #         (add-hook 'c-mode-common-hook
 # #             (lambda ()
 # #               (when (featurep 'filladapt)
@@ -1197,235 +1297,14 @@ i.e. change right window to bottom, or change bottom window to right."
 # #               (when (featurep 'filladapt)
 # #                 (c-setup-filladapt))))
 
-# #         ;; (use-package helm
-# #         ;; :ensure t)
-# #         (delete-selection-mode 1) ;;Let you select and replace with yank or write
-# #       (setq dired-listing-switches "-ls")
-# #   (use-package org-gcal)
-# # (setq plstore-cache-passphrase-for-symmetric-encryption t)
-# #     (setq org-gcal-client-id "275611914228-qs51akr8hiqnlrknqtirqpdo2spq4c90.apps.googleusercontent.com"
-# #           org-gcal-client-secret "PGGDvPc6cTGC08OOTHUpC-wu "
-# #           org-gcal-fetch-file-alist '(("jorgebenma@gmail.com" .  "~/Documents/org/agenda.org")
-# #                                       ;; ("another-mail@gmail.com" .  "~/task.org")
-# #                                       ))
-# #     (require 'org-gcal)
-# #   #+end_src
 
-# # ** Modifications [0/2]
-# # :PROPERTIES:
-# # :CUSTOM_ID: modifications-0-2
-# # :END:
-# # *** TODO PROPERTIES under section[0/2]
-# # :PROPERTIES:
-# # :CUSTOM_ID: properties-under-section-0-2
-# # :END:
-# # **** TODO They are good but annoying, sometimes I don't want to watch them
-# # :PROPERTIES:
-# # :CUSTOM_ID: they-are-good-but-annoying-sometimes-i-don-t-want-to-watch-them
-# # :END:
-# # **** TODO 2 sections can be label equal
-# # :PROPERTIES:
-# # :CUSTOM_ID: 2-sections-can-be-label-equal
-# # :END:
-# # I need a way to enable or disable from an org file, like a tag or something, nothing too complicated
 
-# # *** TODO Align comments?
-# # :PROPERTIES:
-# # :CUSTOM_ID: align-comments
-# # :END:
-# #    I dont know if it is necessary but will be nice at least for this file.
+
+
 
 ** Old config
-# # ** Table of Contents
-# # :PROPERTIES:
-# # :TOC:      :include all :ignore (this)
-# # :CUSTOM_ID: table-of-contents
-# # :END:
-# # :CONTENTS:
-# # - [[#personal-information][Personal information]]
-# #   - [[#emacs-core-modifications][Emacs core modifications]]
-# #     - [[#visual][Visual]]
-# #     - [[#functional][Functional]]
-# #     - [[#keybindings][Keybindings]]
-# #     - [[#custom-functions][Custom Functions]]
-# #   - [[#package-management][Package Management]]
-# #     - [[#packages][Packages]]
-# #       - [[#theme][Theme]]
-# #       - [[#visual][Visual]]
-# #         - [[#minions][minions]]
-# #         - [[#ws-butler][ws-butler]]
-# #         - [[#doom-modeline][doom-modeline]]
-# #       - [[#coding][Coding]]
-# #         - [[#latex][LaTeX]]
-# #         - [[#arduino][Arduino]]
-# #         - [[#matlab][Matlab]]
-# #         - [[#vhdl][Vhdl]]
-# #         - [[#lua][Lua]]
-# #         - [[#python][python]]
-# #         - [[#magic][magic]]
-# #         - [[#auctex][auctex]]
-# #         - [[#company][Company]]
-# #       - [[#functional][Functional]]
-# #         - [[#ivyswiper][Ivy/Swiper]]
-# #         - [[#pdf-tools][Pdf-tools]]
-# #       - [[#org-mode][Org mode]]
-# #   - [[#org-mode][Org mode]]
-# #   - [[#experimental][Experimental]]
-# #   - [[#modifications-02][Modifications [0/2]​]]
-# #     - [[#properties-under-section02][PROPERTIES under section[0/2]​]]
-# #       - [[#they-are-good-but-annoying-sometimes-i-dont-want-to-watch-them][They are good but annoying, sometimes I don't want to watch them]]
-# #       - [[#2-sections-can-be-label-equal][2 sections can be label equal]]
-# #     - [[#align-comments][Align comments?]]
-# #   - [[#startup-performance][Startup Performance]]
-# #   - [[#package-management][Package Management]]
-# #     - [[#packages][Packages]]
-# #   - [[#packages][Packages]]
-# #     - [[#org-special-block-extras][org-special-block-extras]]
-# #     - [[#minions][minions]]
-# #     - [[#mu4e-alert][mu4e-alert]]
-# #     - [[#mu4e][mu4e]]
-# #     - [[#arduino][Arduino]]
-# #     - [[#deft][deft]]
-# #     - [[#org][Org]]
-# #     - [[#org-bibtex][Org-bibtex]]
-# #     - [[#org-notes][Org-notes]]
-# #     - [[#benchmakr][Benchmakr]]
-# #     - [[#org-make-toc][Org-make-toc]]
-# #     - [[#matlab-mode][Matlab-mode]]
-# #     - [[#magit][Magit]]
-# #     - [[#ivyswiper][Ivy/Swiper]]
-# #     - [[#auctex][Auctex]]
-# #     - [[#company][Company]]
-# #     - [[#pdf-tools][Pdf-tools]]
-# #     - [[#simple-httpd][Simple-httpd]]
-# #     - [[#impatient-mode][Impatient-mode]]
-# #     - [[#hledger][Hledger]]
-# #     - [[#language][Language]]
-# #     - [[#snippets][Snippets]]
-# #     - [[#dashboard][Dashboard]]
-# #     - [[#org-superstar][Org-superstar]]
-# #     - [[#super-save][Super-save]]
-# #     - [[#ledger][Ledger]]
-# #     - [[#flymake][Flymake]]
-# #     - [[#org][Org]]
-# #     - [[#ox-publish][Ox-publish]]
-# #     - [[#json][json]]
-# #     - [[#org-cal][Org-cal]]
-# #     - [[#guess-language][Guess-language]]
-# #     - [[#htmlize][Htmlize]]
-# #     - [[#auto-complete][Auto-Complete]]
-# #     - [[#org-present][org-present]]
-# #     - [[#epresent][epresent]]
-# #     - [[#org-roam][Org-roam]]
-# #     - [[#revealjs][Revealjs]]
-# #     - [[#vhdl-mode][vhdl-mode]]
-# #     - [[#lua-mode][lua-mode]]
-# #     - [[#python-ide][Python-IDE]]
-# #     - [[#sci-hub][Sci-hub]]
-# #     - [[#whick-key][Whick-key]]
-# #     - [[#org-present][Org-present]]
-# #   - [[#personal-information][Personal information]]
-# #   - [[#custom-functions][Custom functions]]
-# #     - [[#links][Links]]
-# #     - [[#image-edition][Image edition]]
-# #     - [[#configurations][Configurations]]
-# #     - [[#themes-config][Themes config]]
-# #     - [[#utilities][Utilities]]
-# #     - [[#org-mode-functions][Org Mode Functions]]
-# #     - [[#matlab][Matlab]]
-# #     - [[#flyspell][Flyspell]]
-# #   - [[#general-configuration][General Configuration]]
-# #     - [[#user-interface][User Interface]]
-# #     - [[#theme][Theme]]
-# #     - [[#font][Font]]
-# #       - [[#emojis-in-buffers][Emojis in buffers]]
-# #     - [[#mode-line][Mode Line]]
-# #       - [[#basic-customization][Basic Customization]]
-# #       - [[#enable-mode-diminishing][Enable Mode Diminishing]]
-# #       - [[#smart-mode-line][Smart Mode Line]]
-# #       - [[#doom-modeline][Doom Modeline]]
-# #     - [[#backup][Backup]]
-# #     - [[#auto-reverting-changed-files][Auto-Reverting Changed Files]]
-# #     - [[#default-applications][Default applications]]
-# #     - [[#coding][Coding]]
-# #     - [[#displaying-world-time][Displaying World Time]]
-# #     - [[#local-variables][Local-variables]]
-# #   - [[#keyboard-bindings][Keyboard Bindings]]
-# #     - [[#pdf-tools][Pdf tools]]
-# #     - [[#org-mode][Org Mode]]
-# #     - [[#interaction-with-emacs][Interaction with emacs]]
-# #   - [[#editing-configuration][Editing Configuration]]
-# #     - [[#tab-widths][Tab Widths]]
-# #     - [[#use-spaces-instead-of-tabs-for-indentation][Use spaces instead of tabs for indentation]]
-# #     - [[#automatically-clean-whitespace][Automatically clean whitespace]]
-# #   - [[#org-mode-settings][Org Mode settings]]
-# #   - [[#hooks][Hooks]]
-# #   - [[#testing][testing]]
-# #   - [[#modifications-01][Modifications [0/1]​]]
-# #     - [[#properties02][PROPERTIES[0/2]​]]
-# #       - [[#they-are-good-but-annoying-some-times-i-dont-wanna-watch-them][They are good but annoying, some times I dont wanna watch them]]
-# #       - [[#2-sections-can-be-label-equal][2 sections can be label equal]]
-# #   - [[#testing-2][testing 2]]
-# # :END:
-# # ** Startup Performance
-# # :PROPERTIES:
-# # :CUSTOM_ID: startup-performance
-# # :END:
 
-# # Make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time.
 
-# # #+begin_src emacs-lisp
-# #   ;; Minimize garbage collection during startup
-# #   (setq gc-cons-threshold most-positive-fixnum)
-# #   ;; ;; The default is 800 kilobytes.  Measured in bytes.
-# #   ;; (setq gc-cons-threshold (* 511 1024 1024))
-# #   ;; (setq gc-cons-percentage 0.5)
-# #   ;; (run-with-idle-timer 5 t #'garbage-collect)
-# #   ;; Profile emacs startup
-# #   (add-hook 'emacs-startup-hook
-# #             (lambda ()
-# #               (message "*** Emacs loaded in %s with %d garbage collections."
-# #                        (format "%.2f seconds"
-# #                                (float-time
-# #                                 (time-subtract after-init-time before-init-time)))
-# #                        gcs-done)))
-# # #+end_src
-# # ** Package Management
-# # :PROPERTIES:
-# # :CUSTOM_ID: package-management
-# # :END:
-# # Set up ELPA, MELPA, and Org package repositories and load =use-package= to manage package configuration.
-# # #+begin_src emacs-lisp
-# # ;; Initialize package sources
-# # (require 'package)
-# # (setq package-archives
-# #       '(;; ("org"     .       "https://orgmode.org/elpa/")
-# #         ("gnu"     .       "https://elpa.gnu.org/packages/")
-# #         ;; ("melpa-stable" . "http://stable.melpa.org/packages/")
-# #         ("melpa" . "http://melpa.org/packages/")))
-
-# # ;; (package-initialize)
-
-# # ;; Use-package for civilized configuration
-# # (unless (package-installed-p 'use-package)
-# #   (package-refresh-contents)
-# #   (package-install 'use-package))
-
-# # (require 'use-package)
-# # (setq use-package-always-ensure t)
-# # #+end_src
-
-# # #+RESULTS:
-# # : t
-
-# # *** Packages
-# # :PROPERTIES:
-# # :CUSTOM_ID: packages
-# # :END:
-# # ** Packages
-# # :PROPERTIES:
-# # :CUSTOM_ID: packages
-# # :END:
 # # *** org-special-block-extras
 # # :PROPERTIES:
 # # :CUSTOM_ID: org-special-block-extras
@@ -1436,18 +1315,6 @@ i.e. change right window to bottom, or change bottom window to right."
 # # ;;   :hook (org-mode . org-special-block-extras-mode))
 # # #+end_src
 
-# # *** minions
-# # :PROPERTIES:
-# # :CUSTOM_ID: minions
-# # :END:
-# # #+begin_src emacs-lisp
-# #   (use-package minions
-# #     :config
-# #     (minions-mode 1))
-# # #+end_src
-
-# # #+RESULTS:
-# # : t
 
 # # *** mu4e-alert
 # # :PROPERTIES:
@@ -1475,7 +1342,6 @@ i.e. change right window to bottom, or change bottom window to right."
 # #   ;;   )
 # # #+end_src
 
-# # #+RESULTS:
 
 # # *** mu4e
 # # :PROPERTIES:
@@ -1532,22 +1398,8 @@ i.e. change right window to bottom, or change bottom window to right."
 # #   ;;   )
 # # #+end_src
 
-# # #+RESULTS:
-# # : t
 
-# # *** Arduino
-# # :PROPERTIES:
-# # :CUSTOM_ID: arduino
-# # :END:
-# # #+begin_src emacs-lisp
-# #     (use-package arduino-mode
-# #       :defer t)
-# #     (use-package company-arduino
-# #       :defer t)
 
-# # #+end_src
-
-# # #+RESULTS:
 
 # # *** deft
 # # :PROPERTIES:
@@ -1570,18 +1422,7 @@ i.e. change right window to bottom, or change bottom window to right."
 # # :CUSTOM_ID: org
 # # :END:
 
-# # #+begin_src emacs-lisp
-# #   (use-package org
-# #     :pin gnu
-# #     :hook
-# #     ((before-save . zp/org-set-last-modified))
-# #     :config
-# #     (ivy-mode 1)
-# #     (setq org-src-tab-acts-natively t))
-# # #+end_src
 
-# # #+RESULTS:
-# # | org-make-toc | zp/org-set-last-modified |
 
 # # *** Org-bibtex
 # # :PROPERTIES:
@@ -1597,8 +1438,7 @@ i.e. change right window to bottom, or change bottom window to right."
 # #     ;; (use-package helm-bibtex)
 # # #+end_src
 
-# # #+RESULTS:
-# # : t
+
 
 # # *** Org-notes
 # # :PROPERTIES:
@@ -1610,22 +1450,14 @@ i.e. change right window to bottom, or change bottom window to right."
 # #     :defer t)
 # # #+end_src
 
-# # *** Benchmakr
-# # :PROPERTIES:
-# # :CUSTOM_ID: benchmakr
-# # :END:
-# # #+begin_src emacs-lisp
-# #   (use-package benchmark-init
-# #     :ensure t
-# #     :config
-# #     ;; To disable collection of benchmark data after init is done.
-# #     (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
 
 # #   ;; (use-package ispell-multi
 # #   ;;   :defer t
 # #   ;;   :ensure nil
 # #   ;;   :load-path "~/.emacs.d/ispell-multi/ispell-multi.el")
 # # #+end_src
+
 # # *** Org-make-toc
 # # :PROPERTIES:
 # # :CUSTOM_ID: org-make-toc
@@ -1642,13 +1474,7 @@ i.e. change right window to bottom, or change bottom window to right."
 # # #+end_src
 
 # # *** Matlab-mode
-# # :PROPERTIES:
-# # :CUSTOM_ID: matlab-mode
-# # :END:
 
-# # MATLAB mode for Emacs consists of Emacs Lisp code that implements a major-mode for Emacs that assists in the editing of MATLAB scripts.
-
-# # This allows Emacs to be used in place of the MATLAB Editor for editing your MATLAB source code, debugging MATLAB code, and syntax/semantic checking of your MATLAB code with mlint.
 
 # # #+begin_src emacs-lisp
 # #   (use-package matlab-mode
@@ -1657,18 +1483,8 @@ i.e. change right window to bottom, or change bottom window to right."
 # #     ;; :interpreter ("matlab -nodesktop -nosplash -r" . matlab-mode)
 # #     )
 # # #+end_src
-# # *** Magit
-# # :PROPERTIES:
-# # :CUSTOM_ID: magit
-# # :END:
 
-# # Magit is a complete text-based user interface to Git.
 
-# # #+begin_src emacs-lisp
-# #   (use-package magit
-# #     :defer t
-# #     :bind ("C-x g" . magit-status))
-# # #+end_src
 
 # # *** Ivy/Swiper
 # # :PROPERTIES:
