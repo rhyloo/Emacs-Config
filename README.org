@@ -215,7 +215,17 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
 (setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
 #+end_src
+**** Shell
+#+begin_src emacs-lisp
+(defun my-clear ()
+  (interactive)
+  (comint-clear-buffer))
 
+(defun my-shell-hook ()
+  (local-set-key "\C-l" 'my-clear))
+
+(add-hook 'shell-mode-hook 'my-shell-hook)
+#+end_src
 *** Files
 #+begin_src emacs-lisp
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
