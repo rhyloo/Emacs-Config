@@ -347,6 +347,53 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 ;;     (setq temp-file-name (read-string "Temporary file name: "))
 ;;     (message temp-file-name)
 ;;     (find-file (concat "/tmp/" temp-file-name))))
+;; (global-set-key (kbd "M-o") 'ace-window)
+#+end_src
+
+*** EXPERIMENTAL Coding
+#+begin_src emacs-lisp
+;; If there were no compilation errors, delete the compilation window
+(setq compilation-exit-message-function
+      (lambda (status code msg)
+        ;; If M-x compile exists with a 0
+        (when (and (eq status 'exit) (zerop code))
+          ;; then bury the *compilation* buffer, so that C-x b doesn't go there
+          (bury-buffer "*compilation*")
+          ;; and return to whatever were looking at before
+          (replace-buffer-in-windows "*compilation*"))
+        ;; Always return the anticipated result of compilation-exit-message-function
+        (cons msg code)))
+
+
+;; Experimental from here, I am not sure whats do with compilations buffers
+(add-hook 'compilation-finish-functions
+          (lambda (buf str)
+            (if (null (string-match ".*exited abnormally.*" str))
+                ;;no errors, make the compilation window go away in a few seconds
+                (progn
+                  (run-at-time
+                   "2 sec" nil 'delete-windows-on
+                   (get-buffer-create "*compilation*"))
+                  (message "No Compilation Errors!")))))
+(setq compilation-window-height 10)
+
+(defun ct/create-proper-compilation-window ()
+  "Setup the *compilation* window with custom settings."
+  (when (not (get-buffer-window "*compilation*"))
+    (save-selected-window
+      (save-excursion
+        (let* ((w (split-window-vertically))
+               (h (window-height w)))
+          (select-window w)
+          (switch-to-buffer "*compilation*")
+
+          ;; Reduce window height
+          (shrink-window (- h compilation-window-height))
+
+          ;; Prevent other buffers from displaying inside
+          (set-window-dedicated-p w t)
+          )))))
+(add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 #+end_src
 
 ** Commands enabled
@@ -587,6 +634,7 @@ i.e. change right window to bottom, or change bottom window to right."
 #+end_src
 
 * Old configs
+
 # #   (setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
 # # ;; (setq completion-ignore-case  t)             ;; Tab completion in minibuffer: case insensitive
 # #   ;; (setq read-buffer-completion-ignore-case t)
@@ -1007,27 +1055,12 @@ i.e. change right window to bottom, or change bottom window to right."
 
 
 
-# #                                       ;; (ido-mode 1)
-# #                                       (global-set-key (kbd "M-o") 'ace-window)
 
 
-# #                                   ;; If there were no compilation errors, delete the compilation window
-# #                                     (setq compilation-exit-message-function
-# #                                           (lambda (status code msg)
-# #                                             ;; If M-x compile exists with a 0
-# #                                             (when (and (eq status 'exit) (zerop code))
-# #                                               ;; then bury the *compilation* buffer, so that C-x b doesn't go there
-# #                                               (bury-buffer "*compilation*")
-# #                                               ;; and return to whatever were looking at before
-# #                                               (replace-buffer-in-windows "*compilation*"))
-# #                                             ;; Always return the anticipated result of compilation-exit-message-function
-# #                                             (cons msg code)))
-# #                                 (use-package forge)
-# #                                 (setq auth-sources '("~/.authinfo"))
-# #                                 (use-package magit-pretty-graph
-# #                                   :ensure nil
-# #                                   :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
-# #                                 ;(magit-pg-repo "/some/path")
+
+
+
+
 
 # #                                    (defun my-clear ()
 # #                                       (interactive)
@@ -1039,34 +1072,7 @@ i.e. change right window to bottom, or change bottom window to right."
 
 # #                                     (add-hook 'shell-mode-hook 'my-shell-hook)
 
-# #                               (add-hook 'compilation-finish-functions
-# #                                 (lambda (buf str)
-# #                                   (if (null (string-match ".*exited abnormally.*" str))
-# #                                       ;;no errors, make the compilation window go away in a few seconds
-# #                                       (progn
-# #                                         (run-at-time
-# #                                          "2 sec" nil 'delete-windows-on
-# #                                          (get-buffer-create "*compilation*"))
-# #                                         (message "No Compilation Errors!")))))
-# #                               (setq compilation-window-height 10)
 
-# #                               (defun ct/create-proper-compilation-window ()
-# #                                 "Setup the *compilation* window with custom settings."
-# #                                 (when (not (get-buffer-window "*compilation*"))
-# #                                   (save-selected-window
-# #                                     (save-excursion
-# #                                       (let* ((w (split-window-vertically))
-# #                                              (h (window-height w)))
-# #                                         (select-window w)
-# #                                         (switch-to-buffer "*compilation*")
-
-# #                                         ;; Reduce window height
-# #                                         (shrink-window (- h compilation-window-height))
-
-# #                                         ;; Prevent other buffers from displaying inside
-# #                                         (set-window-dedicated-p w t)
-# #                                 )))))
-# #                               (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
 # #                               ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 # #                               ;; Full width comment box                                                 ;;
