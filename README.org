@@ -407,6 +407,132 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 #+end_src
 
+*** Email
+**** Mu4e
+#+begin_src bash :tangle no :exports none
+# mu init --maildir=~/mail --my-address=rhyloot@gmail.com --my-address=jorgebenma@gmail.com
+# mu index
+#+end_src
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+;; (run-at-time nil 300 'mu4e-update-index) 
+(use-package mu4e
+  :defer t
+  :ensure nil
+  :config
+  (setq mail-user-agent 'mu4e-user-agent)
+
+  ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
+  (setq mu4e-sent-messages-behavior 'delete)
+
+  (setq
+   send-mail-function 'smtpmail-send-it
+   smtpmail-smtp-server "smtp.gmail.com"
+   smtpmail-smtp-service 587)
+
+  (setq mu4e-headers-include-related nil)
+  (setq mu4e-update-interval 120)
+  (setq message-kill-buffer-on-exit t)
+  (setq mu4e-get-mail-command "offlineimap")
+  (setq mu4e-change-filenames-when-moving t)
+  (setq mu4e-attachment-dir "/tmp/")
+  (setq mu4e-maildir "~/mail")
+
+
+  (setq message-kill-buffer-on-exit t)
+  (setq mu4e-sent-messages-behavior 'sent)
+
+  (setq mu4e-contexts
+        `(,(make-mu4e-context
+            :name "jbenma"
+            :enter-func (lambda () (mu4e-message "Gmail mode"))
+            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "jorgebenma@gmail.com")))
+
+            :vars '((user-mail-address . "jorgebenma@gmail.com")
+                    (user-full-name    . "Jorge Benavides M.")
+                    (mu4e-drafts-folder  . "/jorgebenma/[Gmail].Borradores")
+                    (mu4e-sent-folder  . "/jorgebenma/[Gmail].Enviados")
+                    (mu4e-refile-folder  . "/jorgebenma/INBOX")
+                    (mu4e-trash-folder  . "/jorgebenma/[Gmail].Papelera")
+                    (mu4e-compose-signature . (concat
+                                               "Jorge Benavides M.\n"
+                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
+                                               "\n"))
+                    (mu4e-sent-messages-behavior . sent)
+                    (mu4e-maildir-shortcuts . ( ("/jorgebenma/INBOX"    . ?i)
+                                                ("/jorgebenma/[Gmail].Enviados" . ?s)
+                                                ("/jorgebenma/[Gmail].Papelera"    . ?t)
+                                                ("/jorgebenma/[Gmail].Borradores"   . ?d)
+                                                ))))
+
+          ,(make-mu4e-context
+            :name "rhyloot"
+            :enter-func (lambda () (mu4e-message "Gmail mode"))
+            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "rhyloot@gmail.com")))
+
+            :vars '((user-mail-address . "rhyloot@gmail.com")
+                    (user-full-name    . "rhyloot")
+                    (mu4e-drafts-folder  . "/rhyloot/[Gmail].Borradores")
+                    (mu4e-sent-folder  . "/rhyloot/[Gmail].Enviados")
+                    (mu4e-refile-folder  . "/rhyloot/INBOX")
+                    (mu4e-trash-folder  . "/rhyloot/[Gmail].Papelera")
+                    (mu4e-compose-signature . (concat
+                                               "Rhyloot\n"
+                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
+                                               "\n"))
+                    (mu4e-sent-messages-behavior . sent)
+                    (mu4e-maildir-shortcuts . ( ("/rhyloot/INBOX"    . ?i)
+                                                ("/rhyloot/[Gmail].Enviados" . ?s)
+                                                ("/rhyloot/[Gmail].Papelera"    . ?t)
+                                                ("/rhyloot/[Gmail].Borradores"   . ?d)
+                                                )))) 
+          ))
+  (setq mu4e-context-policy 'pick-first)
+  (setq mail-user-agent 'mu4e-user-agent)
+  ;; (add-hook 'mu4e-compose-mode-hook
+  ;;           (defun my-add-bcc ()
+  ;;             "Add a Bcc: header."
+  ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
+  (mu4e t)
+  )
+#+end_src
+
+**** Mu4e-alert
+#+begin_src emacs-lisp
+(use-package mu4e-alert
+  :defer t
+  :after mu4e
+  :init
+  (setq mu4e-alert-interesting-mail-query
+        (concat
+         "flag:unread maildir:/INBOX"))
+  (mu4e-alert-enable-mode-line-display)
+  (defun my/mu4e-alert ()
+    (interactive)
+    (mu4e~proc-kill)
+    (mu4e-alert-enable-mode-line-display)
+    )
+  (run-with-timer 0 2700 'my/mu4e-alert)
+  ;; (setq mu4e-alert-enable-notifications t)
+  ;; :config
+  ;; (mu4e-alert-set-default-style 'libnotify)
+  ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+  (setq mu4e-alert-notify-repeated-mails t)
+  (setq mu4e-alert-enable-notifications t)
+  (mu4e-alert-enable-mode-line-display)
+  )
+
+#+end_src
+
 ** Commands enabled
 #+begin_src emacs-lisp
 (put 'dired-find-alternate-file 'disabled nil)
@@ -1343,60 +1469,7 @@ i.e. change right window to bottom, or change bottom window to right."
 # # #+end_src
 
 
-# # *** mu4e
-# # :PROPERTIES:
-# # :CUSTOM_ID: mu4e
-# # :END:
-# # #+begin_src emacs-lisp
-# #   ;; (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
-# #   ;; (use-package mu4e
-# #   ;;   :ensure nil
-# #   ;;   :config
-# #   ;;   (setq
-# #   ;;    send-mail-function 'smtpmail-send-it
-# #   ;;    smtpmail-smtp-server "correo.uma.es"
-# #   ;;    smtpmail-smtp-service 587)
 
-# #   ;;   (setq mu4e-update-interval (* 45 60))
-# #   ;;   (setq mu4e-get-mail-command "offlineimap")
-# #   ;;   (setq mu4e-change-filenames-when-moving t)
-# #   ;;   (setq mu4e-attachment-dir "~/Downloads")
-# #   ;;   (setq mu4e-maildir "~/Maildir"
-# #   ;;         mu4e-sent-folder "/Sent"
-# #   ;;         mu4e-drafts-folder "/Drafts"
-# #   ;;         mu4e-trash-folder "/Trash")
-# #   ;;   ;; (setq mu4e-refile-folder
-# #   ;;   ;;       (lambda (msg)
-# #   ;;   ;;         (cond
-# #   ;;   ;;          ((mu4e-message-contact-field-matches msg :from
-# #   ;;   ;;                                               "jorge2@uma.es")
-# #   ;;   ;;           "/Sent"))))
-
-# #   ;;   (setq message-kill-buffer-on-exit t)
-# #   ;;   (setq mu4e-sent-messages-behavior 'sent)
-
-# #   ;;   (setq mu4e-contexts
-# #   ;;         `(,(make-mu4e-context
-# #   ;;             :name "University"
-# #   ;;             :enter-func (lambda () (mu4e-message "University mode"))
-# #   ;;             :leave-func (lambda () (mu4e-message "Leaving University mode"))
-# #   ;;             :match-func (lambda (msg) (when msg (mu4e-message-contact-field-matches msg
-# #   ;;                                                                                     :to "jorge2@uma.es")))
-# #   ;;             :vars '((user-mail-address . "jorge2@uma.es")
-# #   ;;                     (user-full-name . "Jorge Benavides M.")
-# #   ;;                     (mu4e-compose-signature . (concat
-# #   ;;                                                "Jorge Benavides M.\n"
-# #   ;;                                                "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
-# #   ;;                                                "\n"))))))
-# #   ;;   (setq mu4e-context-policy 'pick-first)
-# #   ;;   (setq mail-user-agent 'mu4e-user-agent)
-# #   ;;   ;; (add-hook 'mu4e-compose-mode-hook
-# #   ;;   ;;           (defun my-add-bcc ()
-# #   ;;   ;;             "Add a Bcc: header."
-# #   ;;   ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
-# #   ;;   (mu4e t)
-# #   ;;   )
-# # #+end_src
 
 
 
