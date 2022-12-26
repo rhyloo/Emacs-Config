@@ -536,6 +536,31 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 
 #+end_src
 
+*** FAIL Macros
+#+begin_src emacs-lisp
+;; (fset 'sync-tasks
+;;       (kmacro-lambda-form [?\M-x ?o ?r ?g ?- ?g ?t ?a ?s ?k ?s return return return return] 0 "%d"))
+
+;; (setq tasks-names '("/home/rhyloo/.emacs.d/gtasks/Mis tareas.org"))
+
+;; (defun my/sync-tasks ()
+;;   (if (member (buffer-file-name) tasks-names)
+;;       'sync-tasks)
+;;   )
+
+
+;; (add-hook 'after-save-hook 'my/sync-tasks)
+
+;; Delete macro
+;; (fmakunbound 'name-of-macro)
+
+;; (use-package elmacro
+;;   :defer t
+;;   :config
+;;   (elmacro-mode))
+
+#+end_src
+
 ** Commands enabled
 #+begin_src emacs-lisp
 (put 'dired-find-alternate-file 'disabled nil)
