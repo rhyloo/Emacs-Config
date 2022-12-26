@@ -618,12 +618,16 @@ Magit is a complete text-based user interface to Git.
   :if (display-graphic-p))
 #+end_src
 
-** Undo-tree
+** EXPERIMENTAL Undo-tree
 #+begin_src emacs-lisp
 (use-package undo-tree
   :defer t
   :hook 
-  (after-init . global-undo-tree-mode))
+  (after-init . global-undo-tree-mode)
+  :custom
+  (undo-tree-visualizer-diff t)
+  (undo-tree-history-directory-alist '(("." . "/tmp/")))
+  (undo-tree-visualizer-timestamps t))
 #+end_src
 
 ** Ivy/Swiper
