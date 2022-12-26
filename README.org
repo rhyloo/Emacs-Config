@@ -537,6 +537,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 #+begin_src emacs-lisp
 (put 'dired-find-alternate-file 'disabled nil)
 #+end_src
+
 * Packages
 ** Magit
 Magit is a complete text-based user interface to Git.
@@ -638,7 +639,6 @@ Magit is a complete text-based user interface to Git.
 #+begin_src emacs-lisp
 (use-package flycheck
   :defer t
-  :ensure t
   :init (global-flycheck-mode))
 #+end_src
 
@@ -701,7 +701,6 @@ See URL `http://vhdltool.com'."
 
 (use-package python-mode
   :defer t
-  :ensure t
   :hook (python-mode . lsp-deferred)
   :custom
   (python-shell-interpreter "python3")
