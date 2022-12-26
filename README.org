@@ -143,6 +143,10 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 
 
 #+end_src
+**** Org capture
+#+begin_src emacs-lisp
+(global-set-key (kbd "C-c C-c") 'org-capture)
+#+end_src
 **** Org babel
 #+begin_src emacs-lisp
 (setq org-src-fontify-natively t)

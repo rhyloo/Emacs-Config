@@ -35,7 +35,7 @@
 
 (setq user-full-name "Jorge L. Benavides M."
       user-real-login-name "Rhyloo"
-      user-mail-address "jorge2@uma.es")
+      user-mail-address "rhyloot@gmail.com")
 
 (scroll-bar-mode -1)         ;; Disable visible scrollbar
 (tool-bar-mode -1)           ;; Disable the toolbar
@@ -96,6 +96,8 @@
         ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
         ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
         ))
+
+(global-set-key (kbd "C-c C-c") 'org-capture)
 
 (setq org-src-fontify-natively t)
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
@@ -658,11 +660,21 @@ See URL `http://vhdltool.com'."
   :defer t
   :load-path "~/.emacs.d/private/packages/org-gtasks"
   :config
+  (let*
+      ((autent
+        (car
+         (auth-source-search :host "www.gmail.com"
+                           :requires '(client-id client-secret))))
+  (mi-usuario (plist-get autent :client-id))
+   (mi-password  (plist-get autent :client-secret)))
+   (setq clientid mi-usuario)
+   (setq clientsecret mi-password))
+
   (org-gtasks-register-account :name "jorgebenma"
                                :directory "~/.emacs.d/gtasks/"
                                :login "jorgebenma@gmail.com"
-                               :client-id "930228000099-lljmas2leu81pk8suds546fhi7g6eqth.apps.googleusercontent.com"
-                               :client-secret "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"))
+                               :client-id clientid
+                               :client-secret clientsecret))
 
 (add-hook 'after-init-hook 'global-company-mode)
 
