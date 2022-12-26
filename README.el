@@ -83,7 +83,7 @@
 
 (setq org-todo-keywords
       '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
-        (sequence "EXPERIMENTAL(e)" "|" "WORKS(w)")))
+        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
 ;; (setq org-todo-keywords
 ;;       '((sequence "TODO(t)" "|" "DONE(d)")
@@ -94,8 +94,10 @@
       '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
         ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
         ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
+        ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
         ))
 
+(setq org-src-fontify-natively t)
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
 (org-babel-do-load-languages
@@ -351,7 +353,7 @@
    smtpmail-smtp-service 587)
 
   (setq mu4e-headers-include-related nil)
-  (setq mu4e-update-interval 60)
+  (setq mu4e-update-interval 120)
   (setq message-kill-buffer-on-exit t)
   (setq mu4e-get-mail-command "offlineimap")
   (setq mu4e-change-filenames-when-moving t)
@@ -447,6 +449,27 @@
   ;; (mu4e-alert-enable-mode-line-display)
   )
 
+;; (fset 'sync-tasks
+;;       (kmacro-lambda-form [?\M-x ?o ?r ?g ?- ?g ?t ?a ?s ?k ?s return return return return] 0 "%d"))
+
+;; (setq tasks-names '("/home/rhyloo/.emacs.d/gtasks/Mis tareas.org"))
+
+;; (defun my/sync-tasks ()
+;;   (if (member (buffer-file-name) tasks-names)
+;;       'sync-tasks)
+;;   )
+
+
+;; (add-hook 'after-save-hook 'my/sync-tasks)
+
+;; Delete macro
+;; (fmakunbound 'name-of-macro)
+
+;; (use-package elmacro
+;;   :defer t
+;;   :config
+;;   (elmacro-mode))
+
 (put 'dired-find-alternate-file 'disabled nil)
 
 (use-package magit
@@ -494,14 +517,19 @@
 (use-package undo-tree
   :defer t
   :hook 
-  (after-init . global-undo-tree-mode))
+  (after-init . global-undo-tree-mode)
+  :custom
+  (undo-tree-visualizer-diff t)
+  (undo-tree-history-directory-alist '(("." . "/tmp/")))
+  (undo-tree-visualizer-timestamps t))
 
 (use-package swiper
     :defer t
     :bind 
     ("C-s" . swiper-isearch)
+    :hook 
+    (after-init . ivy-mode)
     :config
-    (ivy-mode 1)
     (setq ivy-use-virtual-buffers t)
     (setq enable-recursive-minibuffers t))
 
@@ -626,9 +654,21 @@ See URL `http://vhdltool.com'."
  '(markdown-command "/usr/bin/markdown")
  )
 
-(setq ido-enable-flex-matching t)
-(setq ido-everywhere t)
-(ido-mode 1)
+(use-package org-gtasks
+  :defer t
+  :load-path "~/.emacs.d/private/packages/org-gtasks"
+  :config
+  (org-gtasks-register-account :name "jorgebenma"
+                               :directory "~/.emacs.d/gtasks/"
+                               :login "jorgebenma@gmail.com"
+                               :client-id "930228000099-lljmas2leu81pk8suds546fhi7g6eqth.apps.googleusercontent.com"
+                               :client-secret "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"))
+
+(add-hook 'after-init-hook 'global-company-mode)
+
+;; (setq ido-enable-flex-matching t)
+;; (setq ido-everywhere t)
+;; (ido-mode 1)
 
 (defun window-toggle-split-direction ()
   "Switch window split from horizontally to vertically, or vice versa.
