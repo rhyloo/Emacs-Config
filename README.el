@@ -413,38 +413,38 @@
                                                 ("/rhyloot/[Gmail].Enviados" . ?s)
                                                 ("/rhyloot/[Gmail].Papelera"    . ?t)
                                                 ("/rhyloot/[Gmail].Borradores"   . ?d)
-                                                )))) 
-          ))
+                                                ))))))
   (setq mu4e-context-policy 'pick-first)
   (setq mail-user-agent 'mu4e-user-agent)
-  ;; (add-hook 'mu4e-compose-mode-hook
-  ;;           (defun my-add-bcc ()
-  ;;             "Add a Bcc: header."
-  ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
-  (mu4e t)
-  )
+  (mu4e t))
+
+;; (mu4e-alert-set-default-style 'notifications)
+(mu4e-alert-set-default-style 'libnotify)
+(setq mu4e-alert-max-messages-to-process 2000)
+(add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
+(add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
 
 (use-package mu4e-alert
   :defer t
   :after mu4e
   :init
-  (setq mu4e-alert-interesting-mail-query
-        (concat
-         "flag:unread maildir:/INBOX"))
-  (mu4e-alert-enable-mode-line-display)
-  (defun my/mu4e-alert ()
-    (interactive)
-    (mu4e~proc-kill)
-    (mu4e-alert-enable-mode-line-display)
-    )
-  (run-with-timer 0 2700 'my/mu4e-alert)
-  ;; (setq mu4e-alert-enable-notifications t)
-  ;; :config
-  ;; (mu4e-alert-set-default-style 'libnotify)
+  ;; (setq mu4e-alert-interesting-mail-query
+  ;;       (concat
+  ;;        "flag:unread maildir:/INBOX"))
+  ;; (mu4e-alert-enable-mode-line-display)
+  ;; (defun my/mu4e-alert ()
+  ;;   (interactive)
+  ;;   (mu4e~proc-kill)
+  ;;   (mu4e-alert-enable-mode-line-display)
+  ;;   )
+  ;; (run-with-timer 0 2700 'my/mu4e-alert)
+  ;; ;; (setq mu4e-alert-enable-notifications t)
+  ;; ;; :config
+  ;; ;; (mu4e-alert-set-default-style 'libnotify)
   ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
-  (setq mu4e-alert-notify-repeated-mails t)
-  (setq mu4e-alert-enable-notifications t)
-  (mu4e-alert-enable-mode-line-display)
+  ;; (setq mu4e-alert-notify-repeated-mails t)
+  ;; (setq mu4e-alert-enable-notifications t)
+  ;; (mu4e-alert-enable-mode-line-display)
   )
 
 (put 'dired-find-alternate-file 'disabled nil)
@@ -525,7 +525,6 @@
 
 (use-package flycheck
   :defer t
-  :ensure t
   :init (global-flycheck-mode))
 
 (use-package vhdl-mode
@@ -578,7 +577,6 @@ See URL `http://vhdltool.com'."
 
 (use-package python-mode
   :defer t
-  :ensure t
   :hook (python-mode . lsp-deferred)
   :custom
   (python-shell-interpreter "python3")
