@@ -693,10 +693,12 @@ See URL `http://vhdltool.com'."
 *** Python
 #+begin_src emacs-lisp
 (use-package pyvenv
+  :defer t
   :config
   (pyvenv-mode 1))
 
 (use-package python-mode
+  :defer t
   :ensure t
   :hook (python-mode . lsp-deferred)
   :custom
@@ -1490,6 +1492,7 @@ i.e. change right window to bottom, or change bottom window to right."
 # #       :bind
 # #       ("C-c n s" . deft))
 # # #+end_src
+
 # # *** Org
 # # :PROPERTIES:
 # # :CUSTOM_ID: org
