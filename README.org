@@ -619,8 +619,8 @@ Magit is a complete text-based user interface to Git.
 #+begin_src emacs-lisp
 (use-package lsp-ltex
   :defer t
-  :hook (text-mode . (lambda ()
-                       (require 'lsp-ltex)
+  :hook (tex-mode . (lambda ()
+                       ;; (require 'lsp-ltex)
                        (lsp)))  ; or lsp-deferred
   :init
   (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
@@ -676,11 +676,13 @@ See URL `http://vhdltool.com'."
   (setq lsp-keymap-prefix "C-c l")
   :config
   (lsp-enable-which-key-integration t)
-  (setq lsp-enable-symbol-highlighting nil)
+  (setq lsp-enable-symbol-highlighting t)
+  (setq lsp-modeline-diagnostics-enable t)
   ;; (setq lsp-vhdl-server-path "/home/rhyloo/.local/Software/vhdl-tool")
   (add-hook 'vhdl-mode-hook 'lsp))
 
 (use-package lsp-ui
+  :defer t
   :hook (lsp-mode . lsp-ui-mode)
   :custom
   (lsp-ui-doc-position 'bottom))
