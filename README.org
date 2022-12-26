@@ -636,8 +636,9 @@ Magit is a complete text-based user interface to Git.
     :defer t
     :bind 
     ("C-s" . swiper-isearch)
+    :hook 
+    (after-init . ivy-mode)
     :config
-    (ivy-mode 1)
     (setq ivy-use-virtual-buffers t)
     (setq enable-recursive-minibuffers t))
 
@@ -797,13 +798,30 @@ See URL `http://vhdltool.com'."
  '(markdown-command "/usr/bin/markdown")
  )
 #+end_src
+** Org-Tasks
+#+begin_src emacs-lisp
+(use-package org-gtasks
+  :defer t
+  :load-path "~/.emacs.d/private/packages/org-gtasks"
+  :config
+  (org-gtasks-register-account :name "jorgebenma"
+                               :directory "~/.emacs.d/gtasks/"
+                               :login "jorgebenma@gmail.com"
+                               :client-id "930228000099-lljmas2leu81pk8suds546fhi7g6eqth.apps.googleusercontent.com"
+                               :client-secret "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"))
+
+#+end_src
+
+#+begin_src emacs-lisp
+(add-hook 'after-init-hook 'global-company-mode)
+#+end_src
 
 * Experimental
-** EXPERIMENTAL IDO (Interactive Do Things)
+** FAIL IDO (Interactive Do Things)
 #+begin_src emacs-lisp
-(setq ido-enable-flex-matching t)
-(setq ido-everywhere t)
-(ido-mode 1)
+;; (setq ido-enable-flex-matching t)
+;; (setq ido-everywhere t)
+;; (ido-mode 1)
 #+end_src
 
 ** EXPERIMENTAL Buffers
