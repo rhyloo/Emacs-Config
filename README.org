@@ -804,12 +804,21 @@ See URL `http://vhdltool.com'."
   :defer t
   :load-path "~/.emacs.d/private/packages/org-gtasks"
   :config
+  (let*
+      ((autent
+        (car
+         (auth-source-search :host "www.gmail.com"
+                           :requires '(client-id client-secret))))
+  (mi-usuario (plist-get autent :client-id))
+   (mi-password  (plist-get autent :client-secret)))
+   (setq clientid mi-usuario)
+   (setq clientsecret mi-password))
+
   (org-gtasks-register-account :name "jorgebenma"
                                :directory "~/.emacs.d/gtasks/"
                                :login "jorgebenma@gmail.com"
-                               :client-id "930228000099-lljmas2leu81pk8suds546fhi7g6eqth.apps.googleusercontent.com"
-                               :client-secret "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"))
-
+                               :client-id clientid
+                               :client-secret clientsecret))
 #+end_src
 
 #+begin_src emacs-lisp
