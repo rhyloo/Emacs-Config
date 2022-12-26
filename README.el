@@ -20,7 +20,7 @@
         ("melpa-stable" . "http://stable.melpa.org/packages/")
         ("melpa" . "http://melpa.org/packages/")))
 
-(package-initialize)
+;; (package-initialize)
 
 (when (memq window-system '(mac ns x))
   (exec-path-from-shell-initialize))
@@ -83,7 +83,7 @@
 
 (setq org-todo-keywords
       '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
-        (sequence "EXPERIMENTAL(e)")))
+        (sequence "EXPERIMENTAL(e)" "|" "WORKS(w)")))
 
 ;; (setq org-todo-keywords
 ;;       '((sequence "TODO(t)" "|" "DONE(d)")
@@ -93,6 +93,7 @@
 (setq org-todo-keyword-faces
       '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
         ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
+        ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
         ))
 
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
@@ -333,6 +334,119 @@
           )))))
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+;; (run-at-time nil 300 'mu4e-update-index) 
+(use-package mu4e
+  :defer t
+  :ensure nil
+  :config
+  (setq mail-user-agent 'mu4e-user-agent)
+
+  ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
+  (setq mu4e-sent-messages-behavior 'delete)
+
+  (setq
+   send-mail-function 'smtpmail-send-it
+   smtpmail-smtp-server "smtp.gmail.com"
+   smtpmail-smtp-service 587)
+
+  (setq mu4e-headers-include-related nil)
+  (setq mu4e-update-interval 60)
+  (setq message-kill-buffer-on-exit t)
+  (setq mu4e-get-mail-command "offlineimap")
+  (setq mu4e-change-filenames-when-moving t)
+  (setq mu4e-attachment-dir "/tmp/")
+  (setq mu4e-maildir "~/mail")
+
+
+  (setq message-kill-buffer-on-exit t)
+  (setq mu4e-sent-messages-behavior 'sent)
+
+  (setq mu4e-contexts
+        `(,(make-mu4e-context
+            :name "jbenma"
+            :enter-func (lambda () (mu4e-message "Gmail mode"))
+            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "jorgebenma@gmail.com")))
+
+            :vars '((user-mail-address . "jorgebenma@gmail.com")
+                    (user-full-name    . "Jorge Benavides M.")
+                    (mu4e-drafts-folder  . "/jorgebenma/[Gmail].Borradores")
+                    (mu4e-sent-folder  . "/jorgebenma/[Gmail].Enviados")
+                    (mu4e-refile-folder  . "/jorgebenma/INBOX")
+                    (mu4e-trash-folder  . "/jorgebenma/[Gmail].Papelera")
+                    (mu4e-compose-signature . (concat
+                                               "Jorge Benavides M.\n"
+                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
+                                               "\n"))
+                    (mu4e-sent-messages-behavior . sent)
+                    (mu4e-maildir-shortcuts . ( ("/jorgebenma/INBOX"    . ?i)
+                                                ("/jorgebenma/[Gmail].Enviados" . ?s)
+                                                ("/jorgebenma/[Gmail].Papelera"    . ?t)
+                                                ("/jorgebenma/[Gmail].Borradores"   . ?d)
+                                                ))))
+
+          ,(make-mu4e-context
+            :name "rhyloot"
+            :enter-func (lambda () (mu4e-message "Gmail mode"))
+            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
+            :match-func (lambda (msg)
+                          (when msg
+                            (mu4e-message-contact-field-matches
+                             msg '(:from :to :cc :bcc) "rhyloot@gmail.com")))
+
+            :vars '((user-mail-address . "rhyloot@gmail.com")
+                    (user-full-name    . "rhyloot")
+                    (mu4e-drafts-folder  . "/rhyloot/[Gmail].Borradores")
+                    (mu4e-sent-folder  . "/rhyloot/[Gmail].Enviados")
+                    (mu4e-refile-folder  . "/rhyloot/INBOX")
+                    (mu4e-trash-folder  . "/rhyloot/[Gmail].Papelera")
+                    (mu4e-compose-signature . (concat
+                                               "Rhyloot\n"
+                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
+                                               "\n"))
+                    (mu4e-sent-messages-behavior . sent)
+                    (mu4e-maildir-shortcuts . ( ("/rhyloot/INBOX"    . ?i)
+                                                ("/rhyloot/[Gmail].Enviados" . ?s)
+                                                ("/rhyloot/[Gmail].Papelera"    . ?t)
+                                                ("/rhyloot/[Gmail].Borradores"   . ?d)
+                                                )))) 
+          ))
+  (setq mu4e-context-policy 'pick-first)
+  (setq mail-user-agent 'mu4e-user-agent)
+  ;; (add-hook 'mu4e-compose-mode-hook
+  ;;           (defun my-add-bcc ()
+  ;;             "Add a Bcc: header."
+  ;;             (save-excursion (message-add-header "Bcc: jorge2@uma.es\n"))))
+  (mu4e t)
+  )
+
+(use-package mu4e-alert
+  :defer t
+  :after mu4e
+  :init
+  (setq mu4e-alert-interesting-mail-query
+        (concat
+         "flag:unread maildir:/INBOX"))
+  (mu4e-alert-enable-mode-line-display)
+  (defun my/mu4e-alert ()
+    (interactive)
+    (mu4e~proc-kill)
+    (mu4e-alert-enable-mode-line-display)
+    )
+  (run-with-timer 0 2700 'my/mu4e-alert)
+  ;; (setq mu4e-alert-enable-notifications t)
+  ;; :config
+  ;; (mu4e-alert-set-default-style 'libnotify)
+  ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+  (setq mu4e-alert-notify-repeated-mails t)
+  (setq mu4e-alert-enable-notifications t)
+  (mu4e-alert-enable-mode-line-display)
+  )
+
 (put 'dired-find-alternate-file 'disabled nil)
 
 (use-package magit
@@ -398,8 +512,8 @@
 
 (use-package lsp-ltex
   :defer t
-  :hook (text-mode . (lambda ()
-                       (require 'lsp-ltex)
+  :hook (tex-mode . (lambda ()
+                       ;; (require 'lsp-ltex)
                        (lsp)))  ; or lsp-deferred
   :init
   (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
@@ -443,11 +557,13 @@ See URL `http://vhdltool.com'."
   (setq lsp-keymap-prefix "C-c l")
   :config
   (lsp-enable-which-key-integration t)
-  (setq lsp-enable-symbol-highlighting nil)
+  (setq lsp-enable-symbol-highlighting t)
+  (setq lsp-modeline-diagnostics-enable t)
   ;; (setq lsp-vhdl-server-path "/home/rhyloo/.local/Software/vhdl-tool")
   (add-hook 'vhdl-mode-hook 'lsp))
 
 (use-package lsp-ui
+  :defer t
   :hook (lsp-mode . lsp-ui-mode)
   :custom
   (lsp-ui-doc-position 'bottom))
@@ -456,10 +572,12 @@ See URL `http://vhdltool.com'."
   :defer t)
 
 (use-package pyvenv
+  :defer t
   :config
   (pyvenv-mode 1))
 
 (use-package python-mode
+  :defer t
   :ensure t
   :hook (python-mode . lsp-deferred)
   :custom
@@ -541,3 +659,96 @@ i.e. change right window to bottom, or change bottom window to right."
                 (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
 
 (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
+
+;; Session evaluation of MATLAB in org-babel is broken, this goes some
+;; way towards addressing the problem.
+;;
+;;- I replaced a `delq' with `delete', the `eq' test was failing on
+;; blank strings
+;;
+;;- For results of type `output', concatenate all statements in the
+;; block with appropriate separators (";", "," etc) and run one long
+;; statment instead. Remove this statement from the raw result. This
+;; produces much cleaner output.
+
+(defun org-babel-octave-evaluate-session
+    (session body result-type &optional matlabp)
+  "Evaluate BODY in SESSION."
+  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
+     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+     (full-body
+      (pcase result-type
+        (`output
+         (mapconcat
+          #'org-babel-chomp
+          (list (if matlabp
+                        (multi-replace-regexp-in-string
+                         '(("%.*$"                      . "")    ;Remove comments
+                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
+                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
+                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
+                         body)
+                      body)
+                    org-babel-octave-eoe-indicator) "\n"))
+        (`value
+         (if (and matlabp org-babel-matlab-with-emacs-link)
+         (concat
+          (format org-babel-matlab-emacs-link-wrapper-method
+              body
+              (org-babel-process-file-name tmp-file 'noquote)
+              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+           (mapconcat
+        #'org-babel-chomp
+        (list (format org-babel-octave-wrapper-method
+                  body
+                  (org-babel-process-file-name tmp-file 'noquote)
+                  (org-babel-process-file-name tmp-file 'noquote))
+              org-babel-octave-eoe-indicator) "\n")))))
+     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+          (save-window-excursion
+            (with-temp-buffer
+              (insert full-body)
+              (write-region "" 'ignored wait-file nil nil nil 'excl)
+              (matlab-shell-run-region (point-min) (point-max))
+              (message "Waiting for Matlab Emacs Link")
+              (while (file-exists-p wait-file) (sit-for 0.01))
+              "")) ;; matlab-shell-run-region doesn't seem to
+        ;; make *matlab* buffer contents easily
+        ;; available, so :results output currently
+        ;; won't work
+        (org-babel-comint-with-output
+            (session
+             (if matlabp
+             org-babel-octave-eoe-indicator
+               org-babel-octave-eoe-output)
+             t full-body)
+          (insert full-body) (comint-send-input nil t)))) results)
+    (pcase result-type
+      (`value
+       (org-babel-octave-import-elisp-from-file tmp-file))
+      (`output
+       (setq results
+         (if matlabp
+         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
+           (cdr (member org-babel-octave-eoe-output
+                (reverse (mapcar #'org-strip-quotes
+                         (mapcar #'org-trim raw)))))))
+       (mapconcat #'identity (reverse results) "\n")))))
+
+(defun remove-car-upto-newline (raw)
+  "Truncate the first string in a list of strings `RAW' up to the first newline"
+  (cons (mapconcat #'identity
+                   (cdr (split-string-and-unquote (car raw) "\n"))
+                   "\n") (cdr raw)))
+
+(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
+  (interactive)
+  "Replace multiple regexps in a string. Order matters."
+  (if (null replacements-list)
+      string
+    (let ((regex (caar replacements-list))
+          (replacement (cdar replacements-list)))
+      (multi-replace-regexp-in-string (cdr replacements-list)
+                                      (replace-regexp-in-string regex replacement
+                                                                string rest)))))

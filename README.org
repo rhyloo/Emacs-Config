@@ -33,7 +33,7 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
         ("melpa-stable" . "http://stable.melpa.org/packages/")
         ("melpa" . "http://melpa.org/packages/")))
 
-(package-initialize)
+;; (package-initialize)
 
 (when (memq window-system '(mac ns x))
   (exec-path-from-shell-initialize))
