@@ -1,4 +1,5 @@
 #+TITLE: EMACS CONFIGURATION
+#+DATE: <2022-12-26 Mon>
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t
@@ -51,7 +52,7 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
 #+begin_src emacs-lisp 
 (setq user-full-name "Jorge L. Benavides M."
       user-real-login-name "Rhyloo"
-      user-mail-address "jorge2@uma.es")   
+      user-mail-address "rhyloot@gmail.com")   
 #+end_src
 
 ** Theme and visual config
