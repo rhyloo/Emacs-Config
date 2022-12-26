@@ -126,7 +126,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 
 (setq org-todo-keywords
       '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
-        (sequence "EXPERIMENTAL(e)" "|" "WORKS(w)")))
+        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
 ;; (setq org-todo-keywords
 ;;       '((sequence "TODO(t)" "|" "DONE(d)")
@@ -137,6 +137,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
       '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
         ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
         ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
+        ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
         ))
 
 
