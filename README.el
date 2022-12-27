@@ -424,6 +424,18 @@
   (setq mail-user-agent 'mu4e-user-agent)
   (mu4e t))
 
+(use-package mu4e-send-delay
+  :ensure nil
+  :load-path "~/.emacs.d/private/packages/mu4e-send-delay"
+  :after (mu4e)
+  :config
+  (mu4e-send-delay-setup) ; sets up headers to show up by default
+  (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
+  (add-hook 'mu4e-main-mode-hook (lambda ()
+                                   (define-key mu4e-compose-mode-map
+                                     (kbd "C-c C-c")
+                                     'mu4e-send-delay-send-and-exit))))
+
 ;; (mu4e-alert-set-default-style 'notifications)
 (mu4e-alert-set-default-style 'libnotify)
 (setq mu4e-alert-max-messages-to-process 2000)
@@ -485,12 +497,14 @@
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
 (use-package forge
-  :defer t)
+  :defer t
+  :after (magit))
 (setq auth-sources '("~/.authinfo"))
 
 (use-package magit-pretty-graph
-  :defer t
-  :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
+  :ensure nil
+  :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
+  :after (magit))
 
 (use-package minions
   :defer t

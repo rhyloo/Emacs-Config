@@ -509,6 +509,22 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   (mu4e t))
 #+end_src
 
+**** EXPERIMENTAL Mu4e-delay
+#+begin_src emacs-lisp
+;; (use-package mu4e-send-delay
+;;   :ensure nil
+;;   :load-path "~/.emacs.d/private/packages/mu4e-send-delay"
+;;   :after (mu4e)
+;;   :config
+;;   (mu4e-send-delay-setup) ; sets up headers to show up by default
+;;   (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
+;;   (add-hook 'mu4e-main-mode-hook (lambda ()
+;;                                    (define-key mu4e-compose-mode-map
+;;                                      (kbd "C-c C-c")
+;;                                      'mu4e-send-delay-send-and-exit))))
+
+#+end_src
+
 **** Mu4e-alert
 #+begin_src emacs-lisp
 ;; (mu4e-alert-set-default-style 'notifications)
@@ -585,12 +601,14 @@ Magit is a complete text-based user interface to Git.
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
 (use-package forge
-  :defer t)
+  :defer t
+  :after (magit))
 (setq auth-sources '("~/.authinfo"))
 
 (use-package magit-pretty-graph
-  :defer t
-  :load-path "~/.emacs.d/private/packages/magit-pretty-graph")
+  :ensure nil
+  :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
+  :after (magit))
 #+end_src
 ** Minions
 #+begin_src emacs-lisp
