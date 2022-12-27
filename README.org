@@ -146,6 +146,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 **** Org capture
 #+begin_src emacs-lisp
 (global-set-key (kbd "C-c C-c") 'org-capture)
+(setq org-default-notes-file (concat org-directory "/notes.org"))
 #+end_src
 **** Org babel
 #+begin_src emacs-lisp
@@ -438,6 +439,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
    smtpmail-smtp-server "smtp.gmail.com"
    smtpmail-smtp-service 587)
 
+  ;; (setq mu4e-hide-index-messages t)
   (setq mu4e-headers-include-related nil)
   (setq mu4e-update-interval 120)
   (setq message-kill-buffer-on-exit t)

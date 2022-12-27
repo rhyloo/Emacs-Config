@@ -98,6 +98,7 @@
         ))
 
 (global-set-key (kbd "C-c C-c") 'org-capture)
+(setq org-default-notes-file (concat org-directory "/notes.org"))
 
 (setq org-src-fontify-natively t)
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
@@ -354,6 +355,7 @@
    smtpmail-smtp-server "smtp.gmail.com"
    smtpmail-smtp-service 587)
 
+  ;; (setq mu4e-hide-index-messages t)
   (setq mu4e-headers-include-related nil)
   (setq mu4e-update-interval 120)
   (setq message-kill-buffer-on-exit t)
