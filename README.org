@@ -216,6 +216,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (setq large-file-warning-threshold nil)        ;; Dont warn for large files
 (fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
 (setq dired-listing-switches "-ls")
+(setq dired-dwim-target t) ;; Allow you move files splitting the window
 #+end_src
 
 *** Buffers
