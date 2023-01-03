@@ -985,6 +985,26 @@ i.e. change right window to bottom, or change bottom window to right."
                                                                 string rest)))))
 #+end_src
 
+** EXPERIMENTAL Code for compile dev_ws
+#+begin_src emacs-lisp
+(defun my/ros-colcon-build ()
+  "build project 1"
+  (interactive)
+  (let ((buf-name '"*jea-compile-project1*")
+        (working-dir '"~/Documents/Universidad/CyPR/ROS/dev_ws/"))
+    (save-excursion
+      (with-current-buffer (get-buffer-create buf-name)
+        (barf-if-buffer-read-only)
+        (erase-buffer))
+      (cd working-dir)
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (cd "~/coppelia_ws/")
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (message "compile project 1 done")
+      )))
+(global-set-key [(f10)] 'my/ros-colcon-build)
+#+end_src
+
 * Old configs
 
 # #   (setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
