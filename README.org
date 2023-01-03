@@ -825,25 +825,25 @@ See URL `http://vhdltool.com'."
 #+end_src
 ** Org-Tasks
 #+begin_src emacs-lisp
-(use-package org-gtasks
-  :defer t
-  :load-path "~/.emacs.d/private/packages/org-gtasks"
-  :config
-  (let*
-      ((autent
-        (car
-         (auth-source-search :host "www.gmail.com"
-                           :requires '(client-id client-secret))))
-  (mi-usuario (plist-get autent :client-id))
-   (mi-password  (plist-get autent :client-secret)))
-   (setq clientid mi-usuario)
-   (setq clientsecret mi-password))
+;; (use-package org-gtasks
+;;   :defer t
+;;   :load-path "~/.emacs.d/private/packages/org-gtasks"
+;;   :config
+;;   (let*
+;;       ((autent
+;;         (car
+;;          (auth-source-search :host "www.gmail.com"
+;;                            :requires '(client-id client-secret))))
+;;   (mi-usuario (plist-get autent :client-id))
+;;    (mi-password  (plist-get autent :client-secret)))
+;;    (setq clientid mi-usuario)
+;;    (setq clientsecret mi-password))
 
-  (org-gtasks-register-account :name "jorgebenma"
-                               :directory "~/.emacs.d/gtasks/"
-                               :login "jorgebenma@gmail.com"
-                               :client-id clientid
-                               :client-secret clientsecret))
+;;   (org-gtasks-register-account :name "jorgebenma"
+;;                                :directory "~/.emacs.d/gtasks/"
+;;                                :login "jorgebenma@gmail.com"
+;;                                :client-id clientid
+;;                                :client-secret clientsecret))
 #+end_src
 
 #+begin_src emacs-lisp
