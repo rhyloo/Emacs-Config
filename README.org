@@ -601,10 +601,10 @@ Magit is a complete text-based user interface to Git.
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
+(setq auth-sources '("~/.authinfo"))
 (use-package forge
   :defer t
   :after (magit))
-(setq auth-sources '("~/.authinfo"))
 
 (use-package magit-pretty-graph
   :ensure nil
@@ -643,7 +643,7 @@ Magit is a complete text-based user interface to Git.
   :if (display-graphic-p))
 #+end_src
 
-** EXPERIMENTAL Undo-tree
+** WORKS Undo-tree
 #+begin_src emacs-lisp
 (use-package undo-tree
   :defer t

@@ -157,6 +157,7 @@
 (setq large-file-warning-threshold nil)        ;; Dont warn for large files
 (fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
 (setq dired-listing-switches "-ls")
+(setq dired-dwim-target t) ;; Allow you move files splitting the window
 
 (global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
 (setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
@@ -424,17 +425,17 @@
   (setq mail-user-agent 'mu4e-user-agent)
   (mu4e t))
 
-(use-package mu4e-send-delay
-  :ensure nil
-  :load-path "~/.emacs.d/private/packages/mu4e-send-delay"
-  :after (mu4e)
-  :config
-  (mu4e-send-delay-setup) ; sets up headers to show up by default
-  (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
-  (add-hook 'mu4e-main-mode-hook (lambda ()
-                                   (define-key mu4e-compose-mode-map
-                                     (kbd "C-c C-c")
-                                     'mu4e-send-delay-send-and-exit))))
+;; (use-package mu4e-send-delay
+;;   :ensure nil
+;;   :load-path "~/.emacs.d/private/packages/mu4e-send-delay"
+;;   :after (mu4e)
+;;   :config
+;;   (mu4e-send-delay-setup) ; sets up headers to show up by default
+;;   (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
+;;   (add-hook 'mu4e-main-mode-hook (lambda ()
+;;                                    (define-key mu4e-compose-mode-map
+;;                                      (kbd "C-c C-c")
+;;                                      'mu4e-send-delay-send-and-exit))))
 
 ;; (mu4e-alert-set-default-style 'notifications)
 (mu4e-alert-set-default-style 'libnotify)
@@ -496,10 +497,10 @@
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
+(setq auth-sources '("~/.authinfo"))
 (use-package forge
   :defer t
   :after (magit))
-(setq auth-sources '("~/.authinfo"))
 
 (use-package magit-pretty-graph
   :ensure nil
@@ -672,25 +673,25 @@ See URL `http://vhdltool.com'."
  '(markdown-command "/usr/bin/markdown")
  )
 
-(use-package org-gtasks
-  :defer t
-  :load-path "~/.emacs.d/private/packages/org-gtasks"
-  :config
-  (let*
-      ((autent
-        (car
-         (auth-source-search :host "www.gmail.com"
-                           :requires '(client-id client-secret))))
-  (mi-usuario (plist-get autent :client-id))
-   (mi-password  (plist-get autent :client-secret)))
-   (setq clientid mi-usuario)
-   (setq clientsecret mi-password))
+;; (use-package org-gtasks
+;;   :defer t
+;;   :load-path "~/.emacs.d/private/packages/org-gtasks"
+;;   :config
+;;   (let*
+;;       ((autent
+;;         (car
+;;          (auth-source-search :host "www.gmail.com"
+;;                            :requires '(client-id client-secret))))
+;;   (mi-usuario (plist-get autent :client-id))
+;;    (mi-password  (plist-get autent :client-secret)))
+;;    (setq clientid mi-usuario)
+;;    (setq clientsecret mi-password))
 
-  (org-gtasks-register-account :name "jorgebenma"
-                               :directory "~/.emacs.d/gtasks/"
-                               :login "jorgebenma@gmail.com"
-                               :client-id clientid
-                               :client-secret clientsecret))
+;;   (org-gtasks-register-account :name "jorgebenma"
+;;                                :directory "~/.emacs.d/gtasks/"
+;;                                :login "jorgebenma@gmail.com"
+;;                                :client-id clientid
+;;                                :client-secret clientsecret))
 
 (add-hook 'after-init-hook 'global-company-mode)
 
