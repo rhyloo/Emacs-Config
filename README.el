@@ -5,13 +5,13 @@
 (setq gc-cons-percentage 0.5)
 (run-with-idle-timer 5 t #'garbage-collect)
 ;; Profile emacs startup
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (message "*** Emacs loaded in %s with %d garbage collections."
-                     (format "%.2f seconds"
-                             (float-time
-                              (time-subtract after-init-time before-init-time)))
-                     gcs-done)))
+;; (add-hook 'emacs-startup-hook
+;;           (lambda ()
+;;             (message "*** Emacs loaded in %s with %d garbage collections."
+;;                      (format "%.2f seconds"
+;;                              (float-time
+;;                               (time-subtract after-init-time before-init-time)))
+;;                      gcs-done)))
 
 (require 'package) ;; Initialize package sources
 (setq package-archives
@@ -59,18 +59,13 @@
 (column-number-mode)                  ;; Enable column mode
 
 (show-paren-mode 1)          ;; Show parens
-(global-hl-line-mode 1)      ;; Highlight lines
+(if (display-graphic-p)
+    (progn
+      (global-hl-line-mode 1)      ;; Highlight lines
+      )
+  (global-hl-line-mode 0))
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (windmove-default-keybindings 'M) ;; Move windows
-
-(set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
-(add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
-(set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
-(add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
-(use-package vscode-dark-plus-theme                         ;; Set theme VScode
-  :defer t
-  :init
-  (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
 
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)

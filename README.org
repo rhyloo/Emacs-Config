@@ -95,12 +95,16 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 **** Interface
 #+begin_src emacs-lisp
 (show-paren-mode 1)          ;; Show parens
-(global-hl-line-mode 1)      ;; Highlight lines
+(if (display-graphic-p)
+    (progn
+      (global-hl-line-mode 1)      ;; Highlight lines
+      )
+  (global-hl-line-mode 0))
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (windmove-default-keybindings 'M) ;; Move windows
 #+end_src
 
-*** Theme
+*** COMMENT Theme
 #+begin_src emacs-lisp
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
 (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
