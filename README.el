@@ -340,132 +340,6 @@
           )))))
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
-(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
-;; (run-at-time nil 300 'mu4e-update-index) 
-(use-package mu4e
-  :defer t
-  :ensure nil
-  :config
-  (setq mail-user-agent 'mu4e-user-agent)
-
-  ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
-  (setq mu4e-sent-messages-behavior 'delete)
-
-  (setq
-   send-mail-function 'smtpmail-send-it
-   smtpmail-smtp-server "smtp.gmail.com"
-   smtpmail-smtp-service 587)
-
-  ;; (setq mu4e-hide-index-messages t)
-  (setq mu4e-headers-include-related nil)
-  (setq mu4e-update-interval 120)
-  (setq message-kill-buffer-on-exit t)
-  (setq mu4e-get-mail-command "offlineimap")
-  (setq mu4e-change-filenames-when-moving t)
-  (setq mu4e-attachment-dir "/tmp/")
-  (setq mu4e-maildir "~/mail")
-
-
-  (setq message-kill-buffer-on-exit t)
-  (setq mu4e-sent-messages-behavior 'sent)
-
-  (setq mu4e-contexts
-        `(,(make-mu4e-context
-            :name "jbenma"
-            :enter-func (lambda () (mu4e-message "Gmail mode"))
-            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "jorgebenma@gmail.com")))
-
-            :vars '((user-mail-address . "jorgebenma@gmail.com")
-                    (user-full-name    . "Jorge Benavides M.")
-                    (mu4e-drafts-folder  . "/jorgebenma/[Gmail].Borradores")
-                    (mu4e-sent-folder  . "/jorgebenma/[Gmail].Enviados")
-                    (mu4e-refile-folder  . "/jorgebenma/INBOX")
-                    (mu4e-trash-folder  . "/jorgebenma/[Gmail].Papelera")
-                    (mu4e-compose-signature . (concat
-                                               "Jorge Benavides M.\n"
-                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
-                                               "\n"))
-                    (mu4e-sent-messages-behavior . sent)
-                    (mu4e-maildir-shortcuts . ( ("/jorgebenma/INBOX"    . ?i)
-                                                ("/jorgebenma/[Gmail].Enviados" . ?s)
-                                                ("/jorgebenma/[Gmail].Papelera"    . ?t)
-                                                ("/jorgebenma/[Gmail].Borradores"   . ?d)
-                                                ))))
-
-          ,(make-mu4e-context
-            :name "rhyloot"
-            :enter-func (lambda () (mu4e-message "Gmail mode"))
-            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "rhyloot@gmail.com")))
-
-            :vars '((user-mail-address . "rhyloot@gmail.com")
-                    (user-full-name    . "rhyloot")
-                    (mu4e-drafts-folder  . "/rhyloot/[Gmail].Borradores")
-                    (mu4e-sent-folder  . "/rhyloot/[Gmail].Enviados")
-                    (mu4e-refile-folder  . "/rhyloot/INBOX")
-                    (mu4e-trash-folder  . "/rhyloot/[Gmail].Papelera")
-                    (mu4e-compose-signature . (concat
-                                               "Rhyloot\n"
-                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
-                                               "\n"))
-                    (mu4e-sent-messages-behavior . sent)
-                    (mu4e-maildir-shortcuts . ( ("/rhyloot/INBOX"    . ?i)
-                                                ("/rhyloot/[Gmail].Enviados" . ?s)
-                                                ("/rhyloot/[Gmail].Papelera"    . ?t)
-                                                ("/rhyloot/[Gmail].Borradores"   . ?d)
-                                                ))))))
-  (setq mu4e-context-policy 'pick-first)
-  (setq mail-user-agent 'mu4e-user-agent)
-  (mu4e t))
-
-;; (use-package mu4e-send-delay
-;;   :ensure nil
-;;   :load-path "~/.emacs.d/private/packages/mu4e-send-delay"
-;;   :after (mu4e)
-;;   :config
-;;   (mu4e-send-delay-setup) ; sets up headers to show up by default
-;;   (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
-;;   (add-hook 'mu4e-main-mode-hook (lambda ()
-;;                                    (define-key mu4e-compose-mode-map
-;;                                      (kbd "C-c C-c")
-;;                                      'mu4e-send-delay-send-and-exit))))
-
-;; (mu4e-alert-set-default-style 'notifications)
-(mu4e-alert-set-default-style 'libnotify)
-(setq mu4e-alert-max-messages-to-process 2000)
-(add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
-(add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
-
-(use-package mu4e-alert
-  :defer t
-  :after mu4e
-  :init
-  ;; (setq mu4e-alert-interesting-mail-query
-  ;;       (concat
-  ;;        "flag:unread maildir:/INBOX"))
-  ;; (mu4e-alert-enable-mode-line-display)
-  ;; (defun my/mu4e-alert ()
-  ;;   (interactive)
-  ;;   (mu4e~proc-kill)
-  ;;   (mu4e-alert-enable-mode-line-display)
-  ;;   )
-  ;; (run-with-timer 0 2700 'my/mu4e-alert)
-  ;; ;; (setq mu4e-alert-enable-notifications t)
-  ;; ;; :config
-  ;; ;; (mu4e-alert-set-default-style 'libnotify)
-  ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
-  ;; (setq mu4e-alert-notify-repeated-mails t)
-  ;; (setq mu4e-alert-enable-notifications t)
-  ;; (mu4e-alert-enable-mode-line-display)
-  )
-
 ;; (fset 'sync-tasks
 ;;       (kmacro-lambda-form [?\M-x ?o ?r ?g ?- ?g ?t ?a ?s ?k ?s return return return return] 0 "%d"))
 
@@ -819,3 +693,20 @@ i.e. change right window to bottom, or change bottom window to right."
       (multi-replace-regexp-in-string (cdr replacements-list)
                                       (replace-regexp-in-string regex replacement
                                                                 string rest)))))
+
+(defun my/ros-colcon-build ()
+  "build project 1"
+  (interactive)
+  (let ((buf-name '"*jea-compile-project1*")
+        (working-dir '"~/Documents/Universidad/CyPR/ROS/dev_ws/"))
+    (save-excursion
+      (with-current-buffer (get-buffer-create buf-name)
+        (barf-if-buffer-read-only)
+        (erase-buffer))
+      (cd working-dir)
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (cd "~/coppelia_ws/")
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (message "compile project 1 done")
+      )))
+(global-set-key [(f10)] 'my/ros-colcon-build)
