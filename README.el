@@ -142,6 +142,12 @@
 (setq org-startup-with-inline-images nil)
 (setq org-image-actual-width nil)
 
+(use-package org-tidy
+  :defer t
+  :ensure nil
+  :hook
+  (org-mode . org-tidy-mode))
+
 (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
 (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
 (setq-default indent-tabs-mode nil) ;; Use spaces instead of tabs for indentation

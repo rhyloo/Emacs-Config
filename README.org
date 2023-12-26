@@ -205,6 +205,15 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (setq org-image-actual-width nil)
 #+end_src
 
+**** Packages
+     #+begin_src emacs-lisp
+     (use-package org-tidy
+       :defer t
+       :ensure nil
+       :hook
+       (org-mode . org-tidy-mode))
+     #+end_src
+
 *** Writting
 #+begin_src emacs-lisp
 (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
