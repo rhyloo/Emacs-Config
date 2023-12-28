@@ -1018,6 +1018,16 @@ i.e. change right window to bottom, or change bottom window to right."
 (global-set-key [(f10)] 'my/ros-colcon-build)
 #+end_src
 
+** EXPERIMENTAL Org-mode
+#+begin_src emacs-lisp
+(with-eval-after-load "org"
+  (define-key org-mode-map "\C-e" nil)
+  (define-key org-mode-map [remap move-end-of-line] nil))
+
+
+(setq org-tidy-protect-overlay nil)
+#+end_src
+
 * Old configs
 
 # #   (setq use-dialog-box nil) ;; Disable dialog boxes since they weren't working in Mac OSX
