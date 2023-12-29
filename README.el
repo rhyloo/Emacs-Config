@@ -67,6 +67,19 @@
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (windmove-default-keybindings 'M) ;; Move windows
 
+(if (display-graphic-p)
+    (progn
+      (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
+      (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
+      (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
+      (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
+      (use-package vscode-dark-plus-theme                         ;; Set theme VScode
+        :defer t
+        :init
+        (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
+      )
+  )
+
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
 (use-package org
