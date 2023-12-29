@@ -711,3 +711,10 @@ i.e. change right window to bottom, or change bottom window to right."
       (message "compile project 1 done")
       )))
 (global-set-key [(f10)] 'my/ros-colcon-build)
+
+(with-eval-after-load "org"
+  (define-key org-mode-map "\C-e" nil)
+  (define-key org-mode-map [remap move-end-of-line] nil))
+
+
+(setq org-tidy-protect-overlay nil)
