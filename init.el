@@ -1,3 +1,5 @@
+(setq inhibit-default-init t)
+(setq site-run-file nil)
 (setq my-user-init-file "README.org")
 (org-babel-load-file
  (expand-file-name my-user-init-file

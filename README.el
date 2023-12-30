@@ -1,9 +1,9 @@
-;; Minimize garbage collection during startup
-(setq gc-cons-threshold most-positive-fixnum)
-;; The default is 800 kilobytes.  Measured in bytes.
-(setq gc-cons-threshold (* 511 1024 1024))
-(setq gc-cons-percentage 0.5)
-(run-with-idle-timer 5 t #'garbage-collect)
+;; ;; Minimize garbage collection during startup
+;; (setq gc-cons-threshold most-positive-fixnum)
+;; ;; The default is 800 kilobytes.  Measured in bytes.
+;; (setq gc-cons-threshold (* 511 1024 1024))
+;; (setq gc-cons-percentage 0.5)
+;; (run-with-idle-timer 5 t #'garbage-collect)
 ;; Profile emacs startup
 ;; (add-hook 'emacs-startup-hook
 ;;           (lambda ()
@@ -67,18 +67,18 @@
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (windmove-default-keybindings 'M) ;; Move windows
 
-(if (display-graphic-p)
-    (progn
-      (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
-      (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
-      (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
-      (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
-      (use-package vscode-dark-plus-theme                         ;; Set theme VScode
-        :defer t
-        :init
-        (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
-      )
-  )
+;; (if (display-graphic-p)
+;;     (progn
+;;       (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
+;;       (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
+;;       (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
+;;       (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
+;;       (use-package vscode-dark-plus-theme                         ;; Set theme VScode
+;;         :defer t
+;;         :init
+;;         (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
+;;       )
+;;   )
 
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
@@ -112,30 +112,34 @@
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
 (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((js . t)
-     (org . t)
-     (octave . t)
-     (css . t)
-     (dot . t)
-     (latex . t)
-     (lua . t)
-     (shell . t)
-     (python . t)
-     (matlab . t)
-     (emacs-lisp . t)))
+ 'org-babel-load-languages
+ '((js . t)
+   (org . t)
+   (octave . t)
+   (css . t)
+   (dot . t)
+   (latex . t)
+   (lua . t)
+   (shell . t)
+   (python . t)
+   (matlab . t)
+   (emacs-lisp . t)))
 ;; (add-to-list 'org-structure-template-alist ;; Add #+begin_structure
 ;; 	      '(("ec" . "emacs-lisp")
 ;; 		("py" . "python")))
 
 (setq org-adapt-indentation t         ;; Modifies paragraph filling
-      org-hide-leading-stars t              ;; Leading stars invisible
+      ;; org-hide-leading-stars t              ;; Leading stars invisible
       org-odd-levels-only nil               ;; Org use only odd levels (disable)
       org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
       org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
 
+(if (display-graphic-p)
+    (progn
+      (add-hook 'org-mode-hook 'org-indent-mode)
+      (setq org-hide-leading-stars t)               ;; Leading stars invisible
+      ))
 
-(add-hook 'org-mode-hook 'org-indent-mode)
 
 ;; Enable line numbers for some modes
 (dolist (mode '(text-mode-hook
@@ -208,12 +212,12 @@
   "Put the current file name (include directory) on the clipboard"
   (interactive)
   (let ((filename (if (equal major-mode 'dired-mode)
-		                  default-directory
-		                (buffer-file-name))))
+                      default-directory
+                    (buffer-file-name))))
     (when filename
       (with-temp-buffer
-	      (insert filename)
-	      (clipboard-kill-region (point-min) (point-max)))
+        (insert filename)
+        (clipboard-kill-region (point-min) (point-max)))
       (message filename))))
 
 (defun my/create-temp-directory ()
@@ -375,6 +379,9 @@
 ;;   :config
 ;;   (elmacro-mode))
 
+(unless (display-graphic-p)
+      (setq browse-url-browser-function 'eww-browse-url))
+
 (put 'dired-find-alternate-file 'disabled nil)
 
 (use-package magit
@@ -404,7 +411,7 @@
   :defer t
   :hook 
   (after-init . doom-modeline-mode))
-  :config
+:config
 (setq doom-modeline-bar-width 4)
 (setq doom-modeline-window-width-limit 35)
 (setq doom-modeline-buffer-name t)
@@ -431,14 +438,14 @@
   (undo-tree-visualizer-timestamps t))
 
 (use-package swiper
-    :defer t
-    :bind 
-    ("C-s" . swiper-isearch)
-    :hook 
-    (after-init . ivy-mode)
-    :config
-    (setq ivy-use-virtual-buffers t)
-    (setq enable-recursive-minibuffers t))
+  :defer t
+  :bind 
+  ("C-s" . swiper-isearch)
+  :hook 
+  (after-init . ivy-mode)
+  :config
+  (setq ivy-use-virtual-buffers t)
+  (setq enable-recursive-minibuffers t))
 
 (use-package counsel
   :defer t
@@ -448,8 +455,8 @@
 (use-package lsp-ltex
   :defer t
   :hook (tex-mode . (lambda ()
-                       ;; (require 'lsp-ltex)
-                       (lsp)))  ; or lsp-deferred
+                      ;; (require 'lsp-ltex)
+                      (lsp)))  ; or lsp-deferred
   :init
   (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
 
@@ -550,7 +557,7 @@ See URL `http://vhdltool.com'."
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
 
 (use-package json-mode
-:defer t)
+  :defer t)
 
 (use-package markdown-mode
   :defer t
@@ -630,13 +637,13 @@ i.e. change right window to bottom, or change bottom window to right."
     (session body result-type &optional matlabp)
   "Evaluate BODY in SESSION."
   (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
-     (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
-     (full-body
-      (pcase result-type
-        (`output
-         (mapconcat
-          #'org-babel-chomp
-          (list (if matlabp
+         (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+         (full-body
+          (pcase result-type
+            (`output
+             (mapconcat
+              #'org-babel-chomp
+              (list (if matlabp
                         (multi-replace-regexp-in-string
                          '(("%.*$"                      . "")    ;Remove comments
                            (";\\s-*\n+"                 . "; ")  ;Concatenate lines
@@ -645,50 +652,50 @@ i.e. change right window to bottom, or change bottom window to right."
                          body)
                       body)
                     org-babel-octave-eoe-indicator) "\n"))
-        (`value
-         (if (and matlabp org-babel-matlab-with-emacs-link)
-         (concat
-          (format org-babel-matlab-emacs-link-wrapper-method
-              body
-              (org-babel-process-file-name tmp-file 'noquote)
-              (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
-           (mapconcat
-        #'org-babel-chomp
-        (list (format org-babel-octave-wrapper-method
-                  body
-                  (org-babel-process-file-name tmp-file 'noquote)
-                  (org-babel-process-file-name tmp-file 'noquote))
-              org-babel-octave-eoe-indicator) "\n")))))
-     (raw (if (and matlabp org-babel-matlab-with-emacs-link)
-          (save-window-excursion
-            (with-temp-buffer
-              (insert full-body)
-              (write-region "" 'ignored wait-file nil nil nil 'excl)
-              (matlab-shell-run-region (point-min) (point-max))
-              (message "Waiting for Matlab Emacs Link")
-              (while (file-exists-p wait-file) (sit-for 0.01))
-              "")) ;; matlab-shell-run-region doesn't seem to
-        ;; make *matlab* buffer contents easily
-        ;; available, so :results output currently
-        ;; won't work
-        (org-babel-comint-with-output
-            (session
-             (if matlabp
-             org-babel-octave-eoe-indicator
-               org-babel-octave-eoe-output)
-             t full-body)
-          (insert full-body) (comint-send-input nil t)))) results)
+            (`value
+             (if (and matlabp org-babel-matlab-with-emacs-link)
+                 (concat
+                  (format org-babel-matlab-emacs-link-wrapper-method
+                          body
+                          (org-babel-process-file-name tmp-file 'noquote)
+                          (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+               (mapconcat
+                #'org-babel-chomp
+                (list (format org-babel-octave-wrapper-method
+                              body
+                              (org-babel-process-file-name tmp-file 'noquote)
+                              (org-babel-process-file-name tmp-file 'noquote))
+                      org-babel-octave-eoe-indicator) "\n")))))
+         (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+                  (save-window-excursion
+                    (with-temp-buffer
+                      (insert full-body)
+                      (write-region "" 'ignored wait-file nil nil nil 'excl)
+                      (matlab-shell-run-region (point-min) (point-max))
+                      (message "Waiting for Matlab Emacs Link")
+                      (while (file-exists-p wait-file) (sit-for 0.01))
+                      "")) ;; matlab-shell-run-region doesn't seem to
+                ;; make *matlab* buffer contents easily
+                ;; available, so :results output currently
+                ;; won't work
+                (org-babel-comint-with-output
+                    (session
+                     (if matlabp
+                         org-babel-octave-eoe-indicator
+                       org-babel-octave-eoe-output)
+                     t full-body)
+                  (insert full-body) (comint-send-input nil t)))) results)
     (pcase result-type
       (`value
        (org-babel-octave-import-elisp-from-file tmp-file))
       (`output
        (setq results
-         (if matlabp
-         (cdr (reverse (delete "" (mapcar #'org-strip-quotes
-                          (mapcar #'org-trim (remove-car-upto-newline raw))))))
-           (cdr (member org-babel-octave-eoe-output
-                (reverse (mapcar #'org-strip-quotes
-                         (mapcar #'org-trim raw)))))))
+             (if matlabp
+                 (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                                                  (mapcar #'org-trim (remove-car-upto-newline raw))))))
+               (cdr (member org-babel-octave-eoe-output
+                            (reverse (mapcar #'org-strip-quotes
+                                             (mapcar #'org-trim raw)))))))
        (mapconcat #'identity (reverse results) "\n")))))
 
 (defun remove-car-upto-newline (raw)
