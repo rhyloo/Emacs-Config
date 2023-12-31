@@ -1,17 +1,17 @@
-;; ;; Minimize garbage collection during startup
-;; (setq gc-cons-threshold most-positive-fixnum)
-;; ;; The default is 800 kilobytes.  Measured in bytes.
-;; (setq gc-cons-threshold (* 511 1024 1024))
-;; (setq gc-cons-percentage 0.5)
-;; (run-with-idle-timer 5 t #'garbage-collect)
+;; Minimize garbage collection during startup
+(setq gc-cons-threshold most-positive-fixnum)
+;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold (* 511 1024 1024))
+(setq gc-cons-percentage 0.5)
+(run-with-idle-timer 5 t #'garbage-collect)
 ;; Profile emacs startup
-;; (add-hook 'emacs-startup-hook
-;;           (lambda ()
-;;             (message "*** Emacs loaded in %s with %d garbage collections."
-;;                      (format "%.2f seconds"
-;;                              (float-time
-;;                               (time-subtract after-init-time before-init-time)))
-;;                      gcs-done)))
+(add-hook 'emacs-startup-hook
+	  (lambda ()
+	    (message "*** Emacs loaded in %s with %d garbage collections."
+		     (format "%.2f seconds"
+			     (float-time
+			      (time-subtract after-init-time before-init-time)))
+		     gcs-done)))
 
 (require 'package) ;; Initialize package sources
 (setq package-archives
@@ -738,3 +738,19 @@ i.e. change right window to bottom, or change bottom window to right."
 
 
 (setq org-tidy-protect-overlay nil)
+
+(use-package languagetool
+  :ensure t
+  :defer t
+  :commands (languagetool-check
+             languagetool-clear-suggestions
+             languagetool-correct-at-point
+             languagetool-correct-buffer
+             languagetool-set-language
+             languagetool-server-mode
+             languagetool-server-start
+             languagetool-server-stop)
+  :config
+  (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8")
+        languagetool-console-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-commandline.jar"
+        languagetool-server-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-server.jar"))
