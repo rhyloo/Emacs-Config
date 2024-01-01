@@ -5,7 +5,6 @@
 #+OPTIONS: broken-links:t
 #+PROPERTY: header-args :results silent
 
-
 * Startup
   #+begin_src emacs-lisp
     ;; Minimize garbage collection during startup
