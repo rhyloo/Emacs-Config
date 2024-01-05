@@ -1,7 +1,7 @@
 ;; Minimize garbage collection during startup
 (setq gc-cons-threshold most-positive-fixnum)
 ;; The default is 800 kilobytes.  Measured in bytes.
-(setq gc-cons-threshold (* 511 1024 1024))
+(setq gc-cons-threshold (expt 2 23))
 (setq gc-cons-percentage 0.5)
 (run-with-idle-timer 5 t #'garbage-collect)
 ;; Profile emacs startup
@@ -19,8 +19,6 @@
         ("gnu"     .       "https://elpa.gnu.org/packages/")
         ("melpa-stable" . "http://stable.melpa.org/packages/")
         ("melpa" . "http://melpa.org/packages/")))
-
-;; (package-initialize)
 
 (when (memq window-system '(mac ns x))
   (exec-path-from-shell-initialize))
@@ -94,11 +92,6 @@
       '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
         (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
-;; (setq org-todo-keywords
-;;       '((sequence "TODO(t)" "|" "DONE(d)")
-;;         (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")
-;;         (sequence "|" "CANCELED(c)")))
-
 (setq org-todo-keyword-faces
       '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
         ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
@@ -130,7 +123,6 @@
 ;; 		("py" . "python")))
 
 (setq org-adapt-indentation t         ;; Modifies paragraph filling
-      ;; org-hide-leading-stars t              ;; Leading stars invisible
       org-odd-levels-only nil               ;; Org use only odd levels (disable)
       org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
       org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
@@ -177,7 +169,7 @@
 (setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
 (setq large-file-warning-threshold nil)        ;; Dont warn for large files
 (fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
-(setq dired-listing-switches "-ls")
+(setq dired-listing-switches "-la")
 (setq dired-dwim-target t) ;; Allow you move files splitting the window
 
 (global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
@@ -361,27 +353,6 @@
           )))))
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
-;; (fset 'sync-tasks
-;;       (kmacro-lambda-form [?\M-x ?o ?r ?g ?- ?g ?t ?a ?s ?k ?s return return return return] 0 "%d"))
-
-;; (setq tasks-names '("/home/rhyloo/.emacs.d/gtasks/Mis tareas.org"))
-
-;; (defun my/sync-tasks ()
-;;   (if (member (buffer-file-name) tasks-names)
-;;       'sync-tasks)
-;;   )
-
-
-;; (add-hook 'after-save-hook 'my/sync-tasks)
-
-;; Delete macro
-;; (fmakunbound 'name-of-macro)
-
-;; (use-package elmacro
-;;   :defer t
-;;   :config
-;;   (elmacro-mode))
-
 (unless (display-graphic-p)
       (setq browse-url-browser-function 'eww-browse-url))
 
@@ -411,32 +382,6 @@
   :ensure nil
   :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
   :after (magit))
-
-(use-package minions
-  :defer t
-  :config
-  (add-hook 'after-init-hook (minions-mode 1)))
-
-(use-package doom-modeline
-  :defer t
-  :hook 
-  (after-init . doom-modeline-mode))
-:config
-(setq doom-modeline-bar-width 4)
-(setq doom-modeline-window-width-limit 35)
-(setq doom-modeline-buffer-name t)
-(setq doom-modeline-enable-word-count t)
-(setq doom-modeline-lsp t)
-(setq doom-modeline-github-interval (* 30 60))
-;; (setq doom-modeline-height 20)
-;; (setq doom-modeline-mu4e nil)
-;; (mu4e-alert-enable-mode-line-display)
-;; (setq doom-modeline-gnus t)
-;; (setq doom-modeline-gnus-timer 2)
-
-(use-package all-the-icons
-  :defer t
-  :if (display-graphic-p))
 
 (use-package undo-tree
   :defer t
@@ -577,28 +522,6 @@ See URL `http://vhdltool.com'."
 (custom-set-variables
  '(markdown-command "/usr/bin/markdown")
  )
-
-;; (use-package org-gtasks
-;;   :defer t
-;;   :load-path "~/.emacs.d/private/packages/org-gtasks"
-;;   :config
-;;   (let*
-;;       ((autent
-;;         (car
-;;          (auth-source-search :host "www.gmail.com"
-;;                            :requires '(client-id client-secret))))
-;;   (mi-usuario (plist-get autent :client-id))
-;;    (mi-password  (plist-get autent :client-secret)))
-;;    (setq clientid mi-usuario)
-;;    (setq clientsecret mi-password))
-
-;;   (org-gtasks-register-account :name "jorgebenma"
-;;                                :directory "~/.emacs.d/gtasks/"
-;;                                :login "jorgebenma@gmail.com"
-;;                                :client-id clientid
-;;                                :client-secret clientsecret))
-
-(add-hook 'after-init-hook 'global-company-mode)
 
 ;; (setq ido-enable-flex-matching t)
 ;; (setq ido-everywhere t)

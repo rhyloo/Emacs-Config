@@ -10,7 +10,7 @@
     ;; Minimize garbage collection during startup
     (setq gc-cons-threshold most-positive-fixnum)
     ;; The default is 800 kilobytes.  Measured in bytes.
-    (setq gc-cons-threshold (* 511 1024 1024))
+    (setq gc-cons-threshold (expt 2 23))
     (setq gc-cons-percentage 0.5)
     (run-with-idle-timer 5 t #'garbage-collect)
     ;; Profile emacs startup
@@ -32,8 +32,6 @@
            ("gnu"     .       "https://elpa.gnu.org/packages/")
            ("melpa-stable" . "http://stable.melpa.org/packages/")
            ("melpa" . "http://melpa.org/packages/")))
-
-   ;; (package-initialize)
 
    (when (memq window-system '(mac ns x))
      (exec-path-from-shell-initialize))
@@ -136,11 +134,6 @@
            '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
              (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
-     ;; (setq org-todo-keywords
-     ;;       '((sequence "TODO(t)" "|" "DONE(d)")
-     ;;         (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")
-     ;;         (sequence "|" "CANCELED(c)")))
-
      (setq org-todo-keyword-faces
            '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
              ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
@@ -181,7 +174,6 @@
 **** Interface
      #+begin_src emacs-lisp
      (setq org-adapt-indentation t         ;; Modifies paragraph filling
-           ;; org-hide-leading-stars t              ;; Leading stars invisible
            org-odd-levels-only nil               ;; Org use only odd levels (disable)
            org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
            org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
@@ -237,7 +229,7 @@
     (setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
     (setq large-file-warning-threshold nil)        ;; Dont warn for large files
     (fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
-    (setq dired-listing-switches "-ls")
+    (setq dired-listing-switches "-la")
     (setq dired-dwim-target t) ;; Allow you move files splitting the window
     #+end_src
 
@@ -581,31 +573,6 @@
 
      #+end_src
 
-*** FAIL Macros
-    #+begin_src emacs-lisp
-    ;; (fset 'sync-tasks
-    ;;       (kmacro-lambda-form [?\M-x ?o ?r ?g ?- ?g ?t ?a ?s ?k ?s return return return return] 0 "%d"))
-
-    ;; (setq tasks-names '("/home/rhyloo/.emacs.d/gtasks/Mis tareas.org"))
-
-    ;; (defun my/sync-tasks ()
-    ;;   (if (member (buffer-file-name) tasks-names)
-    ;;       'sync-tasks)
-    ;;   )
-
-
-    ;; (add-hook 'after-save-hook 'my/sync-tasks)
-
-    ;; Delete macro
-    ;; (fmakunbound 'name-of-macro)
-
-    ;; (use-package elmacro
-    ;;   :defer t
-    ;;   :config
-    ;;   (elmacro-mode))
-
-    #+end_src
-
 *** Internet
     #+begin_src emacs-lisp
     (unless (display-graphic-p)
@@ -648,7 +615,7 @@
      :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
      :after (magit))
    #+end_src
-** Minions
+** COMMENT Minions
    #+begin_src emacs-lisp
    (use-package minions
      :defer t
@@ -656,7 +623,7 @@
      (add-hook 'after-init-hook (minions-mode 1)))
    #+end_src
 
-** Mode-line
+** COMMENT Mode-line
    #+begin_src emacs-lisp
    (use-package doom-modeline
      :defer t
@@ -680,7 +647,7 @@
      :if (display-graphic-p))
    #+end_src
 
-** WORKS Undo-tree
+** Undo-tree
    #+begin_src emacs-lisp
    (use-package undo-tree
      :defer t
@@ -860,7 +827,7 @@
     '(markdown-command "/usr/bin/markdown")
     )
    #+end_src
-** Org-Tasks
+** COMMENT Org-Tasks
    #+begin_src emacs-lisp
    ;; (use-package org-gtasks
    ;;   :defer t
