@@ -7,11 +7,11 @@
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
 	  (lambda ()
-	    (message "*** Emacs loaded in %s with %d garbage collections."
-		     (format "%.2f seconds"
-			     (float-time
-			      (time-subtract after-init-time before-init-time)))
-		     gcs-done)))
+(message "*** Emacs loaded in %s with %d garbage collections."
+	 (format "%.2f seconds"
+		 (float-time
+			(time-subtract after-init-time before-init-time)))
+	 gcs-done)))
 
 (require 'package) ;; Initialize package sources
 (setq package-archives
@@ -48,6 +48,7 @@
 (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
 (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
 (setq scroll-step 1) ;; keyboard scroll one line at a time
+(setq ring-bell-function 'ignore) ;; Remove bell ring
 
 (setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
 (setq display-time-day-and-date t display-time-24hr-format t) ;; Change format
@@ -67,18 +68,18 @@
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (windmove-default-keybindings 'M) ;; Move windows
 
-;; (if (display-graphic-p)
-;;     (progn
-;;       (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
-;;       (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
-;;       (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
-;;       (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
-;;       (use-package vscode-dark-plus-theme                         ;; Set theme VScode
-;;         :defer t
-;;         :init
-;;         (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
-;;       )
-;;   )
+(if (display-graphic-p)
+    (progn
+      (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
+      (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
+      (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
+      (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
+      (use-package vscode-dark-plus-theme                         ;; Set theme VScode
+        :defer t
+        :init
+        (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
+      )
+  )
 
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
@@ -169,6 +170,8 @@
 (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
 (setq-default indent-tabs-mode nil) ;; Use spaces instead of tabs for indentation
 (delete-selection-mode 1) ;; Let you select and replace with yank or write
+(prefer-coding-system 'utf-8)
+(setq-default buffer-file-coding-system 'utf-8)
 
 (setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
 (setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
@@ -383,6 +386,13 @@
       (setq browse-url-browser-function 'eww-browse-url))
 
 (put 'dired-find-alternate-file 'disabled nil)
+
+(use-package ox-hugo
+  :ensure t   ;Auto-install the package from Melpa
+  :pin melpa  ;`package-archives' should already have ("melpa" . "https://melpa.org/packages/")
+  :after ox)
+
+(setq org-hugo-base-dir "~/Documents/Github/rhyloo.github.io/")
 
 (use-package magit
   :defer t
