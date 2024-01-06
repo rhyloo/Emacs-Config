@@ -7,11 +7,11 @@
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
 	  (lambda ()
-(message "*** Emacs loaded in %s with %d garbage collections."
-	 (format "%.2f seconds"
-		 (float-time
-			(time-subtract after-init-time before-init-time)))
-	 gcs-done)))
+	    (message "*** Emacs loaded in %s with %d garbage collections."
+		     (format "%.2f seconds"
+			     (float-time
+			      (time-subtract after-init-time before-init-time)))
+		     gcs-done)))
 
 (require 'package) ;; Initialize package sources
 (setq package-archives
@@ -186,6 +186,22 @@
 
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
 
+(defun my/org-table-install-formulas () 
+  "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line. 
+Do nothing when point is not inside a table." 
+  (interactive) 
+  (when (org-table-p) 
+    (save-excursion 
+      (goto-char (org-table-begin)) 
+      (org-table-next-field) 
+      (while (progn 
+               (org-table-maybe-eval-formula) 
+               (looking-at "[^|\n]*|\\([[:space:]]*\n[[:space:]]*|\\)?[^|\n]*\\(|\\)")) 
+        (goto-char (match-beginning 2))) 
+      )) 
+  nil)
+
+(add-hook #'org-ctrl-c-ctrl-c-hook #'my/org-table-install-formulas)
 (defun my/reload-emacs-configuration ()
   (interactive)
   (load-file "~/.emacs.d/init.el"))
@@ -231,7 +247,7 @@
 
 (defun zp/org-find-time-file-property (property &optional anywhere)
   "Return the position of the time file PROPERTY if it exists.
-  When ANYWHERE is non-nil, search beyond the preamble."
+   When ANYWHERE is non-nil, search beyond the preamble."
   (save-excursion
     (goto-char (point-min))
     (let ((first-heading
@@ -244,8 +260,8 @@
 
 (defun zp/org-has-time-file-property-p (property &optional anywhere)
   "Return the position of time file PROPERTY if it is defined.
-  As a special case, return -1 if the time file PROPERTY exists but
-  is not defined."
+   As a special case, return -1 if the time file PROPERTY exists but
+   is not defined."
   (when-let ((pos (zp/org-find-time-file-property property anywhere)))
     (save-excursion
       (goto-char pos)
@@ -257,9 +273,9 @@
 
 (defun zp/org-set-time-file-property (property &optional anywhere pos)
   "Set the time file PROPERTY in the preamble.
-  When ANYWHERE is non-nil, search beyond the preamble.
-  If the position of the file PROPERTY has already been computed,
-  it can be passed in POS."
+   When ANYWHERE is non-nil, search beyond the preamble.
+   If the position of the file PROPERTY has already been computed,
+   it can be passed in POS."
   (when-let ((pos (or pos
                       (zp/org-find-time-file-property property))))
     (save-excursion
