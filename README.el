@@ -15,13 +15,14 @@
 
 (require 'package) ;; Initialize package sources
 (setq package-archives
-      '(;; ("org"     .       "https://orgmode.org/elpa/")
-        ("gnu"     .       "https://elpa.gnu.org/packages/")
-        ("melpa-stable" . "http://stable.melpa.org/packages/")
-        ("melpa" . "http://melpa.org/packages/")))
+'(;; ("org"     .       "https://orgmode.org/elpa/")
+  ("gnu"     .       "https://elpa.gnu.org/packages/")
+  ("melpa-stable" . "http://stable.melpa.org/packages/")
+  ("ox-odt" . "https://kjambunathan.github.io/elpa/")
+  ("melpa" . "http://melpa.org/packages/")))
 
-(when (memq window-system '(mac ns x))
-  (exec-path-from-shell-initialize))
+;; (when (memq window-system '(mac ns x))
+;;   (exec-path-from-shell-initialize))
 
 ;; Use-package for civilized configuration
 (unless (package-installed-p 'use-package)
@@ -31,9 +32,9 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(setq user-full-name "Jorge L. Benavides M."
+(setq user-full-name "J. L. Benavides"
       user-real-login-name "Rhyloo"
-      user-mail-address "rhyloot@gmail.com")
+      user-mail-address "jbenavides@innovairv.com")
 
 (scroll-bar-mode -1)         ;; Disable visible scrollbar
 (tool-bar-mode -1)           ;; Disable the toolbar
@@ -89,11 +90,12 @@
   :config)
 
 (setq org-todo-keywords
-      '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)")
+      '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
         (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
 (setq org-todo-keyword-faces
       '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
+        ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
         ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
         ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
         ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
@@ -152,11 +154,11 @@
 (setq org-startup-with-inline-images nil)
 (setq org-image-actual-width nil)
 
-(use-package org-tidy
-  :defer t
-  :ensure nil
-  :hook
-  (org-mode . org-tidy-mode))
+;; (use-package org-tidy
+;;   :defer t
+;;   :ensure nil
+;;   :hook
+;;   (org-mode . org-tidy-mode))
 
 (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
 (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
@@ -186,19 +188,19 @@
 
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
 
-(defun my/org-table-install-formulas () 
-  "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line. 
-Do nothing when point is not inside a table." 
-  (interactive) 
-  (when (org-table-p) 
-    (save-excursion 
-      (goto-char (org-table-begin)) 
-      (org-table-next-field) 
-      (while (progn 
-               (org-table-maybe-eval-formula) 
-               (looking-at "[^|\n]*|\\([[:space:]]*\n[[:space:]]*|\\)?[^|\n]*\\(|\\)")) 
-        (goto-char (match-beginning 2))) 
-      )) 
+(defun my/org-table-install-formulas ()
+  "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line.
+Do nothing when point is not inside a table."
+  (interactive)
+  (when (org-table-p)
+    (save-excursion
+      (goto-char (org-table-begin))
+      (org-table-next-field)
+      (while (progn
+               (org-table-maybe-eval-formula)
+               (looking-at "[^|\n]*|\\([[:space:]]*\n[[:space:]]*|\\)?[^|\n]*\\(|\\)"))
+        (goto-char (match-beginning 2)))
+      ))
   nil)
 
 (add-hook #'org-ctrl-c-ctrl-c-hook #'my/org-table-install-formulas)
@@ -311,7 +313,7 @@ Do nothing when point is not inside a table."
 (global-set-key (kbd "<f9>") 'my/pwd)
 (global-set-key (kbd "<f8>") 'my/upload-doc)
 (global-set-key (kbd "<f7>") 'my/actualization-repo)
-(global-set-key (kbd "<f12>") 'flyspell-auto-correct-word)
+(global-set-key (kbd "<f12>") 'list-bookmarks)
 (global-set-key (kbd "C-x k") 'kill-this-buffer)
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
@@ -374,13 +376,6 @@ Do nothing when point is not inside a table."
 
 (put 'dired-find-alternate-file 'disabled nil)
 
-(use-package ox-hugo
-  :ensure t   ;Auto-install the package from Melpa
-  :pin melpa  ;`package-archives' should already have ("melpa" . "https://melpa.org/packages/")
-  :after ox)
-
-(setq org-hugo-base-dir "~/Documents/Github/rhyloo.github.io/")
-
 (use-package magit
   :defer t
   :bind ("C-x g" . magit-status)
@@ -389,15 +384,19 @@ Do nothing when point is not inside a table."
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
-(setq auth-sources '("~/.authinfo"))
-(use-package forge
-  :defer t
-  :after (magit))
+;; (setq auth-sources '("~/.authinfo"))
+;; (use-package forge
+;;   :defer t
+;;   :after (magit))
 
-(use-package magit-pretty-graph
-  :ensure nil
-  :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
-  :after (magit))
+;; (use-package magit-pretty-graph
+;;   :ensure nil
+;;   :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
+;;   :after (magit))
+
+(use-package minions
+  :defer t
+  :hook (after-init . minions-mode))
 
 (use-package undo-tree
   :defer t
@@ -423,19 +422,6 @@ Do nothing when point is not inside a table."
   :bind     
   ("M-x" . counsel-M-x))
 
-(use-package lsp-ltex
-  :defer t
-  :hook (tex-mode . (lambda ()
-                      ;; (require 'lsp-ltex)
-                      (lsp)))  ; or lsp-deferred
-  :init
-  (setq lsp-ltex-version "15.2.0"))  ; make sure you have set this, see below
-
-(use-package arduino-mode
-  :defer t)
-(use-package company-arduino
-  :defer t)
-
 (use-package flycheck
   :defer t
   :init (global-flycheck-mode))
@@ -456,29 +442,6 @@ See URL `http://vhdltool.com'."
   :modes (vhdl-mode))
 
 (add-to-list 'flycheck-checkers 'vhdl-tool)
-
-(defun efs/lsp-mode-setup()
-  (setq lsp-headerline-breadcrumb-sefments '(path-up-to-project file symbols))
-  (lsp-headerline-breadcrumb-mode))
-
-(use-package lsp-mode
-  :defer t
-  :commands (lsp lsp-deferred)
-  :hook (lsp-mode . efs/lsp-mode-setup)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :config
-  (lsp-enable-which-key-integration t)
-  (setq lsp-enable-symbol-highlighting t)
-  (setq lsp-modeline-diagnostics-enable t)
-  ;; (setq lsp-vhdl-server-path "/home/rhyloo/.local/Software/vhdl-tool")
-  (add-hook 'vhdl-mode-hook 'lsp))
-
-(use-package lsp-ui
-  :defer t
-  :hook (lsp-mode . lsp-ui-mode)
-  :custom
-  (lsp-ui-doc-position 'bottom))
 
 (use-package lua-mode
   :defer t)
@@ -504,10 +467,6 @@ See URL `http://vhdltool.com'."
 
 (setq matlab-shell-command-switches '("-nodesktop" "-softwareopengl"))
 
-(use-package company
-  :config
-  (add-hook 'after-init-hook 'global-company-mode))
-
 (use-package pdf-tools
   :defer t
   :config
@@ -517,10 +476,6 @@ See URL `http://vhdltool.com'."
         TeX-source-correlate-start-server t
         TeX-source-correlate-method 'synctex))
 
-;; ;;Auctex highlight syntax
-(use-package auctex
-  :defer t)
-
 (use-package treemacs
   :defer t
   :init
@@ -529,15 +484,6 @@ See URL `http://vhdltool.com'."
 
 (use-package json-mode
   :defer t)
-
-(use-package markdown-mode
-  :defer t
-  :commands (markdown-mode gfm-mode)
-  :mode (("README\\.md\\'" . gfm-mode))
-  :init (setq markdown-command "/usr/local/bin/multimarkdown"))
-(custom-set-variables
- '(markdown-command "/usr/bin/markdown")
- )
 
 ;; (setq ido-enable-flex-matching t)
 ;; (setq ido-everywhere t)
@@ -688,18 +634,124 @@ i.e. change right window to bottom, or change bottom window to right."
 
 (setq org-tidy-protect-overlay nil)
 
-(use-package languagetool
+;; (use-package languagetool
+;;   :ensure t
+;;   :defer t
+;;   :commands (languagetool-check
+;;              languagetool-clear-suggestions
+;;              languagetool-correct-at-point
+;;              languagetool-correct-buffer
+;;              languagetool-set-language
+;;              languagetool-server-mode
+;;              languagetool-server-start
+;;              languagetool-server-stop)
+;;   :config
+;;   (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8")
+;;         languagetool-console-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-commandline.jar"
+;;         languagetool-server-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-server.jar"))
+
+(use-package multiple-cursors
   :ensure t
-  :defer t
-  :commands (languagetool-check
-             languagetool-clear-suggestions
-             languagetool-correct-at-point
-             languagetool-correct-buffer
-             languagetool-set-language
-             languagetool-server-mode
-             languagetool-server-start
-             languagetool-server-stop)
+  :defer t)
+
+(setq org-fold-core-style 'overlays)
+(setq org-tag-alist
+      '(;; Places
+        ("@home" . ?H)
+        ("@work" . ?W)
+
+        ;; Devices
+        ("@computer" . ?C)
+        ("@phone" . ?P)
+
+        ;; Activities
+        ("@planning" . ?n)
+        ("@programming" . ?p)
+        ("@writing" . ?w)
+        ("@creative" . ?c)
+        ("@email" . ?e)
+        ("@calls" . ?a)
+        ("@errands" . ?r)))
+
+(bookmark-bmenu-list)
+(switch-to-buffer "*Bookmark List*")
+
+(setq-default mode-line-format
+              (append mode-line-format
+                      (list
+                       '(:eval (if (use-region-p)
+                                   (format "W:%d, C:%d"
+                                           (count-words-region (region-beginning) (region-end))
+                                           (- (region-end) (region-beginning)))
+                                 "")))))
+
+(use-package htmlize
+  :ensure t)
+(setq org-html-htmlize-output-type 'css)
+
+(use-package yasnippet
+  :ensure t
   :config
-  (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8")
-        languagetool-console-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-commandline.jar"
-        languagetool-server-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-server.jar"))
+  (yas-global-mode 1)) ; Activar Yasnippet en todo Emacs
+;; (setq yas-snippet-dirs
+;;       '("~/.emacs.d/snippets"          ; Snippets personalizados
+;;         yasnippet-snippets-dir))       ; Snippets de yasnippet-snippets
+
+(which-function-mode 1)
+(custom-set-faces
+ '(which-func
+   ((((class color)
+      (min-colors 88)
+      (background light))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class grayscale mono)
+      (background dark))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class color)
+      (background light))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class color)
+      (min-colors 88)
+      (background dark))
+     (:foreground "white"))
+    (((background dark))
+     (:foreground "white"))
+    (t
+     (:foreground "white")))))
+
+(add-hook 'prog-mode-hook #'subword-mode)
+
+
+
+(defadvice pop-to-buffer (before cancel-other-window first)
+  (ad-set-arg 1 nil))
+
+(ad-activate 'pop-to-buffer)
+
+;; Toggle window dedication
+(defun toggle-window-dedicated ()
+  "Toggle whether the current active window is dedicated or not"
+  (interactive)
+  (message
+   (if (let (window (get-buffer-window (current-buffer)))
+         (set-window-dedicated-p window 
+                                 (not (window-dedicated-p window))))
+       "Window '%s' is dedicated"
+     "Window '%s' is normal")
+   (current-buffer)))
+
+;; Press [pause] key in each window you want to "freeze"
+(global-set-key [(f10)] 'toggle-window-dedicated)
+
+(setq display-buffer-alist
+      '((".*" . ((display-buffer-reuse-window display-buffer-same-window)))))
+
+(global-set-key (kbd "M-<f10>") (lambda () 
+                                  (interactive)
+                                  (setq window-size-fixed (not window-size-fixed))
+                                  (if window-size-fixed
+                                      (message "Window size is now fixed.")
+                                    (message "Window size is now dynamic."))))

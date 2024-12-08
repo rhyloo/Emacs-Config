@@ -1,26 +1,28 @@
+
+;; Added by Package.el.  This must come before configurations of
+;; installed packages.  Don't delete this line.  If you don't want it,
+;; just comment it out by adding a semicolon to the start of the line.
+;; You may delete these explanatory comments.
+(package-initialize)
+
 (setq my-user-init-file "README.org")
 (org-babel-load-file
  (expand-file-name my-user-init-file
                    user-emacs-directory))
-
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-enabled-themes '(vscode-dark-plus))
- '(custom-safe-themes
-   '("993aac313027a1d6e70d45b98e121492c1b00a0daa5a8629788ed7d523fe62c1" default))
- '(markdown-command "/usr/bin/markdown" t)
- '(org-agenda-files nil)
+ '(org-agenda-files '("~/Documents/org/agenda.org"))
+ '(org-download-screenshot-method "xclip -selection clipboard -t image/png -o > %s")
+ '(org-safe-remote-resources
+   '("\\`/ssh:root@www\\.rhyloo\\.com:/root/content/org/blog/index\\.org\\'"))
  '(package-selected-packages
-   '(auctex languagetool org-tidy ox-hugo org-static-blog org2blog magit-pretty-graph elmacro org-gtasks mu4e counsel arduino-cli-mode platformio-mode undo-tree cmake-mode ws-butler which-key websocket weblorg web-server vscode-dark-plus-theme vs-dark-theme use-package treemacs swiper super-save sr-speedbar solaire-mode slime simple-httpd scihub pyvenv python-mode popup pdf-tools ox-reveal org-special-block-extras org-roam org-ref org-present org-noter org-make-toc org-gcal org-fragtog neotree multiple-cursors mu4e-alert minions matlab-mode markdown-preview-eww lua-mode lsp-ui lsp-ltex ledger-mode json-mode guess-language fountain-mode forge flycheck exec-path-from-shell epresent edit-indirect doom-modeline deft company-arduino benchmark-init auctex-latexmk all-the-icons))
- '(safe-local-variable-values '((eval add-hook 'after-save-hook 'org-babel-tangle)))
- '(warning-suppress-log-types '((use-package)))
- '(warning-suppress-types '((use-package))))
+   '(org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(which-func ((((class color) (min-colors 88) (background light)) (:inherit (font-lock-function-name-face))) (((class grayscale mono) (background dark)) (:inherit (font-lock-function-name-face))) (((class color) (background light)) (:inherit (font-lock-function-name-face))) (((class color) (min-colors 88) (background dark)) (:foreground "white")) (((background dark)) (:foreground "white")) (t (:foreground "white")))))
