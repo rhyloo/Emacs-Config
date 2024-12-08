@@ -1,9 +1,9 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: [2024-12-08 Sun 12:36]
+#+LAST_MODIFIED: [2024-12-08 Sun 12:59]
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
-#+OPTIONS: broken-links:t
+#+OPTIONS: broken-links:t htmlize-source:t ^:nil
 #+PROPERTY: header-args :results silent
 
 * Optimización del inicio de Emacs
@@ -68,10 +68,8 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
 ** Setting data
 #+begin_src emacs-lisp 
 (setq user-full-name "J. L. Benavides"
-      user-real-login-name "Rhyloo"
-      user-mail-address "jbenavides@innovairv.com")   
+      user-real-login-name "Rhyloo")   
 #+end_src
-
 ** Theme and visual config
 Clean up the Emacs user interface, make it more minimalistic or not.
 *** Emacs's visual config
@@ -118,7 +116,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
       )
   (global-hl-line-mode 0))
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
-(windmove-default-keybindings 'M) ;; Move windows
+;; (windmove-default-keybindings 'M) ;; Move windows
 #+end_src
 
 *** Theme
@@ -1123,3 +1121,18 @@ i.e. change right window to bottom, or change bottom window to right."
 git@github.com:rhyloo/rhyloo.github.io.git
 git@github.com:rhyloo/TimeLine-Of-Life.git
   
+* COMMENT Commit Template
+<tipo>(<área>): <breve descripción del cambio>
+
+[Detalles adicionales opcionales]
+- Qué se cambió y por qué.
+- Impacto de los cambios.
+- Referencias a tareas o issues relacionados, si los hay.
+
+feat: Nueva funcionalidad.
+fix: Corrección de errores.
+docs: Cambios en la documentación.
+style: Cambios que no afectan el código (formato, espacios, etc.).
+refactor: Reorganización de código sin cambiar su funcionalidad.
+test: Añadir o modificar pruebas.
+chore: Tareas menores (ej. actualización de dependencias).
