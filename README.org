@@ -1,6 +1,6 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: [2024-12-08 Sun 02:32]
+#+LAST_MODIFIED: [2024-12-08 Sun 12:36]
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t
@@ -38,22 +38,25 @@ Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs
 			                        (time-subtract after-init-time before-init-time)))
 	                   gcs-done)))
 #+end_src
-* Config
-** Package Management
-Set up ELPA, MELPA, and Org package repositories and load =use-package= to manage package configuration.
+* Configuración de paquetes
+** Gestión de paquetes
+Configuración de repositorios para ELPA, MELPA y soporte adicional para Org mode.  
+Se utiliza =use-package= para simplificar la configuración de paquetes.
+
 #+begin_src emacs-lisp
-(require 'package) ;; Initialize package sources
+;; Inicializa las fuentes de paquetes
+(require 'package)
 (setq package-archives
-      '(;; ("org"     .       "https://orgmode.org/elpa/")
-        ("gnu"     .       "https://elpa.gnu.org/packages/")
-        ("melpa-stable" . "http://stable.melpa.org/packages/")
-        ("ox-odt" . "https://kjambunathan.github.io/elpa/")
-        ("melpa" . "http://melpa.org/packages/")))
+      '((;; Repositorio oficial de GNU
+         ("gnu"     . "https://elpa.gnu.org/packages/")
+         ;; Versión estable de MELPA
+         ("melpa-stable" . "http://stable.melpa.org/packages/")
+         ;; Soporte adicional para Org (ox-odt)
+         ("ox-odt" . "https://kjambunathan.github.io/elpa/")
+         ;; Repositorio principal de MELPA
+         ("melpa" . "http://melpa.org/packages/"))))
 
-;; (when (memq window-system '(mac ns x))
-;;   (exec-path-from-shell-initialize))
-
-;; Use-package for civilized configuration
+;; Instala y configura use-package para manejar los paquetes de forma modular
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))

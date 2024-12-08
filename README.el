@@ -1,10 +1,10 @@
-(setq gc-cons-threshold most-positive-fixnum);; Minimize garbage collection during startup
-(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold most-positive-fixnum) ;; Minimize garbage collection during startup
+
+(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes. Measured in bytes.
 (setq gc-cons-percentage 0.5)
 
 (run-with-idle-timer 5 t #'garbage-collect)
 
-;; Profile emacs startup
 (add-hook 'emacs-startup-hook
 	        (lambda ()
             (message "*** Emacs loaded in %s with %d garbage collections."
