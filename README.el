@@ -1,25 +1,25 @@
-;; Minimize garbage collection during startup
-(setq gc-cons-threshold most-positive-fixnum)
-;; The default is 800 kilobytes.  Measured in bytes.
-(setq gc-cons-threshold (expt 2 23))
+(setq gc-cons-threshold most-positive-fixnum);; Minimize garbage collection during startup
+(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes.  Measured in bytes.
 (setq gc-cons-percentage 0.5)
+
 (run-with-idle-timer 5 t #'garbage-collect)
+
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
-	  (lambda ()
-	    (message "*** Emacs loaded in %s with %d garbage collections."
-		     (format "%.2f seconds"
-			     (float-time
-			      (time-subtract after-init-time before-init-time)))
-		     gcs-done)))
+	        (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+	                   (format "%.2f seconds"
+		                         (float-time
+			                        (time-subtract after-init-time before-init-time)))
+	                   gcs-done)))
 
 (require 'package) ;; Initialize package sources
 (setq package-archives
-'(;; ("org"     .       "https://orgmode.org/elpa/")
-  ("gnu"     .       "https://elpa.gnu.org/packages/")
-  ("melpa-stable" . "http://stable.melpa.org/packages/")
-  ("ox-odt" . "https://kjambunathan.github.io/elpa/")
-  ("melpa" . "http://melpa.org/packages/")))
+      '(;; ("org"     .       "https://orgmode.org/elpa/")
+        ("gnu"     .       "https://elpa.gnu.org/packages/")
+        ("melpa-stable" . "http://stable.melpa.org/packages/")
+        ("ox-odt" . "https://kjambunathan.github.io/elpa/")
+        ("melpa" . "http://melpa.org/packages/")))
 
 ;; (when (memq window-system '(mac ns x))
 ;;   (exec-path-from-shell-initialize))
@@ -372,7 +372,7 @@ Do nothing when point is not inside a table."
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
 (unless (display-graphic-p)
-      (setq browse-url-browser-function 'eww-browse-url))
+  (setq browse-url-browser-function 'eww-browse-url))
 
 (put 'dired-find-alternate-file 'disabled nil)
 
@@ -467,6 +467,12 @@ See URL `http://vhdltool.com'."
 
 (setq matlab-shell-command-switches '("-nodesktop" "-softwareopengl"))
 
+(use-package company
+  :config
+  (add-hook 'after-init-hook 'global-company-mode)
+  ;; Disable company-mode in shell-mode
+  (add-hook 'shell-mode-hook (lambda () (company-mode -1))))
+
 (use-package pdf-tools
   :defer t
   :config
@@ -481,13 +487,6 @@ See URL `http://vhdltool.com'."
   :init
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
-
-(use-package json-mode
-  :defer t)
-
-;; (setq ido-enable-flex-matching t)
-;; (setq ido-everywhere t)
-;; (ido-mode 1)
 
 (defun window-toggle-split-direction ()
   "Switch window split from horizontally to vertically, or vice versa.

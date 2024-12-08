@@ -1,20 +1,35 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: [2024-12-08 Sun 02:22]
+#+LAST_MODIFIED: [2024-12-08 Sun 02:32]
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t
 #+PROPERTY: header-args :results silent
 
-* Startup
+* Optimización del inicio de Emacs
+Este bloque de configuración optimiza el proceso de inicio de Emacs y proporciona información útil sobre el rendimiento.
+** Minimizar la recolección de basura durante el inicio
+Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
 #+begin_src emacs-lisp
-(setq gc-cons-threshold most-positive-fixnum);; Minimize garbage collection during startup
-(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold most-positive-fixnum) ;; Minimize garbage collection during startup
+#+end_src
+
+** Restaurar valores razonables tras el inicio
+Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
+#+begin_src emacs-lisp
+(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes. Measured in bytes.
 (setq gc-cons-percentage 0.5)
+#+end_src
 
+** Recolección de basura periódica
+Ejecuta la recolección de basura cada 5 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
+#+begin_src emacs-lisp
 (run-with-idle-timer 5 t #'garbage-collect)
+#+end_src
 
-;; Profile emacs startup
+** Perfil del tiempo de inicio
+Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs y cuántas recolecciones de basura ocurrieron durante el proceso.
+#+begin_src emacs-lisp
 (add-hook 'emacs-startup-hook
 	        (lambda ()
             (message "*** Emacs loaded in %s with %d garbage collections."
