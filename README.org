@@ -1116,6 +1116,53 @@ i.e. change right window to bottom, or change bottom window to right."
                                       (message "Window size is now fixed.")
                                     (message "Window size is now dynamic."))))
 #+end_src
+** EXPERIMENTAL Show size of file in dired mode
+#+begin_src emacs-lisp
+;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
+;; https://oremacs.com/2015/01/12/dired-file-size/
+(defun dired-get-size ()
+  (interactive)
+  (let ((files (dired-get-marked-files)))
+    (with-temp-buffer
+      ;; Obtener el nombre del host remoto
+      (let ((remote-hostname (shell-command-to-string "hostname")))
+
+        ;; Eliminar posibles saltos de línea al final
+        (setq remote-hostname (string-trim remote-hostname))
+
+        ;; Dependiendo del nombre de la máquina, ejecutamos diferentes comandos
+        (cond
+         ;; Caso 1: Si estamos en la máquina local con nombre "DESKTOP-O45GL2P"
+         ((or           (string= remote-hostname "DESKTOP-AGD6PUD") 
+                        (string= remote-hostname "DESKTOP-O45GL2P")) 
+          (apply 'call-process "du" nil t nil "-sch" files)
+          (message "Output of du: %s" (buffer-string)))
+
+         ;; Caso 2: Si estamos en el servidor remoto "debian"
+         ((string= remote-hostname "debian")
+          (let ((default-directory (expand-file-name "/ssh:root@www.rhyloo.com:~/")))
+            ;; Limpiar los nombres de archivos eliminando el prefijo "/ssh:root@www.rhyloo.com:"
+            (let* ((cleaned-files
+                    (mapcar (lambda (file)
+                              (replace-regexp-in-string "^/ssh:root@www.rhyloo.com:" "" file))
+                            files))
+                   (du-output (shell-command-to-string (concat "du -sch " (mapconcat 'identity cleaned-files " ")))))
+              ;; Mostrar la salida en el buffer de mensajes
+              (message "Output of du: %s" du-output))))
+
+         ;; Caso 3: Si estamos en otra máquina, por ejemplo, "other-server"
+         ((string= remote-hostname "other-server")
+          (let ((default-directory (expand-file-name "/ssh:user@other-server:/path/to/directory")))
+            (let ((du-output (shell-command-to-string "du -sch /path/to/directory")))
+              ;; Mostrar la salida en el buffer de mensajes
+              (message "Output of du: %s" du-output))))
+
+         ;; Si el nombre del host no coincide con los anteriores
+         (t
+          (message "No se ha definido un comando para esta máquina.")))))))
+
+(define-key dired-mode-map (kbd "z") 'dired-get-size)
+#+end_src
 * COMMENT Content
 git@github.com:rhyloo/rhyloo.github.io.git
 git@github.com:rhyloo/TimeLine-Of-Life.git
