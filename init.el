@@ -14,12 +14,31 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(org-agenda-files '("~/Documents/org/agenda.org"))
+ '(org-agenda-files nil)
  '(org-download-screenshot-method "xclip -selection clipboard -t image/png -o > %s")
  '(org-safe-remote-resources
    '("\\`/ssh:root@www\\.rhyloo\\.com:/root/content/org/blog/index\\.org\\'"))
  '(package-selected-packages
-   '(org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company)))
+   '(org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
+ '(safe-local-variable-values
+   '((eval add-hook 'after-save-hook
+           (lambda nil
+             (run-with-idle-timer 0.1 nil
+                                  (lambda nil
+                                    (org-babel-tangle))))
+           nil t)
+     (eval add-hook 'after-save-hook
+           (lambda nil
+             (let
+                 ((default-directory "/ssh:root@www.rhyloo.com:/root/content/test.el"))
+               (org-babel-tangle)))
+           nil t)
+     (eval add-hook 'after-save-hook
+           (lambda nil
+             (if
+                 (y-or-n-p "Tangle?")
+                 (org-babel-tangle)))
+           nil t))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

@@ -1,9 +1,9 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: [2024-12-08 Sun 12:59]
+#+LAST_MODIFIED: [2024-12-08 Sun 20:12]
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
-#+OPTIONS: broken-links:t htmlize-source:t ^:nil
+#+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent
 
 * Optimización del inicio de Emacs
@@ -139,26 +139,26 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 *** Org mode
 **** Org
 #+begin_src emacs-lisp
-(setq org-startup-folded t)
-(setq org-return-follows-link 1)
-(use-package org
-  :defer t
-  :pin gnu
-  :hook
-  ((before-save . zp/org-set-last-modified))
-  :config)
+  (setq org-startup-folded t)
+  (setq org-return-follows-link 1)
+  ;; (use-package org
+  ;;   :defer t
+  ;;   :pin gnu
+  ;;   :hook
+  ;;   ((before-save . zp/org-set-last-modified))
+  ;;   :config)
 
-(setq org-todo-keywords
-      '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
-        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+  (setq org-todo-keywords
+	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
+	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
-(setq org-todo-keyword-faces
-      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
-        ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
-        ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
-        ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
-        ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
-        ))
+  (setq org-todo-keyword-faces
+	'(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
+	  ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
+	  ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
+	  ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
+	  ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
+	  ))
 
 
 #+end_src
@@ -1116,7 +1116,6 @@ i.e. change right window to bottom, or change bottom window to right."
                                       (message "Window size is now fixed.")
                                     (message "Window size is now dynamic."))))
 #+end_src
-
 * COMMENT Content
 git@github.com:rhyloo/rhyloo.github.io.git
 git@github.com:rhyloo/TimeLine-Of-Life.git

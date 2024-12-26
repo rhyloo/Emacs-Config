@@ -13,18 +13,19 @@
 			                        (time-subtract after-init-time before-init-time)))
 	                   gcs-done)))
 
-(require 'package) ;; Initialize package sources
+;; Inicializa las fuentes de paquetes
+(require 'package)
 (setq package-archives
-      '(;; ("org"     .       "https://orgmode.org/elpa/")
-        ("gnu"     .       "https://elpa.gnu.org/packages/")
-        ("melpa-stable" . "http://stable.melpa.org/packages/")
-        ("ox-odt" . "https://kjambunathan.github.io/elpa/")
-        ("melpa" . "http://melpa.org/packages/")))
+      '((;; Repositorio oficial de GNU
+         ("gnu"     . "https://elpa.gnu.org/packages/")
+         ;; Versión estable de MELPA
+         ("melpa-stable" . "http://stable.melpa.org/packages/")
+         ;; Soporte adicional para Org (ox-odt)
+         ("ox-odt" . "https://kjambunathan.github.io/elpa/")
+         ;; Repositorio principal de MELPA
+         ("melpa" . "http://melpa.org/packages/"))))
 
-;; (when (memq window-system '(mac ns x))
-;;   (exec-path-from-shell-initialize))
-
-;; Use-package for civilized configuration
+;; Instala y configura use-package para manejar los paquetes de forma modular
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
@@ -33,8 +34,7 @@
 (setq use-package-always-ensure t)
 
 (setq user-full-name "J. L. Benavides"
-      user-real-login-name "Rhyloo"
-      user-mail-address "jbenavides@innovairv.com")
+      user-real-login-name "Rhyloo")
 
 (scroll-bar-mode -1)         ;; Disable visible scrollbar
 (tool-bar-mode -1)           ;; Disable the toolbar
@@ -65,7 +65,7 @@
       )
   (global-hl-line-mode 0))
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
-(windmove-default-keybindings 'M) ;; Move windows
+;; (windmove-default-keybindings 'M) ;; Move windows
 
 (if (display-graphic-p)
     (progn
@@ -82,24 +82,24 @@
 
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
-(use-package org
-  :defer t
-  :pin gnu
-  :hook
-  ((before-save . zp/org-set-last-modified))
-  :config)
+;; (use-package org
+;;   :defer t
+;;   :pin gnu
+;;   :hook
+;;   ((before-save . zp/org-set-last-modified))
+;;   :config)
 
 (setq org-todo-keywords
       '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
-        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+	(sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
 
 (setq org-todo-keyword-faces
       '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
-        ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
-        ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
-        ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
-        ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
-        ))
+	("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
+	("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
+	("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
+	("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
+	))
 
 (global-set-key (kbd "C-c C-c") 'org-capture)
 (setq org-default-notes-file (concat org-directory "/notes.org"))
