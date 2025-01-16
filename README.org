@@ -1079,6 +1079,7 @@ i.e. change right window to bottom, or change bottom window to right."
 ** EXPERIMENTAL subword
 #+begin_src emacs-lisp
 (add-hook 'prog-mode-hook #'subword-mode)
+(add-hook 'org-mode-hook #'subword-mode)
 #+end_src
 ** TODO Autocomplete on replace
 #+begin_src emacs-lisp
@@ -1116,8 +1117,7 @@ i.e. change right window to bottom, or change bottom window to right."
                                       (message "Window size is now fixed.")
                                     (message "Window size is now dynamic."))))
 #+end_src
-<<<<<<< HEAD
-** EXPERIMENTAL COMMENT Show size of file in dired mode
+** EXPERIMENTAL Show size of file in dired mode
 #+begin_src emacs-lisp
 ;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
 ;; https://oremacs.com/2015/01/12/dired-file-size/
