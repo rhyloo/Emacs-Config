@@ -47,18 +47,20 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
 ;; Inicializa las fuentes de paquetes
 (require 'package)
 (setq package-archives
-      '((;; Repositorio oficial de GNU
-         ("gnu"     . "https://elpa.gnu.org/packages/")
-         ;; Versión estable de MELPA
-         ("melpa-stable" . "http://stable.melpa.org/packages/")
-         ;; Soporte adicional para Org (ox-odt)
-         ("ox-odt" . "https://kjambunathan.github.io/elpa/")
-         ;; Repositorio principal de MELPA
-         ("melpa" . "http://melpa.org/packages/"))))
+      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Repositorio oficial de GNU
+        ("melpa-stable" . "https://stable.melpa.org/packages/") ;; Versión estable de MELPA
+        ("ox-odt"       . "https://kjambunathan.github.io/elpa/") ;; Soporte adicional para Org (ox-odt)
+        ("melpa"        . "https://melpa.org/packages/")))       ;; Repositorio principal de MELPA
+
+;; Inicializa el sistema de paquetes
+(package-initialize)
+
+;; Asegúrate de que las fuentes estén actualizadas
+(unless package-archive-contents
+  (package-refresh-contents))
 
 ;; Instala y configura use-package para manejar los paquetes de forma modular
 (unless (package-installed-p 'use-package)
-  (package-refresh-contents)
   (package-install 'use-package))
 
 (require 'use-package)
