@@ -38,18 +38,21 @@
 (setq user-full-name "J. L. Benavides"
       user-real-login-name "Rhyloo")
 
-(scroll-bar-mode -1)         ;; Disable visible scrollbar
-(tool-bar-mode -1)           ;; Disable the toolbar
-(tooltip-mode -1)            ;; Disable tooltips
-(menu-bar-mode -1)           ;; Disable the menu bar
-(set-fringe-mode 15)         ;; Give some breathing room (borders)
-(setq-default frame-title-format '("%b [%m]")) ;; Title bar name
-(setq inhibit-startup-message t) ;; Avoid startup message
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1) ;; keyboard scroll one line at a time
-(setq ring-bell-function 'ignore) ;; Remove bell ring
+(if (display-graphic-p)
+  (progn 
+  (scroll-bar-mode -1)         ;; Disable visible scrollbar
+  (tool-bar-mode -1)           ;; Disable the toolbar
+  (tooltip-mode -1)            ;; Disable tooltips
+  (menu-bar-mode -1)           ;; Disable the menu bar
+  (set-fringe-mode 15)         ;; Give some breathing room (borders)
+  ))
+  (setq-default frame-title-format '("%b [%m]")) ;; Title bar name
+  (setq inhibit-startup-message t) ;; Avoid startup message
+  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+  (setq scroll-step 1) ;; keyboard scroll one line at a time
+  (setq ring-bell-function 'ignore) ;; Remove bell ring
 
 (setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
 (setq display-time-day-and-date t display-time-24hr-format t) ;; Change format
@@ -860,28 +863,6 @@ i.e. change right window to bottom, or change bottom window to right."
                   (concat nick " (" channel ")")))
          (msg (s-trim (s-collapse-whitespace message))))
     (alert (concat nick ": " msg) :title title)))
-
-(require 'org-caldav)
-
-;; Configuración de tu servidor CalDAV
-(setq org-caldav-url "https://rhyloo.com/radicale/rhyloo")
-
-
-(setq org-caldav-calendar-id "76e0b342-a2d4-e170-7eef-6aa56784619c")
-
-(setq org-caldav-inbox (expand-file-name "~/org/inbox.org"))
-
-(setq org-caldav-files '("~/org/agenda.org" "~/org/tasks.org"))
-
-;; Configuración de autenticación
-(setq org-caldav-user "rhyloo")
-(setq org-caldav-password "test")
-(setq org-icalendar-include-todo 'all
-    org-caldav-sync-todo t)
-
-(add-hook 'calendar-load-hook 'diary-load)
-(add-hook 'diary-display-hook 'diary-fancy-display)
-(setq org-agenda-include-diary t)
 
 (defun update-last-modified ()
   "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
