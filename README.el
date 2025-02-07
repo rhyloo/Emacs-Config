@@ -16,18 +16,20 @@
 ;; Inicializa las fuentes de paquetes
 (require 'package)
 (setq package-archives
-      '((;; Repositorio oficial de GNU
-         ("gnu"     . "https://elpa.gnu.org/packages/")
-         ;; Versión estable de MELPA
-         ("melpa-stable" . "http://stable.melpa.org/packages/")
-         ;; Soporte adicional para Org (ox-odt)
-         ("ox-odt" . "https://kjambunathan.github.io/elpa/")
-         ;; Repositorio principal de MELPA
-         ("melpa" . "http://melpa.org/packages/"))))
+      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Repositorio oficial de GNU
+        ("melpa-stable" . "https://stable.melpa.org/packages/") ;; Versión estable de MELPA
+        ("ox-odt"       . "https://kjambunathan.github.io/elpa/") ;; Soporte adicional para Org (ox-odt)
+        ("melpa"        . "https://melpa.org/packages/")))       ;; Repositorio principal de MELPA
+
+;; Inicializa el sistema de paquetes
+;; (package-initialize)
+
+;; Asegúrate de que las fuentes estén actualizadas
+(unless package-archive-contents
+  (package-refresh-contents))
 
 ;; Instala y configura use-package para manejar los paquetes de forma modular
 (unless (package-installed-p 'use-package)
-  (package-refresh-contents)
   (package-install 'use-package))
 
 (require 'use-package)
@@ -424,7 +426,38 @@ Do nothing when point is not inside a table."
 
 (use-package flycheck
   :defer t
-  :init (global-flycheck-mode))
+  :init
+  (global-flycheck-mode) ; Activa Flycheck globalmente
+  :config
+  ;; Añadir Proselint como checker para org-mode
+  (add-hook 'org-mode-hook
+            (lambda ()
+              ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
+              (setq-local flycheck-checkers '(proselint))
+              
+              ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
+              ;;(add-to-list 'flycheck-checkers 'proselint)
+              
+              (flycheck-mode))) ; Asegura que Flycheck esté activo
+  )
+
+(use-package writegood-mode  
+  :ensure t)
+
+(setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
+(setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
+      languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
+(use-package languagetool
+  :ensure t
+  :defer t
+  :commands (languagetool-check
+             languagetool-clear-suggestions
+             languagetool-correct-at-point
+             languagetool-correct-buffer
+             languagetool-set-language
+             languagetool-server-mode
+             languagetool-server-start
+             languagetool-server-stop))
 
 (use-package vhdl-mode
   :defer t)
@@ -471,7 +504,10 @@ See URL `http://vhdltool.com'."
   :config
   (add-hook 'after-init-hook 'global-company-mode)
   ;; Disable company-mode in shell-mode
-  (add-hook 'shell-mode-hook (lambda () (company-mode -1))))
+  (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
+  (setq company-dabbrev-downcase nil)    ; Don't lowercase completions
+  (setq company-dabbrev-ignore-case nil) ; Respect case
+  )
 
 (use-package pdf-tools
   :defer t
@@ -722,6 +758,7 @@ i.e. change right window to bottom, or change bottom window to right."
      (:foreground "white")))))
 
 (add-hook 'prog-mode-hook #'subword-mode)
+(add-hook 'org-mode-hook #'subword-mode)
 
 
 
@@ -754,3 +791,107 @@ i.e. change right window to bottom, or change bottom window to right."
                                   (if window-size-fixed
                                       (message "Window size is now fixed.")
                                     (message "Window size is now dynamic."))))
+
+;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
+;; https://oremacs.com/2015/01/12/dired-file-size/
+(defun dired-get-size ()
+  (interactive)
+  (let ((files (dired-get-marked-files)))
+    (with-temp-buffer
+      ;; Obtener el nombre del host remoto
+      (let ((remote-hostname (shell-command-to-string "hostname")))
+
+        ;; Eliminar posibles saltos de línea al final
+        (setq remote-hostname (string-trim remote-hostname))
+
+        ;; Dependiendo del nombre de la máquina, ejecutamos diferentes comandos
+        (cond
+         ;; Caso 1: Si estamos en la máquina local con nombre "DESKTOP-O45GL2P"
+         ((or           (string= remote-hostname "DESKTOP-AGD6PUD") 
+                        (string= remote-hostname "DESKTOP-O45GL2P")) 
+          (apply 'call-process "du" nil t nil "-sch" files)
+          (message "Output of du: %s" (buffer-string)))
+
+         ;; Caso 2: Si estamos en el servidor remoto "debian"
+         ((string= remote-hostname "debian")
+          (let ((default-directory (expand-file-name "/ssh:root@www.rhyloo.com:~/")))
+            ;; Limpiar los nombres de archivos eliminando el prefijo "/ssh:root@www.rhyloo.com:"
+            (let* ((cleaned-files
+                    (mapcar (lambda (file)
+                              (replace-regexp-in-string "^/ssh:root@www.rhyloo.com:" "" file))
+                            files))
+                   (du-output (shell-command-to-string (concat "du -sch " (mapconcat 'identity cleaned-files " ")))))
+              ;; Mostrar la salida en el buffer de mensajes
+              (message "Output of du: %s" du-output))))
+
+         ;; Caso 3: Si estamos en otra máquina, por ejemplo, "other-server"
+         ((string= remote-hostname "other-server")
+          (let ((default-directory (expand-file-name "/ssh:user@other-server:/path/to/directory")))
+            (let ((du-output (shell-command-to-string "du -sch /path/to/directory")))
+              ;; Mostrar la salida en el buffer de mensajes
+              (message "Output of du: %s" du-output))))
+
+         ;; Si el nombre del host no coincide con los anteriores
+         (t
+          (message "No se ha definido un comando para esta máquina.")))))))
+
+(with-eval-after-load 'dired
+  (define-key dired-mode-map (kbd "z") 'dired-get-size))
+
+(defun my/pdf-to-svg ()
+  "Get as input a PDF file and return it as an SVG."
+  (interactive)
+  (shell-command (concat "inkscape " (read-file-name "File name: ") " --export-area-drawing --batch-process --export-type=svg --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".svg&")))
+
+(defun my/erc-start-or-switch ()
+  "Conecta a ERC, o cambia al último búfer activo."
+  (interactive)
+  (if (get-buffer "irc.libera.chat:6667")
+      (erc-track-switch-buffer 1)
+    (when (y-or-n-p "Start ERC? ")
+      (erc :server "irc.libera.chat" :port 6667 :nick "rhyloo"))))
+
+(defun my/erc-notify (nickname message)
+  "Muestra un mensaje de notificación para ERC."
+  (let* ((channel (buffer-name))
+         (nick (erc-hl-nicks-trim-irc-nick nickname))
+         (title (if (string-match-p (concat "^" nickname) channel)
+                    nick
+                  (concat nick " (" channel ")")))
+         (msg (s-trim (s-collapse-whitespace message))))
+    (alert (concat nick ": " msg) :title title)))
+
+(require 'org-caldav)
+
+;; Configuración de tu servidor CalDAV
+(setq org-caldav-url "https://rhyloo.com/radicale/rhyloo")
+
+
+(setq org-caldav-calendar-id "76e0b342-a2d4-e170-7eef-6aa56784619c")
+
+(setq org-caldav-inbox (expand-file-name "~/org/inbox.org"))
+
+(setq org-caldav-files '("~/org/agenda.org" "~/org/tasks.org"))
+
+;; Configuración de autenticación
+(setq org-caldav-user "rhyloo")
+(setq org-caldav-password "test")
+(setq org-icalendar-include-todo 'all
+    org-caldav-sync-todo t)
+
+(add-hook 'calendar-load-hook 'diary-load)
+(add-hook 'diary-display-hook 'diary-fancy-display)
+(setq org-agenda-include-diary t)
+
+(defun update-last-modified ()
+  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
+  (when (eq major-mode 'org-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+last_modified:.*" nil t)
+        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
+
+(add-hook 'before-save-hook 'update-last-modified)
+
+(use-package writegood-mode  
+  :ensure t)

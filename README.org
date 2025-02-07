@@ -1,6 +1,6 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: [2024-12-08 Sun 20:12]
+#+last_modified: 2025-02-03 00:07:45
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
@@ -53,7 +53,7 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
         ("melpa"        . "https://melpa.org/packages/")))       ;; Repositorio principal de MELPA
 
 ;; Inicializa el sistema de paquetes
-(package-initialize)
+;; (package-initialize)
 
 ;; Asegúrate de que las fuentes estén actualizadas
 (unless package-archive-contents
@@ -700,11 +700,42 @@ Magit is a complete text-based user interface to Git.
   :defer t)
 #+end_src
 
-*** Flycheck
+*** Checker
 #+begin_src emacs-lisp
 (use-package flycheck
   :defer t
-  :init (global-flycheck-mode))
+  :init
+  (global-flycheck-mode) ; Activa Flycheck globalmente
+  :config
+  ;; Añadir Proselint como checker para org-mode
+  (add-hook 'org-mode-hook
+            (lambda ()
+              ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
+              (setq-local flycheck-checkers '(proselint))
+              
+              ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
+              ;;(add-to-list 'flycheck-checkers 'proselint)
+              
+              (flycheck-mode))) ; Asegura que Flycheck esté activo
+  )
+
+(use-package writegood-mode  
+  :ensure t)
+
+(setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
+(setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
+      languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
+(use-package languagetool
+  :ensure t
+  :defer t
+  :commands (languagetool-check
+             languagetool-clear-suggestions
+             languagetool-correct-at-point
+             languagetool-correct-buffer
+             languagetool-set-language
+             languagetool-server-mode
+             languagetool-server-start
+             languagetool-server-stop))
 #+end_src
 
 *** VHDL
@@ -790,7 +821,10 @@ See URL `http://vhdltool.com'."
   :config
   (add-hook 'after-init-hook 'global-company-mode)
   ;; Disable company-mode in shell-mode
-  (add-hook 'shell-mode-hook (lambda () (company-mode -1))))
+  (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
+  (setq company-dabbrev-downcase nil)    ; Don't lowercase completions
+  (setq company-dabbrev-ignore-case nil) ; Respect case
+  )
 #+end_src
 ** Pdf-tools
 #+begin_src emacs-lisp
@@ -1164,7 +1198,76 @@ i.e. change right window to bottom, or change bottom window to right."
          (t
           (message "No se ha definido un comando para esta máquina.")))))))
 
-(define-key dired-mode-map (kbd "z") 'dired-get-size)
+(with-eval-after-load 'dired
+  (define-key dired-mode-map (kbd "z") 'dired-get-size))
+#+end_src
+** EXPERIMENTAL pdf-to-svg
+#+begin_src emacs-lisp
+(defun my/pdf-to-svg ()
+  "Get as input a PDF file and return it as an SVG."
+  (interactive)
+  (shell-command (concat "inkscape " (read-file-name "File name: ") " --export-area-drawing --batch-process --export-type=svg --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".svg&")))
+#+end_src
+** EXPERIMENTAL erc test
+#+begin_src emacs-lisp
+(defun my/erc-start-or-switch ()
+  "Conecta a ERC, o cambia al último búfer activo."
+  (interactive)
+  (if (get-buffer "irc.libera.chat:6667")
+      (erc-track-switch-buffer 1)
+    (when (y-or-n-p "Start ERC? ")
+      (erc :server "irc.libera.chat" :port 6667 :nick "rhyloo"))))
+
+(defun my/erc-notify (nickname message)
+  "Muestra un mensaje de notificación para ERC."
+  (let* ((channel (buffer-name))
+         (nick (erc-hl-nicks-trim-irc-nick nickname))
+         (title (if (string-match-p (concat "^" nickname) channel)
+                    nick
+                  (concat nick " (" channel ")")))
+         (msg (s-trim (s-collapse-whitespace message))))
+    (alert (concat nick ": " msg) :title title)))
+#+end_src
+** EXPERIMENTAL Calendar
+#+begin_src emacs-lisp
+(require 'org-caldav)
+
+;; Configuración de tu servidor CalDAV
+(setq org-caldav-url "https://rhyloo.com/radicale/rhyloo")
+
+
+(setq org-caldav-calendar-id "76e0b342-a2d4-e170-7eef-6aa56784619c")
+
+(setq org-caldav-inbox (expand-file-name "~/org/inbox.org"))
+
+(setq org-caldav-files '("~/org/agenda.org" "~/org/tasks.org"))
+
+;; Configuración de autenticación
+(setq org-caldav-user "rhyloo")
+(setq org-caldav-password "test")
+(setq org-icalendar-include-todo 'all
+    org-caldav-sync-todo t)
+
+(add-hook 'calendar-load-hook 'diary-load)
+(add-hook 'diary-display-hook 'diary-fancy-display)
+(setq org-agenda-include-diary t)
+#+end_src
+** EXPERIMENTAL Auto update last modifiedd
+#+begin_src emacs-lisp
+(defun update-last-modified ()
+  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
+  (when (eq major-mode 'org-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+last_modified:.*" nil t)
+        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
+
+(add-hook 'before-save-hook 'update-last-modified)
+#+end_src
+** EXPERIMENTAL Writting
+#+begin_src emacs-lisp
+(use-package writegood-mode  
+  :ensure t)  
 #+end_src
 * COMMENT Content
 git@github.com:rhyloo/rhyloo.github.io.git

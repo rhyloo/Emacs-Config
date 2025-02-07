@@ -14,12 +14,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(org-agenda-files nil)
+ '(org-agenda-files '("~/org/inbox.org"))
  '(org-download-screenshot-method "xclip -selection clipboard -t image/png -o > %s")
  '(org-safe-remote-resources
    '("\\`/ssh:root@www\\.rhyloo\\.com:/root/content/org/blog/index\\.org\\'"))
  '(package-selected-packages
-   '(org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
+   '(languagetool writegood-mode org-caldav org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
  '(safe-local-variable-values
    '((eval add-hook 'after-save-hook
            (lambda nil
