@@ -1,6 +1,6 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-02-03 00:07:45
+#+last_modified: 2025-02-07 20:56:17
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
@@ -77,21 +77,21 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 *** Emacs's visual config
 **** UI
 #+begin_src emacs-lisp
-  (if (display-graphic-p)
-    (progn 
-    (scroll-bar-mode -1)         ;; Disable visible scrollbar
-    (tool-bar-mode -1)           ;; Disable the toolbar
-    (tooltip-mode -1)            ;; Disable tooltips
-    (menu-bar-mode -1)           ;; Disable the menu bar
-    (set-fringe-mode 15)         ;; Give some breathing room (borders)
-    ))
-    (setq-default frame-title-format '("%b [%m]")) ;; Title bar name
-    (setq inhibit-startup-message t) ;; Avoid startup message
-    (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-    (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-    (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-    (setq scroll-step 1) ;; keyboard scroll one line at a time
-    (setq ring-bell-function 'ignore) ;; Remove bell ring
+(if (display-graphic-p)
+  (progn 
+  (scroll-bar-mode -1)         ;; Disable visible scrollbar
+  (tool-bar-mode -1)           ;; Disable the toolbar
+  (tooltip-mode -1)            ;; Disable tooltips
+  (set-fringe-mode 15)         ;; Give some breathing room (borders)
+  ))
+(menu-bar-mode -1)           ;; Disable the menu bar
+  (setq-default frame-title-format '("%b [%m]")) ;; Title bar name
+  (setq inhibit-startup-message t) ;; Avoid startup message
+  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
+  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+  (setq scroll-step 1) ;; keyboard scroll one line at a time
+  (setq ring-bell-function 'ignore) ;; Remove bell ring
 #+end_src
 
 **** Bar
