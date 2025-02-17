@@ -1,10 +1,12 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-02-07 20:56:17
+#+last_modified: 2025-02-17 16:55:39
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent
+#+cover_image: ./../projects/files/cover/EmacsIcon.png
+
 
 * Optimización del inicio de Emacs
 Este bloque de configuración optimiza el proceso de inicio de Emacs y proporciona información útil sobre el rendimiento.
@@ -705,22 +707,22 @@ Magit is a complete text-based user interface to Git.
 
 *** Checker
 #+begin_src emacs-lisp
-(use-package flycheck
-  :defer t
-  :init
-  (global-flycheck-mode) ; Activa Flycheck globalmente
-  :config
-  ;; Añadir Proselint como checker para org-mode
-  (add-hook 'org-mode-hook
-            (lambda ()
-              ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
-              (setq-local flycheck-checkers '(proselint))
+;; (use-package flycheck
+;;   :defer t
+;;   :init
+;;   (global-flycheck-mode) ; Activa Flycheck globalmente
+;;   :config
+;;   ;; Añadir Proselint como checker para org-mode
+;;   (add-hook 'org-mode-hook
+;;             (lambda ()
+;;               ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
+;;               (setq-local flycheck-checkers '(proselint))
               
-              ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
-              ;;(add-to-list 'flycheck-checkers 'proselint)
+;;               ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
+;;               ;;(add-to-list 'flycheck-checkers 'proselint)
               
-              (flycheck-mode))) ; Asegura que Flycheck esté activo
-  )
+;;               (flycheck-mode))) ; Asegura que Flycheck esté activo
+;;   )
 
 (use-package writegood-mode  
   :ensure t)
@@ -849,35 +851,35 @@ See URL `http://vhdltool.com'."
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
 #+end_src
 * Experimental
-** EXPERIMENTAL Buffers
+** FAIL Buffers
 #+begin_src emacs-lisp
-(defun window-toggle-split-direction ()
-  "Switch window split from horizontally to vertically, or vice versa.
-i.e. change right window to bottom, or change bottom window to right."
-  (interactive)
-  (require 'windmove)
-  (let ((done))
-    (dolist (dirs '((right . down) (down . right)))
-      (unless done
-        (let* ((win (selected-window))
-               (nextdir (car dirs))
-               (neighbour-dir (cdr dirs))
-               (next-win (windmove-find-other-window nextdir win))
-               (neighbour1 (windmove-find-other-window neighbour-dir win))
-               (neighbour2 (if next-win (with-selected-window next-win
-                                          (windmove-find-other-window neighbour-dir next-win)))))
-          ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
-          (setq done (and (eq neighbour1 neighbour2)
-                          (not (eq (minibuffer-window) next-win))))
-          (if done
-              (let* ((other-buf (window-buffer next-win)))
-                (delete-window next-win)
-                (if (eq nextdir 'right)
-                    (split-window-vertically)
-                  (split-window-horizontally))
-                (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
+;; (defun window-toggle-split-direction ()
+;;   "Switch window split from horizontally to vertically, or vice versa.
+;; i.e. change right window to bottom, or change bottom window to right."
+;;   (interactive)
+;;   (require 'windmove)
+;;   (let ((done))
+;;     (dolist (dirs '((right . down) (down . right)))
+;;       (unless done
+;;         (let* ((win (selected-window))
+;;                (nextdir (car dirs))
+;;                (neighbour-dir (cdr dirs))
+;;                (next-win (windmove-find-other-window nextdir win))
+;;                (neighbour1 (windmove-find-other-window neighbour-dir win))
+;;                (neighbour2 (if next-win (with-selected-window next-win
+;;                                           (windmove-find-other-window neighbour-dir next-win)))))
+;;           ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
+;;           (setq done (and (eq neighbour1 neighbour2)
+;;                           (not (eq (minibuffer-window) next-win))))
+;;           (if done
+;;               (let* ((other-buf (window-buffer next-win)))
+;;                 (delete-window next-win)
+;;                 (if (eq nextdir 'right)
+;;                     (split-window-vertically)
+;;                   (split-window-horizontally))
+;;                 (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
 
-(global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
+;; (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
 #+end_src
 
 ** WORKS Matlab

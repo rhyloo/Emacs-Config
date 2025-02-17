@@ -21,7 +21,9 @@
  '(package-selected-packages
    '(languagetool writegood-mode org-caldav org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
  '(safe-local-variable-values
-   '((eval add-hook 'after-save-hook
+   '((eval setq org-babel-tangle-default-file-mode o755)
+     (eval setq org-babel-tangle-default-file-mode 755)
+     (eval add-hook 'after-save-hook
            (lambda nil
              (run-with-idle-timer 0.1 nil
                                   (lambda nil

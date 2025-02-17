@@ -43,9 +43,9 @@
   (scroll-bar-mode -1)         ;; Disable visible scrollbar
   (tool-bar-mode -1)           ;; Disable the toolbar
   (tooltip-mode -1)            ;; Disable tooltips
-  (menu-bar-mode -1)           ;; Disable the menu bar
   (set-fringe-mode 15)         ;; Give some breathing room (borders)
   ))
+(menu-bar-mode -1)           ;; Disable the menu bar
   (setq-default frame-title-format '("%b [%m]")) ;; Title bar name
   (setq inhibit-startup-message t) ;; Avoid startup message
   (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
@@ -427,22 +427,22 @@ Do nothing when point is not inside a table."
   :bind     
   ("M-x" . counsel-M-x))
 
-(use-package flycheck
-  :defer t
-  :init
-  (global-flycheck-mode) ; Activa Flycheck globalmente
-  :config
-  ;; Añadir Proselint como checker para org-mode
-  (add-hook 'org-mode-hook
-            (lambda ()
-              ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
-              (setq-local flycheck-checkers '(proselint))
+;; (use-package flycheck
+;;   :defer t
+;;   :init
+;;   (global-flycheck-mode) ; Activa Flycheck globalmente
+;;   :config
+;;   ;; Añadir Proselint como checker para org-mode
+;;   (add-hook 'org-mode-hook
+;;             (lambda ()
+;;               ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
+;;               (setq-local flycheck-checkers '(proselint))
               
-              ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
-              ;;(add-to-list 'flycheck-checkers 'proselint)
+;;               ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
+;;               ;;(add-to-list 'flycheck-checkers 'proselint)
               
-              (flycheck-mode))) ; Asegura que Flycheck esté activo
-  )
+;;               (flycheck-mode))) ; Asegura que Flycheck esté activo
+;;   )
 
 (use-package writegood-mode  
   :ensure t)
@@ -527,33 +527,33 @@ See URL `http://vhdltool.com'."
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
 
-(defun window-toggle-split-direction ()
-  "Switch window split from horizontally to vertically, or vice versa.
-i.e. change right window to bottom, or change bottom window to right."
-  (interactive)
-  (require 'windmove)
-  (let ((done))
-    (dolist (dirs '((right . down) (down . right)))
-      (unless done
-        (let* ((win (selected-window))
-               (nextdir (car dirs))
-               (neighbour-dir (cdr dirs))
-               (next-win (windmove-find-other-window nextdir win))
-               (neighbour1 (windmove-find-other-window neighbour-dir win))
-               (neighbour2 (if next-win (with-selected-window next-win
-                                          (windmove-find-other-window neighbour-dir next-win)))))
-          ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
-          (setq done (and (eq neighbour1 neighbour2)
-                          (not (eq (minibuffer-window) next-win))))
-          (if done
-              (let* ((other-buf (window-buffer next-win)))
-                (delete-window next-win)
-                (if (eq nextdir 'right)
-                    (split-window-vertically)
-                  (split-window-horizontally))
-                (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
+;; (defun window-toggle-split-direction ()
+;;   "Switch window split from horizontally to vertically, or vice versa.
+;; i.e. change right window to bottom, or change bottom window to right."
+;;   (interactive)
+;;   (require 'windmove)
+;;   (let ((done))
+;;     (dolist (dirs '((right . down) (down . right)))
+;;       (unless done
+;;         (let* ((win (selected-window))
+;;                (nextdir (car dirs))
+;;                (neighbour-dir (cdr dirs))
+;;                (next-win (windmove-find-other-window nextdir win))
+;;                (neighbour1 (windmove-find-other-window neighbour-dir win))
+;;                (neighbour2 (if next-win (with-selected-window next-win
+;;                                           (windmove-find-other-window neighbour-dir next-win)))))
+;;           ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
+;;           (setq done (and (eq neighbour1 neighbour2)
+;;                           (not (eq (minibuffer-window) next-win))))
+;;           (if done
+;;               (let* ((other-buf (window-buffer next-win)))
+;;                 (delete-window next-win)
+;;                 (if (eq nextdir 'right)
+;;                     (split-window-vertically)
+;;                   (split-window-horizontally))
+;;                 (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
 
-(global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
+;; (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
 
 ;; Session evaluation of MATLAB in org-babel is broken, this goes some
 ;; way towards addressing the problem.
