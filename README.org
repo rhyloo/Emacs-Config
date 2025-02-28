@@ -1,6 +1,6 @@
 #+TITLE: EMACS CONFIGURATION's Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-02-17 16:55:39
+#+last_modified: 2025-02-28 16:19:54
 #+AUTHOR: Rhyloo
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
@@ -1249,6 +1249,112 @@ See URL `http://vhdltool.com'."
 #+begin_src emacs-lisp
 (use-package writegood-mode  
   :ensure t)  
+#+end_src
+** EXPERIMENTAL Org-roam
+#+begin_src emacs-lisp
+(use-package org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t) ; Acknowledge v2 upgrade
+  :custom
+  (org-roam-directory "/ssh:root@www.rhyloo.com:~/content/") ; Tu directorio de notas
+  (org-roam-database-connector 'sqlite) ; Usar SQLite (más rápido)
+  (org-roam-db-location (expand-file-name "org-roam.db" "~/"))
+  (org-roam-capture-templates
+   '(("p" "Proyecto" plain
+      "%?"
+      :if-new (file+head "/ssh:root@www.rhyloo.com:~/content/projects/${slug}-draft.org" ; Carpeta 'proyectos'
+                         "#+title: ${title}\n#+category: ${title}\n")
+      :unnarrowed t)
+     ("b" "Blog Post" plain
+      "%?"
+      :if-new (file+head "blog/${slug}-draft.org" ; Carpeta 'blog'
+                         "#+title: ${title}\n#+category: blog\n#+date: %<%Y-%m-%d>\n")
+      :unnarrowed t)
+     ("d" "Nota Default" plain
+      "%?"
+      :if-new (file+head "${slug}-draft.org" ; Sin subcarpeta
+                         "#+title: ${title}\n")
+      :unnarrowed t)))
+  :bind (("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ("C-c n r" . org-roam-buffer-toggle)
+         ("C-c n p" . org-roam-capture-proyecto) ; Atajos personalizados
+         ("C-c n b" . org-roam-capture-blog)
+         ("C-c n d" . org-roam-capture-default))
+  :config
+  (org-roam-db-autosync-mode) ; Sincronización automática de la base de datos
+  (setq org-roam-node-display-template
+        (concat "${title:*} " (propertize "${tags:40}" 'face 'org-tag))))
+
+;; ;; Opcional: UI gráfica (requiere npm/pnpm)
+;; (use-package org-roam-ui
+;;   :ensure t
+;;   :after org-roam
+;;   :config
+;;   (setq org-roam-ui-sync-theme t
+;;         org-roam-ui-follow-mode t
+;;         org-roam-ui-update-on-save t
+;;         org-roam-ui-browser-function #'xwidget-webkit-browse-url
+;;         org-roam-ui-port 8080)
+;;   :bind ("C-c n u" . org-roam-ui-mode))
+
+;; ;; Integración con consult (búsqueda mejorada)
+;; (use-package consult-org-roam
+;;   :ensure t
+;;   :after org-roam
+;;   :config
+;;   (consult-org-roam-mode))
+
+;; ;; Templates para capturas (opcional)
+;; (setq org-roam-capture-templates
+;;       '(("d" "Nota básica" plain
+;;          "%?"
+;;          :if-new (file+head "${slug}.org"
+;;                             "#+title: ${title}\n#+date: %<%Y-%m-%d>\n")
+;;          :unnarrowed t)))
+
+;; (use-package consult-org-roam
+;;    :ensure t
+;;    :after org-roam
+;;    :init
+;;    (require 'consult-org-roam)
+;;    ;; Activate the minor mode
+;;    (consult-org-roam-mode 1)
+;;    :custom
+;;    ;; Use `ripgrep' for searching with `consult-org-roam-search'
+;;    ;; (consult-org-roam-grep-func #'consult-ripgrep)
+;;    ;; Configure a custom narrow key for `consult-buffer'
+;;    (consult-org-roam-buffer-narrow-key ?r)
+;;    ;; Display org-roam buffers right after non-org-roam buffers
+;;    ;; in consult-buffer (and not down at the bottom)
+;;    (consult-org-roam-buffer-after-buffers t)
+;;    :config
+;;    ;; Eventually suppress previewing for certain functions
+;;    (consult-customize
+;;     consult-org-roam-forward-links
+;;     :preview-key "M-.")
+;;    :bind
+;;    ;; Define some convenient keybindings as an addition
+;;    ("C-c n e" . consult-org-roam-file-find)
+;;    ("C-c n b" . consult-org-roam-backlinks)
+;;    ("C-c n B" . consult-org-roam-backlinks-recursive)
+;;    ("C-c n l" . consult-org-roam-forward-links)
+;;    ("C-c n r" . consult-org-roam-search))
+
+;; (use-package consult
+;;   :ensure t
+;;   :defer t)
+
+;; (setq consult-ripgrep-command "rg --null --line-buffered --color=never --max-columns=1000 --path-separator / --smart-case --no-heading --line-number --hidden -g !.git/ -g !.svn/ -g !.hg/ -g !node_modules/ -g !.cache/ -- .")
+
+;; (defun bms/org-roam-rg-search ()
+;;   "Search org-roam directory using consult-ripgrep. With live-preview."
+;;   (interactive)
+;;   (let ((consult-ripgrep-command "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
+;;     (consult-ripgrep org-roam-directory)))
+;; (global-set-key (kbd "C-c r") 'bms/org-roam-rg-search)
 #+end_src
 * COMMENT Content
 git@github.com:rhyloo/rhyloo.github.io.git

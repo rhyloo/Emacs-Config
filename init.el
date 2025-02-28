@@ -19,9 +19,15 @@
  '(org-safe-remote-resources
    '("\\`/ssh:root@www\\.rhyloo\\.com:/root/content/org/blog/index\\.org\\'"))
  '(package-selected-packages
-   '(languagetool writegood-mode org-caldav org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
+   '(consult-org-roam org-roam languagetool writegood-mode org-caldav org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
  '(safe-local-variable-values
-   '((eval setq org-babel-tangle-default-file-mode o755)
+   '((eval add-hook 'before-save-hook
+           (lambda nil
+             (org-babel-ref-resolve "photo_generation"))
+           nil t)
+     (eval setq org-confirm-babel-evaluate nil)
+     (org-babel-execute-on-save . t)
+     (eval setq org-babel-tangle-default-file-mode o755)
      (eval setq org-babel-tangle-default-file-mode 755)
      (eval add-hook 'after-save-hook
            (lambda nil
