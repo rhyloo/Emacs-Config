@@ -19,34 +19,34 @@
  '(org-safe-remote-resources
    '("\\`/ssh:root@www\\.rhyloo\\.com:/root/content/org/blog/index\\.org\\'"))
  '(package-selected-packages
-   '(consult-org-roam org-roam languagetool writegood-mode org-caldav org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
+   '(org-plus-contrib consult-org-roam org-roam languagetool writegood-mode org-caldav org-auto-tangle org-special-block-extras lsp-ui lsp-mode yasnippet htmlize minions org-download undo-tree multiple-cursors ox-odt vscode-dark-plus-theme use-package treemacs pyvenv python-mode pdf-tools matlab-mode lua-mode json-mode flycheck counsel company))
  '(safe-local-variable-values
    '((eval add-hook 'before-save-hook
-           (lambda nil
-             (org-babel-ref-resolve "photo_generation"))
-           nil t)
+	   (lambda nil
+	     (org-babel-ref-resolve "photo_generation"))
+	   nil t)
      (eval setq org-confirm-babel-evaluate nil)
      (org-babel-execute-on-save . t)
      (eval setq org-babel-tangle-default-file-mode o755)
      (eval setq org-babel-tangle-default-file-mode 755)
      (eval add-hook 'after-save-hook
-           (lambda nil
-             (run-with-idle-timer 0.1 nil
-                                  (lambda nil
-                                    (org-babel-tangle))))
-           nil t)
+	   (lambda nil
+	     (run-with-idle-timer 0.1 nil
+				  (lambda nil
+				    (org-babel-tangle))))
+	   nil t)
      (eval add-hook 'after-save-hook
-           (lambda nil
-             (let
-                 ((default-directory "/ssh:root@www.rhyloo.com:/root/content/test.el"))
-               (org-babel-tangle)))
-           nil t)
+	   (lambda nil
+	     (let
+		 ((default-directory "/ssh:root@www.rhyloo.com:/root/content/test.el"))
+	       (org-babel-tangle)))
+	   nil t)
      (eval add-hook 'after-save-hook
-           (lambda nil
-             (if
-                 (y-or-n-p "Tangle?")
-                 (org-babel-tangle)))
-           nil t))))
+	   (lambda nil
+	     (if
+		 (y-or-n-p "Tangle?")
+		 (org-babel-tangle)))
+	   nil t))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

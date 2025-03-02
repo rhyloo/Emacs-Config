@@ -1,10 +1,3 @@
-(setq gc-cons-threshold most-positive-fixnum) ;; Minimize garbage collection during startup
-
-(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes. Measured in bytes.
-(setq gc-cons-percentage 0.5)
-
-(run-with-idle-timer 5 t #'garbage-collect)
-
 (add-hook 'emacs-startup-hook
 	        (lambda ()
             (message "*** Emacs loaded in %s with %d garbage collections."
@@ -13,291 +6,194 @@
 			                        (time-subtract after-init-time before-init-time)))
 	                   gcs-done)))
 
-;; Inicializa las fuentes de paquetes
-(require 'package)
-(setq package-archives
-      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Repositorio oficial de GNU
-        ("melpa-stable" . "https://stable.melpa.org/packages/") ;; Versión estable de MELPA
-        ("ox-odt"       . "https://kjambunathan.github.io/elpa/") ;; Soporte adicional para Org (ox-odt)
-        ("melpa"        . "https://melpa.org/packages/")))       ;; Repositorio principal de MELPA
+(setq gc-cons-threshold (* 50 1000 1000)) ;; Minimize garbage collection during startup
 
-;; Inicializa el sistema de paquetes
-;; (package-initialize)
+(setq user-full-name "J. L. Benavides"  ;; Set my name
+      user-real-login-name "Rhyloo")    ;; Set my user
 
-;; Asegúrate de que las fuentes estén actualizadas
-(unless package-archive-contents
-  (package-refresh-contents))
-
-;; Instala y configura use-package para manejar los paquetes de forma modular
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
-
-(setq user-full-name "J. L. Benavides"
-      user-real-login-name "Rhyloo")
-
-(if (display-graphic-p)
-  (progn 
-  (scroll-bar-mode -1)         ;; Disable visible scrollbar
-  (tool-bar-mode -1)           ;; Disable the toolbar
-  (tooltip-mode -1)            ;; Disable tooltips
-  (set-fringe-mode 15)         ;; Give some breathing room (borders)
-  ))
-(menu-bar-mode -1)           ;; Disable the menu bar
-  (setq-default frame-title-format '("%b [%m]")) ;; Title bar name
-  (setq inhibit-startup-message t) ;; Avoid startup message
-  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-  (setq scroll-step 1) ;; keyboard scroll one line at a time
-  (setq ring-bell-function 'ignore) ;; Remove bell ring
+(setq inhibit-startup-message t)                        ;; Avoid startup message
+(setq frame-title-format '("%b [%m]"))                  ;; Title bar name
+(when (display-graphic-p) 
+  (scroll-bar-mode -1)                                  ;; Disable visible scrollbar
+  (tool-bar-mode -1)                                    ;; Disable the toolbar
+  (tooltip-mode -1)                                     ;; Disable tooltips
+  (set-fringe-mode 3)                                   ;; Give some breathing room (borders)
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  )
+(menu-bar-mode -1)                                      ;; Disable the menu bar terminal and display mode
 
 (setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
-(setq display-time-day-and-date t display-time-24hr-format t) ;; Change format
+(setq display-time-day-and-date t display-time-24hr-format t) ;; Change format to 24h
 (display-time)               ;; Show the time in the bar
 
 (unless (equal "Battery status not available" (battery)) ;;Show battery
   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 
-(column-number-mode)                  ;; Enable column mode
+(column-number-mode)                                    ;; Show collumn in modeline
+(setq-default mode-line-format
+              (append mode-line-format
+                      (list
+                       '(:eval (if (use-region-p)
+                                   (format "W:%d, C:%d"
+                                           (count-words-region (region-beginning) (region-end))
+                                           (- (region-end) (region-beginning)))
+                                 "")))))
 
-(show-paren-mode 1)          ;; Show parens
-(if (display-graphic-p)
-    (progn
-      (global-hl-line-mode 1)      ;; Highlight lines
-      )
+(bookmark-bmenu-list)
+(switch-to-buffer "*Bookmark List*")
+
+(setq ring-bell-function 'ignore)                       ;; Remove bell ring
+(if (display-graphic-p)                                 ;; Highlight lines
+    (global-hl-line-mode 1)      
   (global-hl-line-mode 0))
-(global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
-;; (windmove-default-keybindings 'M) ;; Move windows
 
-(if (display-graphic-p)
-    (progn
-      (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
-      (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
-      (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
-      (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
-      (use-package vscode-dark-plus-theme                         ;; Set theme VScode
-        :defer t
-        :init
-        (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
-      )
-  )
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))     ;; one line at a time
+(setq mouse-wheel-progressive-speed nil)                ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't)                      ;; scroll window under mouse
+(setq scroll-step 1)                                    ;; keyboard scroll one line at a time
+
+(show-paren-mode 1)                                     ;; Show parens
+(global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
+(delete-selection-mode 1) ;; Let you select and replace with yank or write
+
+(put 'dired-find-alternate-file 'disabled nil)
+
+(setq package-archives                                           ;; Init package repositories.
+      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Set GNU repository
+        ("melpa"        . "https://melpa.org/packages/")))       ;; Set Melpa repository
+(unless package-archive-contents (package-refresh-contents))     ;; Are package archives up to date?
+(unless (package-installed-p 'use-package)                       ;; Is 'use-package' installed?
+  (package-install 'use-package)
+  (setq use-package-always-ensure t))
+
+;; Configuración optimizada de números de línea
+(use-package emacs
+  :init
+  ;; ---------------------------
+  ;; 1. Habilitar en modos padres (evita redundancia)
+  ;; ---------------------------
+  ;; text-mode-hook ya cubre org-mode, markdown-mode, etc.
+  ;; prog-mode-hook cubre todos los lenguajes de programación
+  (defun my/enable-line-numbers ()
+    "Activar números de línea solo en GUI y modos específicos."
+    (when (display-graphic-p)
+    (display-line-numbers-mode 1)))
+
+  ;; Añadir solo a los hooks principales
+  (dolist (hook '(text-mode-hook prog-mode-hook conf-mode-hook))
+    (add-hook hook #'my/enable-line-numbers :append))
+
+  ;; ---------------------------
+  ;; 2. Deshabilitar en modos específicos (más eficiente)
+  ;; ---------------------------
+  (defun my/disable-line-numbers ()
+    "Desactivar números de línea donde no se necesitan."
+    (display-line-numbers-mode -1))
+
+  ;; Org Mode (sobrescribe text-mode-hook)
+  (add-hook 'org-mode-hook #'my/disable-line-numbers :append))
+
+(when (display-graphic-p)
+  (use-package vscode-dark-plus-theme
+    :defer t
+    :init
+    (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t))))
 
 (setq org-startup-folded t)
 (setq org-return-follows-link 1)
-;; (use-package org
-;;   :defer t
-;;   :pin gnu
-;;   :hook
-;;   ((before-save . zp/org-set-last-modified))
-;;   :config)
-
-(setq org-todo-keywords
-      '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
-	(sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
-
-(setq org-todo-keyword-faces
-      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
-	("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
-	("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
-	("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
-	("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
-	))
-
-(global-set-key (kbd "C-c C-c") 'org-capture)
-(setq org-default-notes-file (concat org-directory "/notes.org"))
-
-(setq org-src-fontify-natively t)
-(setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((js . t)
-   (org . t)
-   (octave . t)
-   (css . t)
-   (dot . t)
-   (latex . t)
-   (lua . t)
-   (shell . t)
-   (python . t)
-   (matlab . t)
-   (emacs-lisp . t)))
-;; (add-to-list 'org-structure-template-alist ;; Add #+begin_structure
-;; 	      '(("ec" . "emacs-lisp")
-;; 		("py" . "python")))
 
-(setq org-adapt-indentation t         ;; Modifies paragraph filling
-      org-odd-levels-only nil               ;; Org use only odd levels (disable)
-      org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
-      org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
-
-(if (display-graphic-p)
-    (progn
-      (add-hook 'org-mode-hook 'org-indent-mode)
-      (setq org-hide-leading-stars t)               ;; Leading stars invisible
-      ))
+(use-package org
+  :defer t
+  :config
+  (setq org-adapt-indentation t
+        org-odd-levels-only nil
+        org-src-preserve-indentation t
+        org-edit-src-content-indentation 1
+	org-startup-with-inline-images nil ;; Startup with inline images (disable)
+	org-image-actual-width nil)
+  ;; Carga org-indent-mode solo en GUI usando eval-after-load
+  (when (display-graphic-p)
+    (setq org-hide-leading-stars t)
+    (with-eval-after-load 'org  ; Espera a que Org esté cargado
+      (add-hook 'org-mode-hook 'org-indent-mode))))
 
 
 ;; Enable line numbers for some modes
 (dolist (mode '(text-mode-hook
-                prog-mode-hook
-                matlab-mode-hook
-                conf-mode-hook
-                lisp-mode-hook))
+		prog-mode-hook
+		matlab-mode-hook
+		conf-mode-hook
+		lisp-mode-hook))
   (add-hook mode (lambda () 
-                   (display-line-numbers-mode 1))))    
+		   (display-line-numbers-mode 1))))    
 
 ;; Override modes which derive from the above
 (dolist (mode '(org-mode-hook))
   (add-hook mode (lambda () 
-                   (display-line-numbers-mode -1))))   
+		   (display-line-numbers-mode -1))))
 
-;; Startup with inline images (disable)
-(setq org-startup-with-inline-images nil)
-(setq org-image-actual-width nil)
 
-;; (use-package org-tidy
-;;   :defer t
-;;   :ensure nil
-;;   :hook
-;;   (org-mode . org-tidy-mode))
 
-(setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
-(setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
-(setq-default indent-tabs-mode nil) ;; Use spaces instead of tabs for indentation
-(delete-selection-mode 1) ;; Let you select and replace with yank or write
-(prefer-coding-system 'utf-8)
-(setq-default buffer-file-coding-system 'utf-8)
+(setq org-todo-keywords
+	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
+	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+(setq org-todo-keyword-faces
+	'(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
+	  ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
+	  ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
+	  ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
+	  ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))))
 
-(setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
-(setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
-(setq large-file-warning-threshold nil)        ;; Dont warn for large files
-(fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
-(setq dired-listing-switches "-la")
-(setq dired-dwim-target t) ;; Allow you move files splitting the window
+(setq org-src-fontify-natively t)
+(setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
+(use-package ob-python
+  :defer t
+  :commands (org-babel-execute:python))
 
-(global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
-(setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
+(use-package ob-shell
+  :defer t
+  :commands
+  (org-babel-execute:sh
+   org-babel-expand-body:sh
+   org-babel-execute:bash
+   org-babel-expand-body:bash))
 
-(defun my-clear ()
-  (interactive)
-  (comint-clear-buffer))
+(use-package ob-js
+  :defer t
+  :commands (org-babel-execute:js))
 
-(defun my-shell-hook ()
-  (local-set-key "\C-l" 'my-clear))
+(use-package ob-octave
+  :defer t
+  :commands (org-babel-execute:octave))
 
-(add-hook 'shell-mode-hook 'my-shell-hook)
+(use-package ob-css
+  :defer t
+  :commands (org-babel-execute:css))
 
-(add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
+(use-package ob-dot
+  :defer t
+  :commands (org-babel-execute:dot))
 
-(defun my/org-table-install-formulas ()
-  "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line.
-Do nothing when point is not inside a table."
-  (interactive)
-  (when (org-table-p)
-    (save-excursion
-      (goto-char (org-table-begin))
-      (org-table-next-field)
-      (while (progn
-               (org-table-maybe-eval-formula)
-               (looking-at "[^|\n]*|\\([[:space:]]*\n[[:space:]]*|\\)?[^|\n]*\\(|\\)"))
-        (goto-char (match-beginning 2)))
-      ))
-  nil)
+(use-package ob-latex
+  :defer t
+  :commands (org-babel-execute:latex))
 
-(add-hook #'org-ctrl-c-ctrl-c-hook #'my/org-table-install-formulas)
-(defun my/reload-emacs-configuration ()
-  (interactive)
-  (load-file "~/.emacs.d/init.el"))
+(use-package ob-lua
+  :defer t
+  :commands (org-babel-execute:lua))
 
-(defun my/load-blog-configuration ()
-  (interactive)
-  (load-file "~/.emacs.d/blog.el"))
+(use-package ob-C
+  :defer t
+  :commands
+  (org-babel-execute:C
+   org-babel-expand-body:C
+   org-babel-execute:C++
+   org-babel-expand-body:C++))
 
-(defun my/find-emacs-configuration ()
-  (interactive)
-  (find-file (concat user-emacs-directory my-user-init-file)))
-
-(defun my/find-file (filename)
-  "Open a file in the background"
-  (interactive "FFind file: ")
-  (set-buffer (find-file-noselect filename)))
-
-(defun my/pwd ()
-  "Put the current file name (include directory) on the clipboard"
-  (interactive)
-  (let ((filename (if (equal major-mode 'dired-mode)
-                      default-directory
-                    (buffer-file-name))))
-    (when filename
-      (with-temp-buffer
-        (insert filename)
-        (clipboard-kill-region (point-min) (point-max)))
-      (message filename))))
-
-(defun my/create-temp-directory ()
-  "This function let you create directories or files in the tmp directory for testing"
-  (interactive)
-  (let (
-        (choices '("directory" "files"))
-        (name (read-string "Enter name temporary file: ")))
-
-    (find-file (concat "/tmp/" name))
-    (message name)))
-
-;; --------------------------
-;; Handling file properties for 'CREATED' & 'LAST_MODIFIED'
-;; --------------------------
-
-(defun zp/org-find-time-file-property (property &optional anywhere)
-  "Return the position of the time file PROPERTY if it exists.
-   When ANYWHERE is non-nil, search beyond the preamble."
-  (save-excursion
-    (goto-char (point-min))
-    (let ((first-heading
-           (save-excursion
-             (re-search-forward org-outline-regexp-bol nil t))))
-      (when (re-search-forward (format "^#\\+%s:" property)
-                               (if anywhere nil first-heading)
-                               t)
-        (point)))))
-
-(defun zp/org-has-time-file-property-p (property &optional anywhere)
-  "Return the position of time file PROPERTY if it is defined.
-   As a special case, return -1 if the time file PROPERTY exists but
-   is not defined."
-  (when-let ((pos (zp/org-find-time-file-property property anywhere)))
-    (save-excursion
-      (goto-char pos)
-      (if (and (looking-at-p " ")
-               (progn (forward-char)
-                      (org-at-timestamp-p 'lax)))
-          pos
-        -1))))
-
-(defun zp/org-set-time-file-property (property &optional anywhere pos)
-  "Set the time file PROPERTY in the preamble.
-   When ANYWHERE is non-nil, search beyond the preamble.
-   If the position of the file PROPERTY has already been computed,
-   it can be passed in POS."
-  (when-let ((pos (or pos
-                      (zp/org-find-time-file-property property))))
-    (save-excursion
-      (goto-char pos)
-      (if (looking-at-p " ")
-          (forward-char)
-        (insert " "))
-      (delete-region (point) (line-end-position))
-      (let* ((now (format-time-string "[%Y-%m-%d %a %H:%M]")))
-        (insert now)))))
-
-(defun zp/org-set-last-modified ()
-  "Update the LAST_MODIFIED file property in the preamble."
-  (when (derived-mode-p 'org-mode)
-    (zp/org-set-time-file-property "LAST_MODIFIED")))
+(use-package ob-matlab
+  :defer t
+  :commands (org-babel-execute:matlab))
 
 (eval-after-load 'pdf-tools
   '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp)) ;; Set C-s for searching in pdf-tools
@@ -376,11 +272,6 @@ Do nothing when point is not inside a table."
           )))))
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
-(unless (display-graphic-p)
-  (setq browse-url-browser-function 'eww-browse-url))
-
-(put 'dired-find-alternate-file 'disabled nil)
-
 (use-package magit
   :defer t
   :bind ("C-x g" . magit-status)
@@ -405,8 +296,13 @@ Do nothing when point is not inside a table."
 
 (use-package undo-tree
   :defer t
-  :hook 
-  (after-init . global-undo-tree-mode)
+  :commands (global-undo-tree-mode)
+  :init
+  (defun my/enable-undo-tree-once ()
+    (when buffer-file-name
+      (global-undo-tree-mode 1)
+      (remove-hook 'find-file-hook #'my/enable-undo-tree-once)))
+  (add-hook 'find-file-hook #'my/enable-undo-tree-once)
   :custom
   (undo-tree-visualizer-diff t)
   (undo-tree-history-directory-alist '(("." . "/tmp/")))
@@ -511,472 +407,3 @@ See URL `http://vhdltool.com'."
   (setq company-dabbrev-downcase nil)    ; Don't lowercase completions
   (setq company-dabbrev-ignore-case nil) ; Respect case
   )
-
-(use-package pdf-tools
-  :defer t
-  :config
-  (pdf-loader-install)
-  (setq-default pdf-view-display-size 'fit-page)
-  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
-        TeX-source-correlate-start-server t
-        TeX-source-correlate-method 'synctex))
-
-(use-package treemacs
-  :defer t
-  :init
-  (with-eval-after-load 'winum
-    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
-
-;; (defun window-toggle-split-direction ()
-;;   "Switch window split from horizontally to vertically, or vice versa.
-;; i.e. change right window to bottom, or change bottom window to right."
-;;   (interactive)
-;;   (require 'windmove)
-;;   (let ((done))
-;;     (dolist (dirs '((right . down) (down . right)))
-;;       (unless done
-;;         (let* ((win (selected-window))
-;;                (nextdir (car dirs))
-;;                (neighbour-dir (cdr dirs))
-;;                (next-win (windmove-find-other-window nextdir win))
-;;                (neighbour1 (windmove-find-other-window neighbour-dir win))
-;;                (neighbour2 (if next-win (with-selected-window next-win
-;;                                           (windmove-find-other-window neighbour-dir next-win)))))
-;;           ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
-;;           (setq done (and (eq neighbour1 neighbour2)
-;;                           (not (eq (minibuffer-window) next-win))))
-;;           (if done
-;;               (let* ((other-buf (window-buffer next-win)))
-;;                 (delete-window next-win)
-;;                 (if (eq nextdir 'right)
-;;                     (split-window-vertically)
-;;                   (split-window-horizontally))
-;;                 (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
-
-;; (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
-
-;; Session evaluation of MATLAB in org-babel is broken, this goes some
-;; way towards addressing the problem.
-;;
-;;- I replaced a `delq' with `delete', the `eq' test was failing on
-;; blank strings
-;;
-;;- For results of type `output', concatenate all statements in the
-;; block with appropriate separators (";", "," etc) and run one long
-;; statment instead. Remove this statement from the raw result. This
-;; produces much cleaner output.
-
-(defun org-babel-octave-evaluate-session
-    (session body result-type &optional matlabp)
-  "Evaluate BODY in SESSION."
-  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
-         (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
-         (full-body
-          (pcase result-type
-            (`output
-             (mapconcat
-              #'org-babel-chomp
-              (list (if matlabp
-                        (multi-replace-regexp-in-string
-                         '(("%.*$"                      . "")    ;Remove comments
-                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
-                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
-                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
-                         body)
-                      body)
-                    org-babel-octave-eoe-indicator) "\n"))
-            (`value
-             (if (and matlabp org-babel-matlab-with-emacs-link)
-                 (concat
-                  (format org-babel-matlab-emacs-link-wrapper-method
-                          body
-                          (org-babel-process-file-name tmp-file 'noquote)
-                          (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
-               (mapconcat
-                #'org-babel-chomp
-                (list (format org-babel-octave-wrapper-method
-                              body
-                              (org-babel-process-file-name tmp-file 'noquote)
-                              (org-babel-process-file-name tmp-file 'noquote))
-                      org-babel-octave-eoe-indicator) "\n")))))
-         (raw (if (and matlabp org-babel-matlab-with-emacs-link)
-                  (save-window-excursion
-                    (with-temp-buffer
-                      (insert full-body)
-                      (write-region "" 'ignored wait-file nil nil nil 'excl)
-                      (matlab-shell-run-region (point-min) (point-max))
-                      (message "Waiting for Matlab Emacs Link")
-                      (while (file-exists-p wait-file) (sit-for 0.01))
-                      "")) ;; matlab-shell-run-region doesn't seem to
-                ;; make *matlab* buffer contents easily
-                ;; available, so :results output currently
-                ;; won't work
-                (org-babel-comint-with-output
-                    (session
-                     (if matlabp
-                         org-babel-octave-eoe-indicator
-                       org-babel-octave-eoe-output)
-                     t full-body)
-                  (insert full-body) (comint-send-input nil t)))) results)
-    (pcase result-type
-      (`value
-       (org-babel-octave-import-elisp-from-file tmp-file))
-      (`output
-       (setq results
-             (if matlabp
-                 (cdr (reverse (delete "" (mapcar #'org-strip-quotes
-                                                  (mapcar #'org-trim (remove-car-upto-newline raw))))))
-               (cdr (member org-babel-octave-eoe-output
-                            (reverse (mapcar #'org-strip-quotes
-                                             (mapcar #'org-trim raw)))))))
-       (mapconcat #'identity (reverse results) "\n")))))
-
-(defun remove-car-upto-newline (raw)
-  "Truncate the first string in a list of strings `RAW' up to the first newline"
-  (cons (mapconcat #'identity
-                   (cdr (split-string-and-unquote (car raw) "\n"))
-                   "\n") (cdr raw)))
-
-(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
-  (interactive)
-  "Replace multiple regexps in a string. Order matters."
-  (if (null replacements-list)
-      string
-    (let ((regex (caar replacements-list))
-          (replacement (cdar replacements-list)))
-      (multi-replace-regexp-in-string (cdr replacements-list)
-                                      (replace-regexp-in-string regex replacement
-                                                                string rest)))))
-
-(defun my/ros-colcon-build ()
-  "build project 1"
-  (interactive)
-  (let ((buf-name '"*jea-compile-project1*")
-        (working-dir '"~/Documents/Universidad/CyPR/ROS/dev_ws/"))
-    (save-excursion
-      (with-current-buffer (get-buffer-create buf-name)
-        (barf-if-buffer-read-only)
-        (erase-buffer))
-      (cd working-dir)
-      (call-process-shell-command "colcon build" nil buf-name 't)
-      (cd "~/coppelia_ws/")
-      (call-process-shell-command "colcon build" nil buf-name 't)
-      (message "compile project 1 done")
-      )))
-(global-set-key [(f10)] 'my/ros-colcon-build)
-
-(with-eval-after-load "org"
-  (define-key org-mode-map "\C-e" nil)
-  (define-key org-mode-map [remap move-end-of-line] nil))
-
-
-(setq org-tidy-protect-overlay nil)
-
-;; (use-package languagetool
-;;   :ensure t
-;;   :defer t
-;;   :commands (languagetool-check
-;;              languagetool-clear-suggestions
-;;              languagetool-correct-at-point
-;;              languagetool-correct-buffer
-;;              languagetool-set-language
-;;              languagetool-server-mode
-;;              languagetool-server-start
-;;              languagetool-server-stop)
-;;   :config
-;;   (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8")
-;;         languagetool-console-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-commandline.jar"
-;;         languagetool-server-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-server.jar"))
-
-(use-package multiple-cursors
-  :ensure t
-  :defer t)
-
-(setq org-fold-core-style 'overlays)
-(setq org-tag-alist
-      '(;; Places
-        ("@home" . ?H)
-        ("@work" . ?W)
-
-        ;; Devices
-        ("@computer" . ?C)
-        ("@phone" . ?P)
-
-        ;; Activities
-        ("@planning" . ?n)
-        ("@programming" . ?p)
-        ("@writing" . ?w)
-        ("@creative" . ?c)
-        ("@email" . ?e)
-        ("@calls" . ?a)
-        ("@errands" . ?r)))
-
-(bookmark-bmenu-list)
-(switch-to-buffer "*Bookmark List*")
-
-(setq-default mode-line-format
-              (append mode-line-format
-                      (list
-                       '(:eval (if (use-region-p)
-                                   (format "W:%d, C:%d"
-                                           (count-words-region (region-beginning) (region-end))
-                                           (- (region-end) (region-beginning)))
-                                 "")))))
-
-(use-package htmlize
-  :ensure t)
-(setq org-html-htmlize-output-type 'css)
-
-(use-package yasnippet
-  :ensure t
-  :config
-  (yas-global-mode 1)) ; Activar Yasnippet en todo Emacs
-;; (setq yas-snippet-dirs
-;;       '("~/.emacs.d/snippets"          ; Snippets personalizados
-;;         yasnippet-snippets-dir))       ; Snippets de yasnippet-snippets
-
-(which-function-mode 1)
-(custom-set-faces
- '(which-func
-   ((((class color)
-      (min-colors 88)
-      (background light))
-     (:inherit
-      (font-lock-function-name-face)))
-    (((class grayscale mono)
-      (background dark))
-     (:inherit
-      (font-lock-function-name-face)))
-    (((class color)
-      (background light))
-     (:inherit
-      (font-lock-function-name-face)))
-    (((class color)
-      (min-colors 88)
-      (background dark))
-     (:foreground "white"))
-    (((background dark))
-     (:foreground "white"))
-    (t
-     (:foreground "white")))))
-
-(add-hook 'prog-mode-hook #'subword-mode)
-(add-hook 'org-mode-hook #'subword-mode)
-
-
-
-(defadvice pop-to-buffer (before cancel-other-window first)
-  (ad-set-arg 1 nil))
-
-(ad-activate 'pop-to-buffer)
-
-;; Toggle window dedication
-(defun toggle-window-dedicated ()
-  "Toggle whether the current active window is dedicated or not"
-  (interactive)
-  (message
-   (if (let (window (get-buffer-window (current-buffer)))
-         (set-window-dedicated-p window 
-                                 (not (window-dedicated-p window))))
-       "Window '%s' is dedicated"
-     "Window '%s' is normal")
-   (current-buffer)))
-
-;; Press [pause] key in each window you want to "freeze"
-(global-set-key [(f10)] 'toggle-window-dedicated)
-
-(setq display-buffer-alist
-      '((".*" . ((display-buffer-reuse-window display-buffer-same-window)))))
-
-(global-set-key (kbd "M-<f10>") (lambda () 
-                                  (interactive)
-                                  (setq window-size-fixed (not window-size-fixed))
-                                  (if window-size-fixed
-                                      (message "Window size is now fixed.")
-                                    (message "Window size is now dynamic."))))
-
-;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
-;; https://oremacs.com/2015/01/12/dired-file-size/
-(defun dired-get-size ()
-  (interactive)
-  (let ((files (dired-get-marked-files)))
-    (with-temp-buffer
-      ;; Obtener el nombre del host remoto
-      (let ((remote-hostname (shell-command-to-string "hostname")))
-
-        ;; Eliminar posibles saltos de línea al final
-        (setq remote-hostname (string-trim remote-hostname))
-
-        ;; Dependiendo del nombre de la máquina, ejecutamos diferentes comandos
-        (cond
-         ;; Caso 1: Si estamos en la máquina local con nombre "DESKTOP-O45GL2P"
-         ((or           (string= remote-hostname "DESKTOP-AGD6PUD") 
-                        (string= remote-hostname "DESKTOP-O45GL2P")) 
-          (apply 'call-process "du" nil t nil "-sch" files)
-          (message "Output of du: %s" (buffer-string)))
-
-         ;; Caso 2: Si estamos en el servidor remoto "debian"
-         ((string= remote-hostname "debian")
-          (let ((default-directory (expand-file-name "/ssh:root@www.rhyloo.com:~/")))
-            ;; Limpiar los nombres de archivos eliminando el prefijo "/ssh:root@www.rhyloo.com:"
-            (let* ((cleaned-files
-                    (mapcar (lambda (file)
-                              (replace-regexp-in-string "^/ssh:root@www.rhyloo.com:" "" file))
-                            files))
-                   (du-output (shell-command-to-string (concat "du -sch " (mapconcat 'identity cleaned-files " ")))))
-              ;; Mostrar la salida en el buffer de mensajes
-              (message "Output of du: %s" du-output))))
-
-         ;; Caso 3: Si estamos en otra máquina, por ejemplo, "other-server"
-         ((string= remote-hostname "other-server")
-          (let ((default-directory (expand-file-name "/ssh:user@other-server:/path/to/directory")))
-            (let ((du-output (shell-command-to-string "du -sch /path/to/directory")))
-              ;; Mostrar la salida en el buffer de mensajes
-              (message "Output of du: %s" du-output))))
-
-         ;; Si el nombre del host no coincide con los anteriores
-         (t
-          (message "No se ha definido un comando para esta máquina.")))))))
-
-(with-eval-after-load 'dired
-  (define-key dired-mode-map (kbd "z") 'dired-get-size))
-
-(defun my/pdf-to-svg ()
-  "Get as input a PDF file and return it as an SVG."
-  (interactive)
-  (shell-command (concat "inkscape " (read-file-name "File name: ") " --export-area-drawing --batch-process --export-type=svg --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".svg&")))
-
-(defun my/erc-start-or-switch ()
-  "Conecta a ERC, o cambia al último búfer activo."
-  (interactive)
-  (if (get-buffer "irc.libera.chat:6667")
-      (erc-track-switch-buffer 1)
-    (when (y-or-n-p "Start ERC? ")
-      (erc :server "irc.libera.chat" :port 6667 :nick "rhyloo"))))
-
-(defun my/erc-notify (nickname message)
-  "Muestra un mensaje de notificación para ERC."
-  (let* ((channel (buffer-name))
-         (nick (erc-hl-nicks-trim-irc-nick nickname))
-         (title (if (string-match-p (concat "^" nickname) channel)
-                    nick
-                  (concat nick " (" channel ")")))
-         (msg (s-trim (s-collapse-whitespace message))))
-    (alert (concat nick ": " msg) :title title)))
-
-(defun update-last-modified ()
-  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
-  (when (eq major-mode 'org-mode)
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward "^#\\+last_modified:.*" nil t)
-        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
-
-(add-hook 'before-save-hook 'update-last-modified)
-
-(use-package writegood-mode  
-  :ensure t)
-
-(use-package org-roam
-  :ensure t
-  :init
-  (setq org-roam-v2-ack t) ; Acknowledge v2 upgrade
-  :custom
-  (org-roam-directory "/ssh:root@www.rhyloo.com:~/content/") ; Tu directorio de notas
-  (org-roam-database-connector 'sqlite) ; Usar SQLite (más rápido)
-  (org-roam-db-location (expand-file-name "org-roam.db" "~/"))
-  (org-roam-capture-templates
-   '(("p" "Proyecto" plain
-      "%?"
-      :if-new (file+head "/ssh:root@www.rhyloo.com:~/content/projects/${slug}-draft.org" ; Carpeta 'proyectos'
-                         "#+title: ${title}\n#+category: ${title}\n")
-      :unnarrowed t)
-     ("b" "Blog Post" plain
-      "%?"
-      :if-new (file+head "blog/${slug}-draft.org" ; Carpeta 'blog'
-                         "#+title: ${title}\n#+category: blog\n#+date: %<%Y-%m-%d>\n")
-      :unnarrowed t)
-     ("d" "Nota Default" plain
-      "%?"
-      :if-new (file+head "${slug}-draft.org" ; Sin subcarpeta
-                         "#+title: ${title}\n")
-      :unnarrowed t)))
-  :bind (("C-c n f" . org-roam-node-find)
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n c" . org-roam-capture)
-         ("C-c n r" . org-roam-buffer-toggle)
-         ("C-c n p" . org-roam-capture-proyecto) ; Atajos personalizados
-         ("C-c n b" . org-roam-capture-blog)
-         ("C-c n d" . org-roam-capture-default))
-  :config
-  (org-roam-db-autosync-mode) ; Sincronización automática de la base de datos
-  (setq org-roam-node-display-template
-        (concat "${title:*} " (propertize "${tags:40}" 'face 'org-tag))))
-
-;; ;; Opcional: UI gráfica (requiere npm/pnpm)
-;; (use-package org-roam-ui
-;;   :ensure t
-;;   :after org-roam
-;;   :config
-;;   (setq org-roam-ui-sync-theme t
-;;         org-roam-ui-follow-mode t
-;;         org-roam-ui-update-on-save t
-;;         org-roam-ui-browser-function #'xwidget-webkit-browse-url
-;;         org-roam-ui-port 8080)
-;;   :bind ("C-c n u" . org-roam-ui-mode))
-
-;; ;; Integración con consult (búsqueda mejorada)
-;; (use-package consult-org-roam
-;;   :ensure t
-;;   :after org-roam
-;;   :config
-;;   (consult-org-roam-mode))
-
-;; ;; Templates para capturas (opcional)
-;; (setq org-roam-capture-templates
-;;       '(("d" "Nota básica" plain
-;;          "%?"
-;;          :if-new (file+head "${slug}.org"
-;;                             "#+title: ${title}\n#+date: %<%Y-%m-%d>\n")
-;;          :unnarrowed t)))
-
-;; (use-package consult-org-roam
-;;    :ensure t
-;;    :after org-roam
-;;    :init
-;;    (require 'consult-org-roam)
-;;    ;; Activate the minor mode
-;;    (consult-org-roam-mode 1)
-;;    :custom
-;;    ;; Use `ripgrep' for searching with `consult-org-roam-search'
-;;    ;; (consult-org-roam-grep-func #'consult-ripgrep)
-;;    ;; Configure a custom narrow key for `consult-buffer'
-;;    (consult-org-roam-buffer-narrow-key ?r)
-;;    ;; Display org-roam buffers right after non-org-roam buffers
-;;    ;; in consult-buffer (and not down at the bottom)
-;;    (consult-org-roam-buffer-after-buffers t)
-;;    :config
-;;    ;; Eventually suppress previewing for certain functions
-;;    (consult-customize
-;;     consult-org-roam-forward-links
-;;     :preview-key "M-.")
-;;    :bind
-;;    ;; Define some convenient keybindings as an addition
-;;    ("C-c n e" . consult-org-roam-file-find)
-;;    ("C-c n b" . consult-org-roam-backlinks)
-;;    ("C-c n B" . consult-org-roam-backlinks-recursive)
-;;    ("C-c n l" . consult-org-roam-forward-links)
-;;    ("C-c n r" . consult-org-roam-search))
-
-;; (use-package consult
-;;   :ensure t
-;;   :defer t)
-
-;; (setq consult-ripgrep-command "rg --null --line-buffered --color=never --max-columns=1000 --path-separator / --smart-case --no-heading --line-number --hidden -g !.git/ -g !.svn/ -g !.hg/ -g !node_modules/ -g !.cache/ -- .")
-
-;; (defun bms/org-roam-rg-search ()
-;;   "Search org-roam directory using consult-ripgrep. With live-preview."
-;;   (interactive)
-;;   (let ((consult-ripgrep-command "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
-;;     (consult-ripgrep org-roam-directory)))
-;; (global-set-key (kbd "C-c r") 'bms/org-roam-rg-search)

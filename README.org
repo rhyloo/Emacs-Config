@@ -1,34 +1,29 @@
-#+TITLE: EMACS CONFIGURATION's Rhyloo
+#+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-02-28 16:19:54
+#+last_modified: 2025-03-02 20:57:44
 #+AUTHOR: Rhyloo
+#+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
-#+PROPERTY: header-args :results silent
+#+PROPERTY: header-args :results silent :tangle yes
 #+cover_image: ./../projects/files/cover/EmacsIcon.png
 
+* Introduction
+** Why EMACS?
+No sé como empecé con EMACS, recuerdo que con aproximadamente 13 años empecé en linux. Visualicé muchos videos de diferentes distros, incluso borré varias veces mi SO - Desde aquí envío un saludo a mis padres por no "matarme" - En cualquier caso, supongo que el ecosistema Linux me llevó a investigar más sobre el tema. Las conferencias de RMS sobe el proyecto GNU y porqué no la página de la propia FSF me llevaron a este maravilloso editor.
 
-* Optimización del inicio de Emacs
+He probado muchos, atom, VScode, notepad++, bloc de notas, sublime e incluso vi/vim, pero me seguiría quedando con este. Me adapto en el trabajo he tenido que utilizar vscode y no hay ningún problema, no voy tan fluido como cuando trabajo en mi entorno, pero lo hago sin problemas. Ahora bien siempre que puedo vuelvo a él porque por alguna razón yo lo encuentro fascinante, no tanto por lo que ofrece ya que hay gente que incluso ha jugado al doom en él, supera eso VIM. Creo que es la personalización, creo que esa es la mejor parte. Me atrevería a decir que me llena por dentro construirme mis propias herramientas desde cero - menos mal que no he bajado a nivel de bit, transistor u átomo ;) - bromas aparte, sí creo que es parte de la naturaleza ingenieril y EMACS te da esa posibilidad.
+
+Hoy en día, con la IA, tenemos muchos problemas para escribir código. El cerebro se acostumbra muy rápido a lo fácil. Intentaré en la medida de lo posible no utilizarlo, esto no lo hago por tener un proyecto más, lo hago porque me gusta, así que si la utilizo al menos indicaré que no es mi obra con algún tag o etiqueta. 
+
+** Information
+- Name: Personal EMACS Configuration
+- Versión: v0.1.0
+- Project-ID: SW-ELISP-0.1.0-JESTER
+- Status: IN-PROGRESS
+  
+* Startup optimization
 Este bloque de configuración optimiza el proceso de inicio de Emacs y proporciona información útil sobre el rendimiento.
-** Minimizar la recolección de basura durante el inicio
-Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
-#+begin_src emacs-lisp
-(setq gc-cons-threshold most-positive-fixnum) ;; Minimize garbage collection during startup
-#+end_src
-
-** Restaurar valores razonables tras el inicio
-Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
-#+begin_src emacs-lisp
-(setq gc-cons-threshold (expt 2 23)) ;; The default is 800 kilobytes. Measured in bytes.
-(setq gc-cons-percentage 0.5)
-#+end_src
-
-** Recolección de basura periódica
-Ejecuta la recolección de basura cada 5 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
-#+begin_src emacs-lisp
-(run-with-idle-timer 5 t #'garbage-collect)
-#+end_src
-
 ** Perfil del tiempo de inicio
 Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs y cuántas recolecciones de basura ocurrieron durante el proceso.
 #+begin_src emacs-lisp
@@ -40,216 +35,256 @@ Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs
 			                        (time-subtract after-init-time before-init-time)))
 	                   gcs-done)))
 #+end_src
-* Configuración de paquetes
-** Gestión de paquetes
-Configuración de repositorios para ELPA, MELPA y soporte adicional para Org mode.  
-Se utiliza =use-package= para simplificar la configuración de paquetes.
-
+** Minimizar la recolección de basura durante el inicio
+Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
 #+begin_src emacs-lisp
-;; Inicializa las fuentes de paquetes
-(require 'package)
-(setq package-archives
-      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Repositorio oficial de GNU
-        ("melpa-stable" . "https://stable.melpa.org/packages/") ;; Versión estable de MELPA
-        ("ox-odt"       . "https://kjambunathan.github.io/elpa/") ;; Soporte adicional para Org (ox-odt)
-        ("melpa"        . "https://melpa.org/packages/")))       ;; Repositorio principal de MELPA
-
-;; Inicializa el sistema de paquetes
-;; (package-initialize)
-
-;; Asegúrate de que las fuentes estén actualizadas
-(unless package-archive-contents
-  (package-refresh-contents))
-
-;; Instala y configura use-package para manejar los paquetes de forma modular
-(unless (package-installed-p 'use-package)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
+(setq gc-cons-threshold (* 50 1000 1000)) ;; Minimize garbage collection during startup
 #+end_src
-
-** Setting data
-#+begin_src emacs-lisp 
-(setq user-full-name "J. L. Benavides"
-      user-real-login-name "Rhyloo")   
-#+end_src
-** Theme and visual config
-Clean up the Emacs user interface, make it more minimalistic or not.
-*** Emacs's visual config
-**** UI
+* Core
+** Data
 #+begin_src emacs-lisp
-(if (display-graphic-p)
-  (progn 
-  (scroll-bar-mode -1)         ;; Disable visible scrollbar
-  (tool-bar-mode -1)           ;; Disable the toolbar
-  (tooltip-mode -1)            ;; Disable tooltips
-  (set-fringe-mode 15)         ;; Give some breathing room (borders)
-  ))
-(menu-bar-mode -1)           ;; Disable the menu bar
-  (setq-default frame-title-format '("%b [%m]")) ;; Title bar name
-  (setq inhibit-startup-message t) ;; Avoid startup message
-  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-  (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-  (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-  (setq scroll-step 1) ;; keyboard scroll one line at a time
-  (setq ring-bell-function 'ignore) ;; Remove bell ring
+(setq user-full-name "J. L. Benavides"  ;; Set my name
+      user-real-login-name "Rhyloo")    ;; Set my user
 #+end_src
-
-**** Bar
-***** Time
-#+begin_src emacs-lisp 
+** UI
+*** Visual
+**** General configurations
+#+begin_src emacs-lisp
+(setq inhibit-startup-message t)                        ;; Avoid startup message
+(setq frame-title-format '("%b [%m]"))                  ;; Title bar name
+(when (display-graphic-p) 
+  (scroll-bar-mode -1)                                  ;; Disable visible scrollbar
+  (tool-bar-mode -1)                                    ;; Disable the toolbar
+  (tooltip-mode -1)                                     ;; Disable tooltips
+  (set-fringe-mode 3)                                   ;; Give some breathing room (borders)
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  )
+(menu-bar-mode -1)                                      ;; Disable the menu bar terminal and display mode
+#+end_src
+**** Mode line
+To config time display
+#+begin_src emacs-lisp
 (setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
-(setq display-time-day-and-date t display-time-24hr-format t) ;; Change format
+(setq display-time-day-and-date t display-time-24hr-format t) ;; Change format to 24h
 (display-time)               ;; Show the time in the bar
 #+end_src
-
-***** Battery
-#+begin_src emacs-lisp 
+To config battery display
+#+begin_src emacs-lisp
 (unless (equal "Battery status not available" (battery)) ;;Show battery
   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 #+end_src
-***** Writting
+To config columns in modeline
 #+begin_src emacs-lisp
-(column-number-mode)                  ;; Enable column mode
+(column-number-mode)                                    ;; Show collumn in modeline
+(setq-default mode-line-format
+              (append mode-line-format
+                      (list
+                       '(:eval (if (use-region-p)
+                                   (format "W:%d, C:%d"
+                                           (count-words-region (region-beginning) (region-end))
+                                           (- (region-end) (region-beginning)))
+                                 "")))))
 #+end_src
-
-**** Interface
+*** Behavior
+**** Init
 #+begin_src emacs-lisp
-(show-paren-mode 1)          ;; Show parens
-(if (display-graphic-p)
-    (progn
-      (global-hl-line-mode 1)      ;; Highlight lines
-      )
+(bookmark-bmenu-list)
+(switch-to-buffer "*Bookmark List*")
+#+end_src
+**** Screen
+#+begin_src emacs-lisp
+(setq ring-bell-function 'ignore)                       ;; Remove bell ring
+(if (display-graphic-p)                                 ;; Highlight lines
+    (global-hl-line-mode 1)      
   (global-hl-line-mode 0))
+#+end_src
+**** Mouse/Scroll
+#+begin_src emacs-lisp
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))     ;; one line at a time
+(setq mouse-wheel-progressive-speed nil)                ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't)                      ;; scroll window under mouse
+(setq scroll-step 1)                                    ;; keyboard scroll one line at a time
+#+end_src
+**** Writting
+#+begin_src emacs-lisp
+(show-paren-mode 1)                                     ;; Show parens
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
-;; (windmove-default-keybindings 'M) ;; Move windows
+(delete-selection-mode 1) ;; Let you select and replace with yank or write
 #+end_src
-
-*** Theme
+**** Dired
 #+begin_src emacs-lisp
-(if (display-graphic-p)
-    (progn
-      (set-frame-parameter (selected-frame) 'alpha '(100 . 100))  ;; Set frame transparency
-      (add-to-list 'default-frame-alist '(alpha . (100 . 100)))   ;; Set frame transparency
-      (set-frame-parameter (selected-frame) 'fullscreen 'maximized) ;; maximize windows by default.
-      (add-to-list 'default-frame-alist '(fullscreen . maximized)) ;; maximize windows by default.
-      (use-package vscode-dark-plus-theme                         ;; Set theme VScode
-        :defer t
-        :init
-        (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t)))
-      )
-  )
+(put 'dired-find-alternate-file 'disabled nil)
 #+end_src
-
-** Features
-*** Org mode
-**** Org
+* Packages
+** Configuration
+Configuración de repositorios para ELPA, MELPA y soporte adicional para Org mode.  
+Se utiliza =use-package= para simplificar la configuración de paquetes.
 #+begin_src emacs-lisp
-  (setq org-startup-folded t)
-  (setq org-return-follows-link 1)
-  ;; (use-package org
-  ;;   :defer t
-  ;;   :pin gnu
-  ;;   :hook
-  ;;   ((before-save . zp/org-set-last-modified))
-  ;;   :config)
-
-  (setq org-todo-keywords
-	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
-	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
-
-  (setq org-todo-keyword-faces
-	'(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
-	  ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
-	  ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
-	  ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
-	  ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))
-	  ))
-
-
+(setq package-archives                                           ;; Init package repositories.
+      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Set GNU repository
+        ("melpa"        . "https://melpa.org/packages/")))       ;; Set Melpa repository
+(unless package-archive-contents (package-refresh-contents))     ;; Are package archives up to date?
+(unless (package-installed-p 'use-package)                       ;; Is 'use-package' installed?
+  (package-install 'use-package)
+  (setq use-package-always-ensure t)) 
 #+end_src
-**** Org capture
+** EMACS
 #+begin_src emacs-lisp
-(global-set-key (kbd "C-c C-c") 'org-capture)
-(setq org-default-notes-file (concat org-directory "/notes.org"))
+;; Configuración optimizada de números de línea
+(use-package emacs
+  :init
+  ;; ---------------------------
+  ;; 1. Habilitar en modos padres (evita redundancia)
+  ;; ---------------------------
+  ;; text-mode-hook ya cubre org-mode, markdown-mode, etc.
+  ;; prog-mode-hook cubre todos los lenguajes de programación
+  (defun my/enable-line-numbers ()
+    "Activar números de línea solo en GUI y modos específicos."
+    (when (display-graphic-p)
+    (display-line-numbers-mode 1)))
+
+  ;; Añadir solo a los hooks principales
+  (dolist (hook '(text-mode-hook prog-mode-hook conf-mode-hook))
+    (add-hook hook #'my/enable-line-numbers :append))
+
+  ;; ---------------------------
+  ;; 2. Deshabilitar en modos específicos (más eficiente)
+  ;; ---------------------------
+  (defun my/disable-line-numbers ()
+    "Desactivar números de línea donde no se necesitan."
+    (display-line-numbers-mode -1))
+
+  ;; Org Mode (sobrescribe text-mode-hook)
+  (add-hook 'org-mode-hook #'my/disable-line-numbers :append))
 #+end_src
-**** Org babel
+** Vscode Dark Theme
+Clean up the Emacs user interface, make it more minimalistic or not.
 #+begin_src emacs-lisp
-(setq org-src-fontify-natively t)
-(setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
+(when (display-graphic-p)
+  (use-package vscode-dark-plus-theme
+    :defer t
+    :init
+    (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t))))
+#+end_src
+** Org-mode
+*** Visual
+#+begin_src emacs-lisp
+(setq org-startup-folded t)
+(setq org-return-follows-link 1)
 (setq org-src-tab-acts-natively t)    ;; Indent code in org-babel
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((js . t)
-   (org . t)
-   (octave . t)
-   (css . t)
-   (dot . t)
-   (latex . t)
-   (lua . t)
-   (shell . t)
-   (python . t)
-   (matlab . t)
-   (emacs-lisp . t)))
-;; (add-to-list 'org-structure-template-alist ;; Add #+begin_structure
-;; 	      '(("ec" . "emacs-lisp")
-;; 		("py" . "python")))
 #+end_src
-
-**** Interface
+*** Configurations
+**** Behavior
 #+begin_src emacs-lisp
-(setq org-adapt-indentation t         ;; Modifies paragraph filling
-      org-odd-levels-only nil               ;; Org use only odd levels (disable)
-      org-src-preserve-indentation nil      ;; Preserves the indentation of the source code in the src edit buffer
-      org-edit-src-content-indentation 0)   ;; Respect parent buffer indentation
-
-(if (display-graphic-p)
-    (progn
-      (add-hook 'org-mode-hook 'org-indent-mode)
-      (setq org-hide-leading-stars t)               ;; Leading stars invisible
-      ))
+(use-package org
+  :defer t
+  :config
+  (setq org-adapt-indentation t
+        org-odd-levels-only nil
+        org-src-preserve-indentation t
+        org-edit-src-content-indentation 1
+	org-startup-with-inline-images nil ;; Startup with inline images (disable)
+	org-image-actual-width nil)
+  ;; Carga org-indent-mode solo en GUI usando eval-after-load
+  (when (display-graphic-p)
+    (setq org-hide-leading-stars t)
+    (with-eval-after-load 'org  ; Espera a que Org esté cargado
+      (add-hook 'org-mode-hook 'org-indent-mode))))
 
 
 ;; Enable line numbers for some modes
 (dolist (mode '(text-mode-hook
-                prog-mode-hook
-                matlab-mode-hook
-                conf-mode-hook
-                lisp-mode-hook))
+		prog-mode-hook
+		matlab-mode-hook
+		conf-mode-hook
+		lisp-mode-hook))
   (add-hook mode (lambda () 
-                   (display-line-numbers-mode 1))))    
+		   (display-line-numbers-mode 1))))    
 
 ;; Override modes which derive from the above
 (dolist (mode '(org-mode-hook))
   (add-hook mode (lambda () 
-                   (display-line-numbers-mode -1))))   
-
-;; Startup with inline images (disable)
-(setq org-startup-with-inline-images nil)
-(setq org-image-actual-width nil)
+		   (display-line-numbers-mode -1))))   
 #+end_src
 
-**** Packages
 #+begin_src emacs-lisp
-;; (use-package org-tidy
-;;   :defer t
-;;   :ensure nil
-;;   :hook
-;;   (org-mode . org-tidy-mode))
-#+end_src
 
-*** Writting
+#+end_src
+**** Keywords states
+#+begin_src emacs-lisp
+(setq org-todo-keywords
+	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
+	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+(setq org-todo-keyword-faces
+	'(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
+	  ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
+	  ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
+	  ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
+	  ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))))  
+#+end_src
+**** Org-babel
+#+begin_src emacs-lisp
+(setq org-src-fontify-natively t)
+(setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
+(use-package ob-python
+  :defer t
+  :commands (org-babel-execute:python))
+
+(use-package ob-shell
+  :defer t
+  :commands
+  (org-babel-execute:sh
+   org-babel-expand-body:sh
+   org-babel-execute:bash
+   org-babel-expand-body:bash))
+
+(use-package ob-js
+  :defer t
+  :commands (org-babel-execute:js))
+
+(use-package ob-octave
+  :defer t
+  :commands (org-babel-execute:octave))
+
+(use-package ob-css
+  :defer t
+  :commands (org-babel-execute:css))
+
+(use-package ob-dot
+  :defer t
+  :commands (org-babel-execute:dot))
+
+(use-package ob-latex
+  :defer t
+  :commands (org-babel-execute:latex))
+
+(use-package ob-lua
+  :defer t
+  :commands (org-babel-execute:lua))
+
+(use-package ob-C
+  :defer t
+  :commands
+  (org-babel-execute:C
+   org-babel-expand-body:C
+   org-babel-execute:C++
+   org-babel-expand-body:C++))
+
+(use-package ob-matlab
+  :defer t
+  :commands (org-babel-execute:matlab))
+#+end_src
+** Features
+*** COMMENT Writting
 #+begin_src emacs-lisp
 (setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
 (setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
 (setq-default indent-tabs-mode nil) ;; Use spaces instead of tabs for indentation
-(delete-selection-mode 1) ;; Let you select and replace with yank or write
 (prefer-coding-system 'utf-8)
 (setq-default buffer-file-coding-system 'utf-8)
 #+end_src
 
-*** File manager
+*** COMMENT File manager
 #+begin_src emacs-lisp
 (setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
 (setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
@@ -259,7 +294,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 (setq dired-dwim-target t) ;; Allow you move files splitting the window
 #+end_src
 
-*** Buffers
+*** COMMENT Buffers
 #+begin_src emacs-lisp
 (global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
 (setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
@@ -275,12 +310,12 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 
 (add-hook 'shell-mode-hook 'my-shell-hook)
 #+end_src
-*** Files
+*** COMMENT Files
 #+begin_src emacs-lisp
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
 #+end_src
 
-*** Custom functions
+*** COMMENT Custom functions
 #+begin_src emacs-lisp
 (defun my/org-table-install-formulas ()
   "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line.
@@ -426,7 +461,7 @@ Do nothing when point is not inside a table."
 ;; (global-set-key (kbd "M-o") 'ace-window)
 #+end_src
 
-*** EXPERIMENTAL Coding
+*** EXPERIMENTAL COMMENT Coding
 #+begin_src emacs-lisp
 ;; If there were no compilation errors, delete the compilation window
 (setq compilation-exit-message-function
@@ -615,17 +650,11 @@ Do nothing when point is not inside a table."
 
 #+end_src
 
-*** Internet
+*** COMMENT Internet
 #+begin_src emacs-lisp
 (unless (display-graphic-p)
   (setq browse-url-browser-function 'eww-browse-url))
-#+end_src
- 
-** Commands enabled
-#+begin_src emacs-lisp
-(put 'dired-find-alternate-file 'disabled nil)
-#+end_src
-
+#+end_src 
 * Packages
 ** Magit
 Magit is a complete text-based user interface to Git.
@@ -659,8 +688,13 @@ Magit is a complete text-based user interface to Git.
 #+begin_src emacs-lisp
 (use-package undo-tree
   :defer t
-  :hook 
-  (after-init . global-undo-tree-mode)
+  :commands (global-undo-tree-mode)
+  :init
+  (defun my/enable-undo-tree-once ()
+    (when buffer-file-name
+      (global-undo-tree-mode 1)
+      (remove-hook 'find-file-hook #'my/enable-undo-tree-once)))
+  (add-hook 'find-file-hook #'my/enable-undo-tree-once)
   :custom
   (undo-tree-visualizer-diff t)
   (undo-tree-history-directory-alist '(("." . "/tmp/")))
@@ -831,7 +865,7 @@ See URL `http://vhdltool.com'."
   (setq company-dabbrev-ignore-case nil) ; Respect case
   )
 #+end_src
-** Pdf-tools
+** COMMENT Pdf-tools
 #+begin_src emacs-lisp
 (use-package pdf-tools
   :defer t
@@ -842,7 +876,7 @@ See URL `http://vhdltool.com'."
         TeX-source-correlate-start-server t
         TeX-source-correlate-method 'synctex))
 #+end_src
-** Treemacs
+** COMMENT Treemacs
 #+begin_src emacs-lisp
 (use-package treemacs
   :defer t
@@ -850,38 +884,7 @@ See URL `http://vhdltool.com'."
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
 #+end_src
-* Experimental
-** FAIL Buffers
-#+begin_src emacs-lisp
-;; (defun window-toggle-split-direction ()
-;;   "Switch window split from horizontally to vertically, or vice versa.
-;; i.e. change right window to bottom, or change bottom window to right."
-;;   (interactive)
-;;   (require 'windmove)
-;;   (let ((done))
-;;     (dolist (dirs '((right . down) (down . right)))
-;;       (unless done
-;;         (let* ((win (selected-window))
-;;                (nextdir (car dirs))
-;;                (neighbour-dir (cdr dirs))
-;;                (next-win (windmove-find-other-window nextdir win))
-;;                (neighbour1 (windmove-find-other-window neighbour-dir win))
-;;                (neighbour2 (if next-win (with-selected-window next-win
-;;                                           (windmove-find-other-window neighbour-dir next-win)))))
-;;           ;;(message "win: %s\nnext-win: %s\nneighbour1: %s\nneighbour2:%s" win next-win neighbour1 neighbour2)
-;;           (setq done (and (eq neighbour1 neighbour2)
-;;                           (not (eq (minibuffer-window) next-win))))
-;;           (if done
-;;               (let* ((other-buf (window-buffer next-win)))
-;;                 (delete-window next-win)
-;;                 (if (eq nextdir 'right)
-;;                     (split-window-vertically)
-;;                   (split-window-horizontally))
-;;                 (set-window-buffer (windmove-find-other-window neighbour-dir) other-buf))))))))
-
-;; (global-set-key (kbd "C-x 4") 'window-toggle-split-direction)
-#+end_src
-
+* COMMENT Ready for integration
 ** WORKS Matlab
 #+begin_src emacs-lisp
 ;; Session evaluation of MATLAB in org-babel is broken, this goes some
@@ -978,119 +981,24 @@ See URL `http://vhdltool.com'."
                                                                 string rest)))))
 #+end_src
 
-** DONE Code for compile dev_ws
+** WORKS subword
 #+begin_src emacs-lisp
-(defun my/ros-colcon-build ()
-  "build project 1"
-  (interactive)
-  (let ((buf-name '"*jea-compile-project1*")
-        (working-dir '"~/Documents/Universidad/CyPR/ROS/dev_ws/"))
+(add-hook 'prog-mode-hook #'subword-mode) 
+(add-hook 'org-mode-hook #'subword-mode)
+#+end_src
+** WORKS Auto update last modifiedd
+#+begin_src emacs-lisp
+(defun update-last-modified ()
+  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
+  (when (eq major-mode 'org-mode)
     (save-excursion
-      (with-current-buffer (get-buffer-create buf-name)
-        (barf-if-buffer-read-only)
-        (erase-buffer))
-      (cd working-dir)
-      (call-process-shell-command "colcon build" nil buf-name 't)
-      (cd "~/coppelia_ws/")
-      (call-process-shell-command "colcon build" nil buf-name 't)
-      (message "compile project 1 done")
-      )))
-(global-set-key [(f10)] 'my/ros-colcon-build)
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+last_modified:.*" nil t)
+        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
+
+(add-hook 'before-save-hook 'update-last-modified)
 #+end_src
-
-** EXPERIMENTAL Org-mode
-#+begin_src emacs-lisp
-(with-eval-after-load "org"
-  (define-key org-mode-map "\C-e" nil)
-  (define-key org-mode-map [remap move-end-of-line] nil))
-
-
-(setq org-tidy-protect-overlay nil)
-#+end_src
-
-** EXPERIMENTAL Languagetool
-#+begin_src emacs-lisp
-;; (use-package languagetool
-;;   :ensure t
-;;   :defer t
-;;   :commands (languagetool-check
-;;              languagetool-clear-suggestions
-;;              languagetool-correct-at-point
-;;              languagetool-correct-buffer
-;;              languagetool-set-language
-;;              languagetool-server-mode
-;;              languagetool-server-start
-;;              languagetool-server-stop)
-;;   :config
-;;   (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8")
-;;         languagetool-console-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-commandline.jar"
-;;         languagetool-server-command "~/.local/bin/language-tools/LanguageTool-6.3-stable/languagetool-server.jar"))
-#+end_src
-
-** EXPERIMENTAL Multiple cursors
-#+begin_src emacs-lisp
-(use-package multiple-cursors
-  :ensure t
-  :defer t)
-#+end_src
-
-** EXPERIMENTAL Org mode solution
-#+begin_src emacs-lisp
-(setq org-fold-core-style 'overlays)
-(setq org-tag-alist
-      '(;; Places
-        ("@home" . ?H)
-        ("@work" . ?W)
-
-        ;; Devices
-        ("@computer" . ?C)
-        ("@phone" . ?P)
-
-        ;; Activities
-        ("@planning" . ?n)
-        ("@programming" . ?p)
-        ("@writing" . ?w)
-        ("@creative" . ?c)
-        ("@email" . ?e)
-        ("@calls" . ?a)
-        ("@errands" . ?r)))
-#+end_src
-
-** EXPERIMENTAL Open bookmark on startup
-#+begin_src emacs-lisp
-(bookmark-bmenu-list)
-(switch-to-buffer "*Bookmark List*")
-#+end_src
-
-** EXPERIMENTAL Show characters and words
-#+begin_src emacs-lisp
-(setq-default mode-line-format
-              (append mode-line-format
-                      (list
-                       '(:eval (if (use-region-p)
-                                   (format "W:%d, C:%d"
-                                           (count-words-region (region-beginning) (region-end))
-                                           (- (region-end) (region-beginning)))
-                                 "")))))
-#+end_src
-** EXPERIMENTAL HTMLfontify
-#+begin_src emacs-lisp
-(use-package htmlize
-  :ensure t)
-(setq org-html-htmlize-output-type 'css)
-#+end_src
-** EXPERIMENTAL YASnippet
-#+begin_src emacs-lisp
-(use-package yasnippet
-  :ensure t
-  :config
-  (yas-global-mode 1)) ; Activar Yasnippet en todo Emacs
-;; (setq yas-snippet-dirs
-;;       '("~/.emacs.d/snippets"          ; Snippets personalizados
-;;         yasnippet-snippets-dir))       ; Snippets de yasnippet-snippets
-
-#+end_src
-** EXPERIMENTAL Show function
+** IN-PROGRESS Show function
 #+begin_src emacs-lisp
 (which-function-mode 1)
 (custom-set-faces
@@ -1111,54 +1019,33 @@ See URL `http://vhdltool.com'."
     (((class color)
       (min-colors 88)
       (background dark))
-     (:foreground "white"))
+     (:foreground "green"))
     (((background dark))
-     (:foreground "white"))
+     (:foreground "red"))
     (t
-     (:foreground "white")))))
+     (:foreground "red")))))
 #+end_src
-** EXPERIMENTAL subword
+** DONE Code for compile dev_ws
 #+begin_src emacs-lisp
-(add-hook 'prog-mode-hook #'subword-mode)
-(add-hook 'org-mode-hook #'subword-mode)
-#+end_src
-** TODO Autocomplete on replace
-#+begin_src emacs-lisp
-
-#+end_src
-** TODO Keep a buffer content locked and size
-#+begin_src emacs-lisp
-(defadvice pop-to-buffer (before cancel-other-window first)
-  (ad-set-arg 1 nil))
-
-(ad-activate 'pop-to-buffer)
-
-;; Toggle window dedication
-(defun toggle-window-dedicated ()
-  "Toggle whether the current active window is dedicated or not"
+(defun my/ros-colcon-build ()
+  "build project 1"
   (interactive)
-  (message
-   (if (let (window (get-buffer-window (current-buffer)))
-         (set-window-dedicated-p window 
-                                 (not (window-dedicated-p window))))
-       "Window '%s' is dedicated"
-     "Window '%s' is normal")
-   (current-buffer)))
-
-;; Press [pause] key in each window you want to "freeze"
-(global-set-key [(f10)] 'toggle-window-dedicated)
-
-(setq display-buffer-alist
-      '((".*" . ((display-buffer-reuse-window display-buffer-same-window)))))
-
-(global-set-key (kbd "M-<f10>") (lambda () 
-                                  (interactive)
-                                  (setq window-size-fixed (not window-size-fixed))
-                                  (if window-size-fixed
-                                      (message "Window size is now fixed.")
-                                    (message "Window size is now dynamic."))))
+  (let ((buf-name '"*jea-compile-project1*")
+        (working-dir '"~/Documents/Universidad/CyPR/ROS/dev_ws/"))
+    (save-excursion
+      (with-current-buffer (get-buffer-create buf-name)
+        (barf-if-buffer-read-only)
+        (erase-buffer))
+      (cd working-dir)
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (cd "~/coppelia_ws/")
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (message "compile project 1 done")
+      )))
+(global-set-key [(f10)] 'my/ros-colcon-build)
 #+end_src
-** EXPERIMENTAL Show size of file in dired mode
+
+** DONE Show size of file in dired mode
 #+begin_src emacs-lisp
 ;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
 ;; https://oremacs.com/2015/01/12/dired-file-size/
@@ -1206,44 +1093,70 @@ See URL `http://vhdltool.com'."
 (with-eval-after-load 'dired
   (define-key dired-mode-map (kbd "z") 'dired-get-size))
 #+end_src
+* COMMENT Experimental
+** TODO Autocomplete on replace
+** EXPERIMENTAL Org-mode
+#+begin_src emacs-lisp
+(with-eval-after-load "org"
+  (define-key org-mode-map "\C-e" nil)
+  (define-key org-mode-map [remap move-end-of-line] nil))
+
+
+(setq org-tidy-protect-overlay nil)
+#+end_src
+
+** EXPERIMENTAL Multiple cursors
+#+begin_src emacs-lisp
+(use-package multiple-cursors
+  :ensure t
+  :defer t)
+#+end_src
+
+** EXPERIMENTAL Org mode solution
+#+begin_src emacs-lisp
+(setq org-fold-core-style 'overlays)
+(setq org-tag-alist
+      '(;; Places
+        ("@home" . ?H)
+        ("@work" . ?W)
+
+        ;; Devices
+        ("@computer" . ?C)
+        ("@phone" . ?P)
+
+        ;; Activities
+        ("@planning" . ?n)
+        ("@programming" . ?p)
+        ("@writing" . ?w)
+        ("@creative" . ?c)
+        ("@email" . ?e)
+        ("@calls" . ?a)
+        ("@errands" . ?r)))
+#+end_src
+
+** EXPERIMENTAL HTMLfontify
+#+begin_src emacs-lisp
+(use-package htmlize
+  :ensure t)
+(setq org-html-htmlize-output-type 'css)
+#+end_src
+** EXPERIMENTAL YASnippet
+#+begin_src emacs-lisp
+(use-package yasnippet
+  :ensure t
+  :config
+  (yas-global-mode 1)) ; Activar Yasnippet en todo Emacs
+;; (setq yas-snippet-dirs
+;;       '("~/.emacs.d/snippets"          ; Snippets personalizados
+;;         yasnippet-snippets-dir))       ; Snippets de yasnippet-snippets
+
+#+end_src
 ** EXPERIMENTAL pdf-to-svg
 #+begin_src emacs-lisp
 (defun my/pdf-to-svg ()
   "Get as input a PDF file and return it as an SVG."
   (interactive)
   (shell-command (concat "inkscape " (read-file-name "File name: ") " --export-area-drawing --batch-process --export-type=svg --export-filename=" (read-from-minibuffer (concat "Name output file:")) ".svg&")))
-#+end_src
-** EXPERIMENTAL erc test
-#+begin_src emacs-lisp
-(defun my/erc-start-or-switch ()
-  "Conecta a ERC, o cambia al último búfer activo."
-  (interactive)
-  (if (get-buffer "irc.libera.chat:6667")
-      (erc-track-switch-buffer 1)
-    (when (y-or-n-p "Start ERC? ")
-      (erc :server "irc.libera.chat" :port 6667 :nick "rhyloo"))))
-
-(defun my/erc-notify (nickname message)
-  "Muestra un mensaje de notificación para ERC."
-  (let* ((channel (buffer-name))
-         (nick (erc-hl-nicks-trim-irc-nick nickname))
-         (title (if (string-match-p (concat "^" nickname) channel)
-                    nick
-                  (concat nick " (" channel ")")))
-         (msg (s-trim (s-collapse-whitespace message))))
-    (alert (concat nick ": " msg) :title title)))
-#+end_src
-** EXPERIMENTAL Auto update last modifiedd
-#+begin_src emacs-lisp
-(defun update-last-modified ()
-  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
-  (when (eq major-mode 'org-mode)
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward "^#\\+last_modified:.*" nil t)
-        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
-
-(add-hook 'before-save-hook 'update-last-modified)
 #+end_src
 ** EXPERIMENTAL Writting
 #+begin_src emacs-lisp
@@ -1356,10 +1269,26 @@ See URL `http://vhdltool.com'."
 ;;     (consult-ripgrep org-roam-directory)))
 ;; (global-set-key (kbd "C-c r") 'bms/org-roam-rg-search)
 #+end_src
-* COMMENT Content
-git@github.com:rhyloo/rhyloo.github.io.git
-git@github.com:rhyloo/TimeLine-Of-Life.git
-  
+* COMMENT Finish startup optimization
+** Restaurar valores razonables tras el inicio
+Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
+#+begin_src emacs-lisp
+(setq gc-cons-threshold (* 2 1000 1000)) ;; The default is 800 kilobytes. Measured in bytes.
+(setq gc-cons-percentage 0.5)
+#+end_src
+** Recolección de basura periódica
+Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
+#+begin_src emacs-lisp
+(run-with-idle-timer 60 t #'garbage-collect)
+#+end_src
+* References
+1. https://web.archive.org/web/20220516055538/https://blog.d46.us/advanced-emacs-startup/
+* COMMENT Check
+#+begin_src emacs-lisp
+  ;; (windmove-default-keybindings 'M) ;; Move windows
+  ;; (global-set-key (kbd "C-c C-c") 'org-capture)
+  ;; (setq org-default-notes-file (concat org-directory "/notes.org"))
+#+end_src
 * COMMENT Commit Template
 <tipo>(<área>): <breve descripción del cambio>
 
@@ -1375,3 +1304,4 @@ style: Cambios que no afectan el código (formato, espacios, etc.).
 refactor: Reorganización de código sin cambiar su funcionalidad.
 test: Añadir o modificar pruebas.
 chore: Tareas menores (ej. actualización de dependencias).
+
