@@ -39,6 +39,7 @@
 
 (bookmark-bmenu-list)
 (switch-to-buffer "*Bookmark List*")
+(setq auth-sources '("~/.authinfo" "~/.authinfo.gpg" "~/.netrc" "~/.emacs.d/.authinfo")) ;; Check this later
 
 (setq ring-bell-function 'ignore)                       ;; Remove bell ring
 (if (display-graphic-p)                                 ;; Highlight lines
@@ -53,6 +54,8 @@
 (show-paren-mode 1)                                     ;; Show parens
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (delete-selection-mode 1) ;; Let you select and replace with yank or write
+(add-hook 'prog-mode-hook #'subword-mode) 
+(add-hook 'org-mode-hook #'subword-mode)
 
 (put 'dired-find-alternate-file 'disabled nil)
 
@@ -174,6 +177,21 @@
 ;; Fix bug open tree
 (setq org-fold-core-style 'overlays)
 
+(setq org-agenda-files '("~/Documents/org-mode-files/Agenda.org"))
+(setq org-agenda-block-separator 61)
+(setq org-agenda-restore-windows-after-quit t)            
+(setq org-agenda-window-setup 'only-window)
+
+(defun update-last-modified ()
+  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
+  (when (eq major-mode 'org-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+last_modified:.*" nil t)
+        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
+
+(add-hook 'before-save-hook 'update-last-modified)
+
 (setq org-todo-keywords
 	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
 	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
@@ -234,7 +252,7 @@
   :defer t
   :commands (org-babel-execute:matlab))
 
-(setq backup-directory-alist `(("." . "~/.backups"))) ;;Backup directory
+(setq backup-directory-alist `(("." . "~/.emacs.d/.backups"))) ;;Backup directory
 (setq read-file-name-completion-ignore-case t)        ;; Insensitive letter case
 (setq large-file-warning-threshold nil)               ;; Dont warn for large files
 (setq dired-dwim-target t)                             ;; Allow you move files splitting the window
@@ -247,6 +265,119 @@
 
 (add-hook 'shell-mode-hook
           (lambda () (local-set-key (kbd "C-l") #'comint-clear-buffer)))
+
+(setq-default tab-width 2)                           ;; Default to an indentation size of 2 spaces
+(setq-default evil-shift-width tab-width)            ;; Default to an indentation size of 2 spaces
+(setq-default indent-tabs-mode nil)                  ;; Use spaces instead of tabs for indentation
+(setq-default buffer-file-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+
+(defun my/org-table-install-formulas ()
+  "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line.
+Do nothing when point is not inside a table."
+  (interactive)
+  (when (org-table-p)
+    (save-excursion
+      (goto-char (org-table-begin))
+      (org-table-next-field)
+      (while (progn
+               (org-table-maybe-eval-formula)
+               (looking-at "[^|\n]*|\\([[:space:]]*\n[[:space:]]*|\\)?[^|\n]*\\(|\\)"))
+        (goto-char (match-beginning 2)))
+      ))
+  nil)
+
+(add-hook #'org-ctrl-c-ctrl-c-hook #'my/org-table-install-formulas)
+(defun my/reload-emacs-configuration ()
+  (interactive)
+  (load-file "~/.emacs.d/init.el"))
+
+(defun my/load-blog-configuration ()
+  (interactive)
+  (load-file "~/.emacs.d/blog.el"))
+
+(setq my-user-init-file "README.org")
+(defun my/find-emacs-configuration ()
+  (interactive)
+  (find-file (concat user-emacs-directory my-user-init-file)))
+
+(defun my/find-file (filename)
+  "Open a file in the background"
+  (interactive "FFind file: ")
+  (set-buffer (find-file-noselect filename)))
+
+(defun my/pwd ()
+  "Put the current file name (include directory) on the clipboard"
+  (interactive)
+  (let ((filename (if (equal major-mode 'dired-mode)
+                      default-directory
+                    (buffer-file-name))))
+    (when filename
+      (with-temp-buffer
+        (insert filename)
+        (clipboard-kill-region (point-min) (point-max)))
+      (message filename))))
+
+(defun my/create-temp-directory ()
+  "This function let you create directories or files in the tmp directory for testing"
+  (interactive)
+  (let (
+        (choices '("directory" "files"))
+        (name (read-string "Enter name temporary file: ")))
+
+    (find-file (concat "/tmp/" name))
+    (message name)))
+
+;; --------------------------
+;; Handling file properties for 'CREATED' & 'LAST_MODIFIED'
+;; --------------------------
+
+(defun zp/org-find-time-file-property (property &optional anywhere)
+  "Return the position of the time file PROPERTY if it exists.
+   When ANYWHERE is non-nil, search beyond the preamble."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((first-heading
+           (save-excursion
+             (re-search-forward org-outline-regexp-bol nil t))))
+      (when (re-search-forward (format "^#\\+%s:" property)
+                               (if anywhere nil first-heading)
+                               t)
+        (point)))))
+
+(defun zp/org-has-time-file-property-p (property &optional anywhere)
+  "Return the position of time file PROPERTY if it is defined.
+   As a special case, return -1 if the time file PROPERTY exists but
+   is not defined."
+  (when-let ((pos (zp/org-find-time-file-property property anywhere)))
+    (save-excursion
+      (goto-char pos)
+      (if (and (looking-at-p " ")
+               (progn (forward-char)
+                      (org-at-timestamp-p 'lax)))
+          pos
+        -1))))
+
+(defun zp/org-set-time-file-property (property &optional anywhere pos)
+  "Set the time file PROPERTY in the preamble.
+   When ANYWHERE is non-nil, search beyond the preamble.
+   If the position of the file PROPERTY has already been computed,
+   it can be passed in POS."
+  (when-let ((pos (or pos
+                      (zp/org-find-time-file-property property))))
+    (save-excursion
+      (goto-char pos)
+      (if (looking-at-p " ")
+          (forward-char)
+        (insert " "))
+      (delete-region (point) (line-end-position))
+      (let* ((now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+        (insert now)))))
+
+(defun zp/org-set-last-modified ()
+  "Update the LAST_MODIFIED file property in the preamble."
+  (when (derived-mode-p 'org-mode)
+    (zp/org-set-time-file-property "LAST_MODIFIED")))
 
 (eval-after-load 'pdf-tools
   '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp)) ;; Set C-s for searching in pdf-tools
@@ -355,12 +486,6 @@
   (undo-tree-history-directory-alist '(("." . "/tmp/")))
   (undo-tree-visualizer-timestamps t))
 
-(use-package counsel
-  :ensure t
-  :defer t
-  :bind     
-  ("M-x" . counsel-M-x))
-
 (use-package swiper
   :ensure t
   :defer t
@@ -369,45 +494,19 @@
   :hook 
   (after-init . ivy-mode)
   :config
-  (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t)
-  (setopt ivy-use-selectable-prompt t))
-
-;; (use-package flycheck
-;;   :defer t
-;;   :init
-;;   (global-flycheck-mode) ; Activa Flycheck globalmente
-;;   :config
-;;   ;; Añadir Proselint como checker para org-mode
-;;   (add-hook 'org-mode-hook
-;;             (lambda ()
-;;               ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
-;;               (setq-local flycheck-checkers '(proselint))
-              
-;;               ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
-;;               ;;(add-to-list 'flycheck-checkers 'proselint)
-              
-;;               (flycheck-mode))) ; Asegura que Flycheck esté activo
-;;   )
+  (setq ivy-use-virtual-buffers nil)
+  ;; (setq enable-recursive-minibuffers t)
+  ;; (setopt ivy-use-selectable-prompt t)
+  )
+(use-package counsel
+  :ensure t
+  :defer t
+  :bind     
+  ("M-x" . counsel-M-x))
 
 (use-package writegood-mode  
   :ensure t
   :defer t)
-
-;; (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
-;; (setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
-;;       languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
-;; (use-package languagetool
-;;   :ensure t
-;;   :defer t
-;;   :commands (languagetool-check
-;;              languagetool-clear-suggestions
-;;              languagetool-correct-at-point
-;;              languagetool-correct-buffer
-;;              languagetool-set-language
-;;              languagetool-server-mode
-;;              languagetool-server-start
-;;              languagetool-server-stop))
 
 (use-package vhdl-mode
   :defer t)
@@ -438,13 +537,13 @@
 
 (use-package company
   :ensure t
-  :defer t
-  :config
-  (add-hook 'after-init-hook 'global-company-mode)
-  ;; Disable company-mode in shell-mode
+  :defer t  ; Load when needed, not at startup
+  :init     ; Execute immediately (before package loads)
+  (add-hook 'after-init-hook #'global-company-mode)
+  :config   ; Execute after package loads
   (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
-  (setq company-dabbrev-downcase nil)    ; Don't lowercase completions
-  (setq company-dabbrev-ignore-case nil) ; Respect case
+  (setq company-dabbrev-downcase nil)    ; Preserve case in completions
+  (setq company-dabbrev-ignore-case nil) ; Case-sensitive matching
   )
 
 ;; Session evaluation of MATLAB in org-babel is broken, this goes some
@@ -540,19 +639,6 @@
                                       (replace-regexp-in-string regex replacement
                                                                 string rest)))))
 
-(add-hook 'prog-mode-hook #'subword-mode) 
-(add-hook 'org-mode-hook #'subword-mode)
-
-(defun update-last-modified ()
-  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
-  (when (eq major-mode 'org-mode)
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward "^#\\+last_modified:.*" nil t)
-        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
-
-(add-hook 'before-save-hook 'update-last-modified)
-
 (which-function-mode 1)
 (custom-set-faces
  '(which-func
@@ -641,3 +727,4 @@
   (define-key dired-mode-map (kbd "z") 'dired-get-size))
 
 (setq gnus-home-directory "~/.emacs.d/")
+(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)

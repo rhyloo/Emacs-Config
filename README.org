@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-07-06 17:35:19
+#+last_modified: 2025-07-06 21:17:57
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -88,6 +88,7 @@ To add words and characters to modeline
 #+begin_src emacs-lisp
 (bookmark-bmenu-list)
 (switch-to-buffer "*Bookmark List*")
+(setq auth-sources '("~/.authinfo" "~/.authinfo.gpg" "~/.netrc" "~/.emacs.d/.authinfo")) ;; Check this later
 #+end_src
 **** Screen
 #+begin_src emacs-lisp
@@ -108,6 +109,8 @@ To add words and characters to modeline
 (show-paren-mode 1)                                     ;; Show parens
 (global-visual-line-mode 1)  ;; Better than fix the lines with set-fill-column
 (delete-selection-mode 1) ;; Let you select and replace with yank or write
+(add-hook 'prog-mode-hook #'subword-mode) 
+(add-hook 'org-mode-hook #'subword-mode)
 #+end_src
 **** Dired
 #+begin_src emacs-lisp
@@ -245,6 +248,21 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
 		   (display-line-numbers-mode -1))))
 ;; Fix bug open tree
 (setq org-fold-core-style 'overlays)
+
+(setq org-agenda-files '("~/Documents/org-mode-files/Agenda.org"))
+(setq org-agenda-block-separator 61)
+(setq org-agenda-restore-windows-after-quit t)            
+(setq org-agenda-window-setup 'only-window)
+
+(defun update-last-modified ()
+  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
+  (when (eq major-mode 'org-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+last_modified:.*" nil t)
+        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
+
+(add-hook 'before-save-hook 'update-last-modified)
 #+end_src
 **** Keywords states
 #+begin_src emacs-lisp
@@ -313,7 +331,7 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
 ** Features
 *** File manager
 #+begin_src emacs-lisp
-(setq backup-directory-alist `(("." . "~/.backups"))) ;;Backup directory
+(setq backup-directory-alist `(("." . "~/.emacs.d/.backups"))) ;;Backup directory
 (setq read-file-name-completion-ignore-case t)        ;; Insensitive letter case
 (setq large-file-warning-threshold nil)               ;; Dont warn for large files
 (setq dired-dwim-target t)                             ;; Allow you move files splitting the window
@@ -371,6 +389,7 @@ Do nothing when point is not inside a table."
   (interactive)
   (load-file "~/.emacs.d/blog.el"))
 
+(setq my-user-init-file "README.org")
 (defun my/find-emacs-configuration ()
   (interactive)
   (find-file (concat user-emacs-directory my-user-init-file)))
@@ -574,12 +593,6 @@ Magit is a complete text-based user interface to Git.
 #+end_src
 ** Ivy/Swiper
 #+begin_src emacs-lisp
-(use-package counsel
-  :ensure t
-  :defer t
-  :bind     
-  ("M-x" . counsel-M-x))
-
 (use-package swiper
   :ensure t
   :defer t
@@ -588,11 +601,23 @@ Magit is a complete text-based user interface to Git.
   :hook 
   (after-init . ivy-mode)
   :config
-  (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t)
-  (setopt ivy-use-selectable-prompt t))
+  (setq ivy-use-virtual-buffers nil)
+  ;; (setq enable-recursive-minibuffers t)
+  ;; (setopt ivy-use-selectable-prompt t)
+  )
+(use-package counsel
+  :ensure t
+  :defer t
+  :bind     
+  ("M-x" . counsel-M-x))
 #+end_src
 ** Languages coding
+*** Writting
+#+begin_src emacs-lisp
+(use-package writegood-mode  
+  :ensure t
+  :defer t)
+#+end_src
 *** COMMENT LaTeX 
 #+begin_src emacs-lisp
 (use-package lsp-ltex
@@ -610,45 +635,6 @@ Magit is a complete text-based user interface to Git.
   :defer t)
 (use-package company-arduino
   :defer t)
-#+end_src
-
-*** Checker
-#+begin_src emacs-lisp
-;; (use-package flycheck
-;;   :defer t
-;;   :init
-;;   (global-flycheck-mode) ; Activa Flycheck globalmente
-;;   :config
-;;   ;; Añadir Proselint como checker para org-mode
-;;   (add-hook 'org-mode-hook
-;;             (lambda ()
-;;               ;; Opción 1: Usar solo Proselint (reemplaza otros checkers)
-;;               (setq-local flycheck-checkers '(proselint))
-              
-;;               ;; Opción 2: Combinar Proselint con otros checkers (ej: spell)
-;;               ;;(add-to-list 'flycheck-checkers 'proselint)
-              
-;;               (flycheck-mode))) ; Asegura que Flycheck esté activo
-;;   )
-
-(use-package writegood-mode  
-  :ensure t
-  :defer t)
-
-;; (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
-;; (setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
-;;       languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
-;; (use-package languagetool
-;;   :ensure t
-;;   :defer t
-;;   :commands (languagetool-check
-;;              languagetool-clear-suggestions
-;;              languagetool-correct-at-point
-;;              languagetool-correct-buffer
-;;              languagetool-set-language
-;;              languagetool-server-mode
-;;              languagetool-server-start
-;;              languagetool-server-stop))
 #+end_src
 
 *** VHDL
@@ -717,13 +703,13 @@ Magit is a complete text-based user interface to Git.
 #+begin_src emacs-lisp
 (use-package company
   :ensure t
-  :defer t
-  :config
-  (add-hook 'after-init-hook 'global-company-mode)
-  ;; Disable company-mode in shell-mode
+  :defer t  ; Load when needed, not at startup
+  :init     ; Execute immediately (before package loads)
+  (add-hook 'after-init-hook #'global-company-mode)
+  :config   ; Execute after package loads
   (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
-  (setq company-dabbrev-downcase nil)    ; Don't lowercase completions
-  (setq company-dabbrev-ignore-case nil) ; Respect case
+  (setq company-dabbrev-downcase nil)    ; Preserve case in completions
+  (setq company-dabbrev-ignore-case nil) ; Case-sensitive matching
   )
 #+end_src
 ** COMMENT Pdf-tools
@@ -842,24 +828,7 @@ Magit is a complete text-based user interface to Git.
                                                                 string rest)))))
 #+end_src
 
-** WORKS subword
-#+begin_src emacs-lisp
-(add-hook 'prog-mode-hook #'subword-mode) 
-(add-hook 'org-mode-hook #'subword-mode)
-#+end_src
-** WORKS Auto update last modifiedd
-#+begin_src emacs-lisp
-(defun update-last-modified ()
-  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
-  (when (eq major-mode 'org-mode)
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward "^#\\+last_modified:.*" nil t)
-        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
-
-(add-hook 'before-save-hook 'update-last-modified)
-#+end_src
-** IN-PROGRESS Show function
+** WORKS Show function
 #+begin_src emacs-lisp
 (which-function-mode 1)
 (custom-set-faces
@@ -957,6 +926,8 @@ Magit is a complete text-based user interface to Git.
 ** DONE Email config
 #+begin_src emacs-lisp
 (setq gnus-home-directory "~/.emacs.d/")
+(setq mail-signature-file "~/.emacs.d/.signature")
+(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
 #+end_src
 * COMMENT Experimental
 ** TODO Autocomplete on replace
@@ -965,7 +936,6 @@ Magit is a complete text-based user interface to Git.
 (with-eval-after-load "org"
   (define-key org-mode-map "\C-e" nil)
   (define-key org-mode-map [remap move-end-of-line] nil))
-
 
 (setq org-tidy-protect-overlay nil)
 #+end_src
@@ -1040,14 +1010,6 @@ Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo
 #+begin_src emacs-lisp
 (run-with-idle-timer 60 t #'garbage-collect)
 #+end_src
-* References
-1. https://web.archive.org/web/20220516055538/https://blog.d46.us/advanced-emacs-startup/
-* COMMENT Check
-#+begin_src emacs-lisp
-  ;; (windmove-default-keybindings 'M) ;; Move windows
-  ;; (global-set-key (kbd "C-c C-c") 'org-capture)
-  ;; (setq org-default-notes-file (concat org-directory "/notes.org"))
-#+end_src
 * COMMENT Commit Template
 <tipo>(<área>): <breve descripción del cambio>
 
@@ -1064,3 +1026,5 @@ refactor: Reorganización de código sin cambiar su funcionalidad.
 test: Añadir o modificar pruebas.
 chore: Tareas menores (ej. actualización de dependencias).
 
+* References
+1. https://web.archive.org/web/20220516055538/https://blog.d46.us/advanced-emacs-startup/
