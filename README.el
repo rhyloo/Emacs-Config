@@ -1,16 +1,15 @@
 (add-hook 'emacs-startup-hook
 	        (lambda ()
             (message "*** Emacs loaded in %s with %d garbage collections."
-	                   (format "%.2f seconds"
-		                         (float-time
-			                        (time-subtract after-init-time before-init-time)))
-	                   gcs-done)))
+	                   (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done)))
 
 (setq gc-cons-threshold (* 50 1000 1000)) ;; Minimize garbage collection during startup
 
-(setq user-full-name "J. L. Benavides"  ;; Set my name
+(setq user-full-name "Rhyloo"  ;; Set my name
+      user-mail-address "me@rhyloo.com"
       user-real-login-name "Rhyloo")    ;; Set my user
 
+(fset 'yes-or-no-p 'y-or-n-p)                           ;; Replace yes or no for y or n
 (setq inhibit-startup-message t)                        ;; Avoid startup message
 (setq frame-title-format '("%b [%m]"))                  ;; Title bar name
 (when (display-graphic-p) 
@@ -18,8 +17,7 @@
   (tool-bar-mode -1)                                    ;; Disable the toolbar
   (tooltip-mode -1)                                     ;; Disable tooltips
   (set-fringe-mode 3)                                   ;; Give some breathing room (borders)
-  (add-to-list 'default-frame-alist '(fullscreen . maximized))
-  )
+  (add-to-list 'default-frame-alist '(fullscreen . maximized)))
 (menu-bar-mode -1)                                      ;; Disable the menu bar terminal and display mode
 
 (setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
@@ -29,7 +27,6 @@
 (unless (equal "Battery status not available" (battery)) ;;Show battery
   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 
-(column-number-mode)                                    ;; Show collumn in modeline
 (setq-default mode-line-format
               (append mode-line-format
                       (list
@@ -38,6 +35,7 @@
                                            (count-words-region (region-beginning) (region-end))
                                            (- (region-end) (region-beginning)))
                                  "")))))
+(column-number-mode)                                    ;; Show collumn in modeline
 
 (bookmark-bmenu-list)
 (switch-to-buffer "*Bookmark List*")
@@ -95,6 +93,7 @@
 
 (when (display-graphic-p)
   (use-package vscode-dark-plus-theme
+    :ensure t
     :defer t
     :init
     (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t))))
@@ -108,6 +107,8 @@
   :config
   (setq org-adapt-indentation t
         org-odd-levels-only nil
+	org-cycle-separator-lines 0
+	org-src-tab-acts-natively t	
         org-src-preserve-indentation t
         org-edit-src-content-indentation 1
 	org-startup-with-inline-images nil ;; Startup with inline images (disable)
@@ -116,7 +117,45 @@
   (when (display-graphic-p)
     (setq org-hide-leading-stars t)
     (with-eval-after-load 'org  ; Espera a que Org esté cargado
-      (add-hook 'org-mode-hook 'org-indent-mode))))
+      (add-hook 'org-mode-hook 'org-indent-mode)))
+  (with-eval-after-load 'ox-latex  
+    (add-to-list 'org-latex-classes
+		 '("reporti"
+                   "\\documentclass{reporti}
+                  [NO-DEFAULT-PACKAGES]
+                  [NO-PACKAGES]"
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+  
+;; Prefer minted for source code export in LaTeX.
+(setq org-latex-listings (quote minted))
+
+;; Prefex `xelatex' as the LaTeX processor.
+(setq org-latex-compiler "xelatex")
+
+;; Make sure that LaTeX knows about the `minted' package: we take care
+;; of it in `org-latex-packages-alist' and we do *NOT* want to include
+;; it explicitly as a #+LATEX_HEADER, since the options may differ, in
+;; which case the two inclusions will conflict.
+(setq org-latex-packages-alist '(("outputdir=./build" "minted" nil)))
+
+;; `org-latex-pdf-process' is a list of shell commands. We take advantage of that
+;; to:
+;;   - create the `build' subdirectory if it is not present
+;;   - run `latexmk' with the proper options (in particular `-shell-escape' which i
+;;     necessary in order to allow the LaTeX processor to run an external program,
+;;     like `pygmentize' in the case of `minted'; and `-output-directory' to allow
+;;     all the artifacts to be sent there)
+;;   - finally, move the `.pdf' file to the parent directory of the `build' subdirectory
+;;     so that the exporter will be able to find it and not complain.
+;; Note also that `%latex' is replaced by the value of `org-latex-compiler' so we use
+;; `xelatex' as our LaTeX processor.
+(setq org-latex-pdf-process '("mkdir -p build"
+                              "latexmk -f -pdf -%latex -shell-escape -interaction=nonstopmode -output-directory=%o/build %f"
+                              "mv %o/build/%b.pdf %O")))
 
 
 ;; Enable line numbers for some modes
@@ -132,12 +171,13 @@
 (dolist (mode '(org-mode-hook))
   (add-hook mode (lambda () 
 		   (display-line-numbers-mode -1))))
-
-
+;; Fix bug open tree
+(setq org-fold-core-style 'overlays)
 
 (setq org-todo-keywords
 	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
 	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+
 (setq org-todo-keyword-faces
 	'(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
 	  ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
@@ -156,8 +196,7 @@
   :commands
   (org-babel-execute:sh
    org-babel-expand-body:sh
-   org-babel-execute:bash
-   org-babel-expand-body:bash))
+   org-babel-execute:bash))
 
 (use-package ob-js
   :defer t
@@ -195,6 +234,20 @@
   :defer t
   :commands (org-babel-execute:matlab))
 
+(setq backup-directory-alist `(("." . "~/.backups"))) ;;Backup directory
+(setq read-file-name-completion-ignore-case t)        ;; Insensitive letter case
+(setq large-file-warning-threshold nil)               ;; Dont warn for large files
+(setq dired-dwim-target t)                             ;; Allow you move files splitting the window
+(setq dired-listing-switches "-la")
+
+(global-auto-revert-mode 1)                          ;; Revert buffers when the underlying file has changed
+(setq global-auto-revert-non-file-buffers t)         ;; Revert Dired and other buffers
+
+(setq auto-revert-remote-files nil)                    ;; Revert buffer in remote (SLOW)
+
+(add-hook 'shell-mode-hook
+          (lambda () (local-set-key (kbd "C-l") #'comint-clear-buffer)))
+
 (eval-after-load 'pdf-tools
   '(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward-regexp)) ;; Set C-s for searching in pdf-tools
 
@@ -229,6 +282,7 @@
 ;;     (find-file (concat "/tmp/" temp-file-name))))
 ;; (global-set-key (kbd "M-o") 'ace-window)
 
+;; REVISAR
 ;; If there were no compilation errors, delete the compilation window
 (setq compilation-exit-message-function
       (lambda (status code msg)
@@ -273,6 +327,7 @@
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 
 (use-package magit
+  :ensure t
   :defer t
   :bind ("C-x g" . magit-status)
   :config
@@ -280,21 +335,13 @@
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
 
-;; (setq auth-sources '("~/.authinfo"))
-;; (use-package forge
-;;   :defer t
-;;   :after (magit))
-
-;; (use-package magit-pretty-graph
-;;   :ensure nil
-;;   :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
-;;   :after (magit))
-
 (use-package minions
+  :ensure t
   :defer t
   :hook (after-init . minions-mode))
 
 (use-package undo-tree
+  :ensure t
   :defer t
   :commands (global-undo-tree-mode)
   :init
@@ -308,7 +355,14 @@
   (undo-tree-history-directory-alist '(("." . "/tmp/")))
   (undo-tree-visualizer-timestamps t))
 
+(use-package counsel
+  :ensure t
+  :defer t
+  :bind     
+  ("M-x" . counsel-M-x))
+
 (use-package swiper
+  :ensure t
   :defer t
   :bind 
   ("C-s" . swiper-isearch)
@@ -316,12 +370,8 @@
   (after-init . ivy-mode)
   :config
   (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t))
-
-(use-package counsel
-  :defer t
-  :bind     
-  ("M-x" . counsel-M-x))
+  (setq enable-recursive-minibuffers t)
+  (setopt ivy-use-selectable-prompt t))
 
 ;; (use-package flycheck
 ;;   :defer t
@@ -341,39 +391,26 @@
 ;;   )
 
 (use-package writegood-mode  
-  :ensure t)
-
-(setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
-(setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
-      languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
-(use-package languagetool
   :ensure t
-  :defer t
-  :commands (languagetool-check
-             languagetool-clear-suggestions
-             languagetool-correct-at-point
-             languagetool-correct-buffer
-             languagetool-set-language
-             languagetool-server-mode
-             languagetool-server-start
-             languagetool-server-stop))
+  :defer t)
+
+;; (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
+;; (setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
+;;       languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
+;; (use-package languagetool
+;;   :ensure t
+;;   :defer t
+;;   :commands (languagetool-check
+;;              languagetool-clear-suggestions
+;;              languagetool-correct-at-point
+;;              languagetool-correct-buffer
+;;              languagetool-set-language
+;;              languagetool-server-mode
+;;              languagetool-server-start
+;;              languagetool-server-stop))
 
 (use-package vhdl-mode
   :defer t)
-
-(flycheck-define-checker vhdl-tool
-  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
-
-See URL `http://vhdltool.com'."
-  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
-            )
-  :standard-input t
-  :error-patterns
-  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
-   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
-  :modes (vhdl-mode))
-
-(add-to-list 'flycheck-checkers 'vhdl-tool)
 
 (use-package lua-mode
   :defer t)
@@ -400,6 +437,8 @@ See URL `http://vhdltool.com'."
 (setq matlab-shell-command-switches '("-nodesktop" "-softwareopengl"))
 
 (use-package company
+  :ensure t
+  :defer t
   :config
   (add-hook 'after-init-hook 'global-company-mode)
   ;; Disable company-mode in shell-mode
@@ -407,3 +446,198 @@ See URL `http://vhdltool.com'."
   (setq company-dabbrev-downcase nil)    ; Don't lowercase completions
   (setq company-dabbrev-ignore-case nil) ; Respect case
   )
+
+;; Session evaluation of MATLAB in org-babel is broken, this goes some
+;; way towards addressing the problem.
+;;
+;;- I replaced a `delq' with `delete', the `eq' test was failing on
+;; blank strings
+;;
+;;- For results of type `output', concatenate all statements in the
+;; block with appropriate separators (";", "," etc) and run one long
+;; statment instead. Remove this statement from the raw result. This
+;; produces much cleaner output.
+
+(defun org-babel-octave-evaluate-session
+    (session body result-type &optional matlabp)
+  "Evaluate BODY in SESSION."
+  (let* ((tmp-file (org-babel-temp-file (if matlabp "matlab-" "octave-")))
+         (wait-file (org-babel-temp-file "matlab-emacs-link-wait-signal-"))
+         (full-body
+          (pcase result-type
+            (`output
+             (mapconcat
+              #'org-babel-chomp
+              (list (if matlabp
+                        (multi-replace-regexp-in-string
+                         '(("%.*$"                      . "")    ;Remove comments
+                           (";\\s-*\n+"                 . "; ")  ;Concatenate lines
+                           ("\\(\\.\\)\\{3\\}\\s-*\n+"  . " ")   ;Handle continuations
+                           (",*\\s-*\n+"                . ", ")) ;Concatenate lines
+                         body)
+                      body)
+                    org-babel-octave-eoe-indicator) "\n"))
+            (`value
+             (if (and matlabp org-babel-matlab-with-emacs-link)
+                 (concat
+                  (format org-babel-matlab-emacs-link-wrapper-method
+                          body
+                          (org-babel-process-file-name tmp-file 'noquote)
+                          (org-babel-process-file-name tmp-file 'noquote) wait-file) "\n")
+               (mapconcat
+                #'org-babel-chomp
+                (list (format org-babel-octave-wrapper-method
+                              body
+                              (org-babel-process-file-name tmp-file 'noquote)
+                              (org-babel-process-file-name tmp-file 'noquote))
+                      org-babel-octave-eoe-indicator) "\n")))))
+         (raw (if (and matlabp org-babel-matlab-with-emacs-link)
+                  (save-window-excursion
+                    (with-temp-buffer
+                      (insert full-body)
+                      (write-region "" 'ignored wait-file nil nil nil 'excl)
+                      (matlab-shell-run-region (point-min) (point-max))
+                      (message "Waiting for Matlab Emacs Link")
+                      (while (file-exists-p wait-file) (sit-for 0.01))
+                      "")) ;; matlab-shell-run-region doesn't seem to
+                ;; make *matlab* buffer contents easily
+                ;; available, so :results output currently
+                ;; won't work
+                (org-babel-comint-with-output
+                    (session
+                     (if matlabp
+                         org-babel-octave-eoe-indicator
+                       org-babel-octave-eoe-output)
+                     t full-body)
+                  (insert full-body) (comint-send-input nil t)))) results)
+    (pcase result-type
+      (`value
+       (org-babel-octave-import-elisp-from-file tmp-file))
+      (`output
+       (setq results
+             (if matlabp
+                 (cdr (reverse (delete "" (mapcar #'org-strip-quotes
+                                                  (mapcar #'org-trim (remove-car-upto-newline raw))))))
+               (cdr (member org-babel-octave-eoe-output
+                            (reverse (mapcar #'org-strip-quotes
+                                             (mapcar #'org-trim raw)))))))
+       (mapconcat #'identity (reverse results) "\n")))))
+
+(defun remove-car-upto-newline (raw)
+  "Truncate the first string in a list of strings `RAW' up to the first newline"
+  (cons (mapconcat #'identity
+                   (cdr (split-string-and-unquote (car raw) "\n"))
+                   "\n") (cdr raw)))
+
+(defun multi-replace-regexp-in-string (replacements-list string &optional rest)
+  (interactive)
+  "Replace multiple regexps in a string. Order matters."
+  (if (null replacements-list)
+      string
+    (let ((regex (caar replacements-list))
+          (replacement (cdar replacements-list)))
+      (multi-replace-regexp-in-string (cdr replacements-list)
+                                      (replace-regexp-in-string regex replacement
+                                                                string rest)))))
+
+(add-hook 'prog-mode-hook #'subword-mode) 
+(add-hook 'org-mode-hook #'subword-mode)
+
+(defun update-last-modified ()
+  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
+  (when (eq major-mode 'org-mode)
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+last_modified:.*" nil t)
+        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
+
+(add-hook 'before-save-hook 'update-last-modified)
+
+(which-function-mode 1)
+(custom-set-faces
+ '(which-func
+   ((((class color)
+      (min-colors 88)
+      (background light))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class grayscale mono)
+      (background dark))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class color)
+      (background light))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class color)
+      (min-colors 88)
+      (background dark))
+     (:foreground "green"))
+    (((background dark))
+     (:foreground "red"))
+    (t
+     (:foreground "red")))))
+
+(defun my/ros-colcon-build ()
+  "build project 1"
+  (interactive)
+  (let ((buf-name '"*jea-compile-project1*")
+        (working-dir '"~/Documents/Universidad/CyPR/ROS/dev_ws/"))
+    (save-excursion
+      (with-current-buffer (get-buffer-create buf-name)
+        (barf-if-buffer-read-only)
+        (erase-buffer))
+      (cd working-dir)
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (cd "~/coppelia_ws/")
+      (call-process-shell-command "colcon build" nil buf-name 't)
+      (message "compile project 1 done")
+      )))
+(global-set-key [(f10)] 'my/ros-colcon-build)
+
+;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
+;; https://oremacs.com/2015/01/12/dired-file-size/
+(defun dired-get-size ()
+  (interactive)
+  (let ((files (dired-get-marked-files)))
+    (with-temp-buffer
+      ;; Obtener el nombre del host remoto
+      (let ((remote-hostname (shell-command-to-string "hostname")))
+
+        ;; Eliminar posibles saltos de línea al final
+        (setq remote-hostname (string-trim remote-hostname))
+
+        ;; Dependiendo del nombre de la máquina, ejecutamos diferentes comandos
+        (cond
+         ;; Caso 1: Si estamos en la máquina local con nombre "DESKTOP-O45GL2P"
+         ((or           (string= remote-hostname "DESKTOP-AGD6PUD") 
+                        (string= remote-hostname "DESKTOP-O45GL2P")) 
+          (apply 'call-process "du" nil t nil "-sch" files)
+          (message "Output of du: %s" (buffer-string)))
+
+         ;; Caso 2: Si estamos en el servidor remoto "debian"
+         ((string= remote-hostname "debian")
+          (let ((default-directory (expand-file-name my-remote-path)))
+            (let* ((cleaned-files
+                    (mapcar (lambda (file)
+                              (replace-regexp-in-string my-remote-path-mod "" file))
+                            files))
+                   (du-output (shell-command-to-string (concat "du -sch " (mapconcat 'identity cleaned-files " ")))))
+              ;; Mostrar la salida en el buffer de mensajes
+              (message "Output of du: %s" du-output))))
+
+         ;; Caso 3: Si estamos en otra máquina, por ejemplo, "other-server"
+         ((string= remote-hostname "other-server")
+          (let ((default-directory (expand-file-name "/ssh:user@other-server:/path/to/directory")))
+            (let ((du-output (shell-command-to-string "du -sch /path/to/directory")))
+              ;; Mostrar la salida en el buffer de mensajes
+              (message "Output of du: %s" du-output))))
+
+         ;; Si el nombre del host no coincide con los anteriores
+         (t
+          (message "No se ha definido un comando para esta máquina.")))))))
+
+(with-eval-after-load 'dired
+  (define-key dired-mode-map (kbd "z") 'dired-get-size))
+
+(setq gnus-home-directory "~/.emacs.d/")

@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-03-02 20:57:44
+#+last_modified: 2025-07-06 17:35:19
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -30,10 +30,7 @@ Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs
 (add-hook 'emacs-startup-hook
 	        (lambda ()
             (message "*** Emacs loaded in %s with %d garbage collections."
-	                   (format "%.2f seconds"
-		                         (float-time
-			                        (time-subtract after-init-time before-init-time)))
-	                   gcs-done)))
+	                   (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done)))
 #+end_src
 ** Minimizar la recolección de basura durante el inicio
 Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
@@ -43,13 +40,15 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 * Core
 ** Data
 #+begin_src emacs-lisp
-(setq user-full-name "J. L. Benavides"  ;; Set my name
+(setq user-full-name "Rhyloo"  ;; Set my name
+      user-mail-address "me@rhyloo.com"
       user-real-login-name "Rhyloo")    ;; Set my user
 #+end_src
 ** UI
 *** Visual
 **** General configurations
 #+begin_src emacs-lisp
+(fset 'yes-or-no-p 'y-or-n-p)                           ;; Replace yes or no for y or n
 (setq inhibit-startup-message t)                        ;; Avoid startup message
 (setq frame-title-format '("%b [%m]"))                  ;; Title bar name
 (when (display-graphic-p) 
@@ -57,8 +56,7 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
   (tool-bar-mode -1)                                    ;; Disable the toolbar
   (tooltip-mode -1)                                     ;; Disable tooltips
   (set-fringe-mode 3)                                   ;; Give some breathing room (borders)
-  (add-to-list 'default-frame-alist '(fullscreen . maximized))
-  )
+  (add-to-list 'default-frame-alist '(fullscreen . maximized)))
 (menu-bar-mode -1)                                      ;; Disable the menu bar terminal and display mode
 #+end_src
 **** Mode line
@@ -73,9 +71,8 @@ To config battery display
 (unless (equal "Battery status not available" (battery)) ;;Show battery
   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 #+end_src
-To config columns in modeline
+To add words and characters to modeline
 #+begin_src emacs-lisp
-(column-number-mode)                                    ;; Show collumn in modeline
 (setq-default mode-line-format
               (append mode-line-format
                       (list
@@ -84,6 +81,7 @@ To config columns in modeline
                                            (count-words-region (region-beginning) (region-end))
                                            (- (region-end) (region-beginning)))
                                  "")))))
+(column-number-mode)                                    ;; Show collumn in modeline
 #+end_src
 *** Behavior
 **** Init
@@ -158,10 +156,10 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
   (add-hook 'org-mode-hook #'my/disable-line-numbers :append))
 #+end_src
 ** Vscode Dark Theme
-Clean up the Emacs user interface, make it more minimalistic or not.
 #+begin_src emacs-lisp
 (when (display-graphic-p)
   (use-package vscode-dark-plus-theme
+    :ensure t
     :defer t
     :init
     (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t))))
@@ -181,6 +179,8 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   :config
   (setq org-adapt-indentation t
         org-odd-levels-only nil
+	org-cycle-separator-lines 0
+	org-src-tab-acts-natively t	
         org-src-preserve-indentation t
         org-edit-src-content-indentation 1
 	org-startup-with-inline-images nil ;; Startup with inline images (disable)
@@ -189,7 +189,45 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   (when (display-graphic-p)
     (setq org-hide-leading-stars t)
     (with-eval-after-load 'org  ; Espera a que Org esté cargado
-      (add-hook 'org-mode-hook 'org-indent-mode))))
+      (add-hook 'org-mode-hook 'org-indent-mode)))
+  (with-eval-after-load 'ox-latex  
+    (add-to-list 'org-latex-classes
+		 '("reporti"
+                   "\\documentclass{reporti}
+                  [NO-DEFAULT-PACKAGES]
+                  [NO-PACKAGES]"
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+  
+;; Prefer minted for source code export in LaTeX.
+(setq org-latex-listings (quote minted))
+
+;; Prefex `xelatex' as the LaTeX processor.
+(setq org-latex-compiler "xelatex")
+
+;; Make sure that LaTeX knows about the `minted' package: we take care
+;; of it in `org-latex-packages-alist' and we do *NOT* want to include
+;; it explicitly as a #+LATEX_HEADER, since the options may differ, in
+;; which case the two inclusions will conflict.
+(setq org-latex-packages-alist '(("outputdir=./build" "minted" nil)))
+
+;; `org-latex-pdf-process' is a list of shell commands. We take advantage of that
+;; to:
+;;   - create the `build' subdirectory if it is not present
+;;   - run `latexmk' with the proper options (in particular `-shell-escape' which i
+;;     necessary in order to allow the LaTeX processor to run an external program,
+;;     like `pygmentize' in the case of `minted'; and `-output-directory' to allow
+;;     all the artifacts to be sent there)
+;;   - finally, move the `.pdf' file to the parent directory of the `build' subdirectory
+;;     so that the exporter will be able to find it and not complain.
+;; Note also that `%latex' is replaced by the value of `org-latex-compiler' so we use
+;; `xelatex' as our LaTeX processor.
+(setq org-latex-pdf-process '("mkdir -p build"
+                              "latexmk -f -pdf -%latex -shell-escape -interaction=nonstopmode -output-directory=%o/build %f"
+                              "mv %o/build/%b.pdf %O")))
 
 
 ;; Enable line numbers for some modes
@@ -204,17 +242,16 @@ Clean up the Emacs user interface, make it more minimalistic or not.
 ;; Override modes which derive from the above
 (dolist (mode '(org-mode-hook))
   (add-hook mode (lambda () 
-		   (display-line-numbers-mode -1))))   
-#+end_src
-
-#+begin_src emacs-lisp
-
+		   (display-line-numbers-mode -1))))
+;; Fix bug open tree
+(setq org-fold-core-style 'overlays)
 #+end_src
 **** Keywords states
 #+begin_src emacs-lisp
 (setq org-todo-keywords
 	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
 	  (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+
 (setq org-todo-keyword-faces
 	'(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
 	  ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
@@ -235,8 +272,7 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   :commands
   (org-babel-execute:sh
    org-babel-expand-body:sh
-   org-babel-execute:bash
-   org-babel-expand-body:bash))
+   org-babel-execute:bash))
 
 (use-package ob-js
   :defer t
@@ -275,46 +311,40 @@ Clean up the Emacs user interface, make it more minimalistic or not.
   :commands (org-babel-execute:matlab))
 #+end_src
 ** Features
-*** COMMENT Writting
+*** File manager
 #+begin_src emacs-lisp
-(setq-default tab-width 2) ;; Default to an indentation size of 2 spaces
-(setq-default evil-shift-width tab-width) ;; Default to an indentation size of 2 spaces
-(setq-default indent-tabs-mode nil) ;; Use spaces instead of tabs for indentation
-(prefer-coding-system 'utf-8)
-(setq-default buffer-file-coding-system 'utf-8)
-#+end_src
-
-*** COMMENT File manager
-#+begin_src emacs-lisp
-(setq backup-directory-alist `(("." . "~/.backups"))) ;;;Backup directory
-(setq read-file-name-completion-ignore-case t) ;; Insensitive letter case
-(setq large-file-warning-threshold nil)        ;; Dont warn for large files
-(fset 'yes-or-no-p 'y-or-n-p)                  ;; Replace yes or no for y or n
+(setq backup-directory-alist `(("." . "~/.backups"))) ;;Backup directory
+(setq read-file-name-completion-ignore-case t)        ;; Insensitive letter case
+(setq large-file-warning-threshold nil)               ;; Dont warn for large files
+(setq dired-dwim-target t)                             ;; Allow you move files splitting the window
 (setq dired-listing-switches "-la")
-(setq dired-dwim-target t) ;; Allow you move files splitting the window
 #+end_src
-
-*** COMMENT Buffers
+*** Buffers
 #+begin_src emacs-lisp
-(global-auto-revert-mode 1)  ;; Revert buffers when the underlying file has changed
-(setq global-auto-revert-non-file-buffers t)    ;; Revert Dired and other buffers
+(global-auto-revert-mode 1)                          ;; Revert buffers when the underlying file has changed
+(setq global-auto-revert-non-file-buffers t)         ;; Revert Dired and other buffers
+#+end_src
+**** EXPERIMENTAL Buffer's experimental
+#+begin_src emacs-lisp
+(setq auto-revert-remote-files nil)                    ;; Revert buffer in remote (SLOW)
 #+end_src
 **** Shell
 #+begin_src emacs-lisp
-(defun my-clear ()
-  (interactive)
-  (comint-clear-buffer))
-
-(defun my-shell-hook ()
-  (local-set-key "\C-l" 'my-clear))
-
-(add-hook 'shell-mode-hook 'my-shell-hook)
+(add-hook 'shell-mode-hook
+          (lambda () (local-set-key (kbd "C-l") #'comint-clear-buffer)))
+#+end_src
+*** COMMENT Writting
+#+begin_src emacs-lisp
+(setq-default tab-width 2)                           ;; Default to an indentation size of 2 spaces
+(setq-default evil-shift-width tab-width)            ;; Default to an indentation size of 2 spaces
+(setq-default indent-tabs-mode nil)                  ;; Use spaces instead of tabs for indentation
+(setq-default buffer-file-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
 #+end_src
 *** COMMENT Files
 #+begin_src emacs-lisp
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
 #+end_src
-
 *** COMMENT Custom functions
 #+begin_src emacs-lisp
 (defun my/org-table-install-formulas ()
@@ -423,7 +453,6 @@ Do nothing when point is not inside a table."
   (when (derived-mode-p 'org-mode)
     (zp/org-set-time-file-property "LAST_MODIFIED")))
 #+end_src
-
 *** Keybindings
 #+begin_src emacs-lisp
 (eval-after-load 'pdf-tools
@@ -460,9 +489,9 @@ Do nothing when point is not inside a table."
 ;;     (find-file (concat "/tmp/" temp-file-name))))
 ;; (global-set-key (kbd "M-o") 'ace-window)
 #+end_src
-
-*** EXPERIMENTAL COMMENT Coding
+*** EXPERIMENTAL Coding
 #+begin_src emacs-lisp
+;; REVISAR
 ;; If there were no compilation errors, delete the compilation window
 (setq compilation-exit-message-function
       (lambda (status code msg)
@@ -506,187 +535,30 @@ Do nothing when point is not inside a table."
           )))))
 (add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
 #+end_src
-
-*** COMMENT Email
-**** Mu4e
-#+begin_src bash :tangle no :exports none
-# mu init --maildir=~/mail --my-address=rhyloot@gmail.com --my-address=jorgebenma@gmail.com
-# mu index
-#+end_src
-
-#+begin_src emacs-lisp
-(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
-;; (run-at-time nil 300 'mu4e-update-index) 
-(use-package mu4e
-  :defer t
-  :ensure nil
-  :config
-  (setq mail-user-agent 'mu4e-user-agent)
-
-  ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
-  (setq mu4e-sent-messages-behavior 'delete)
-
-  (setq
-   send-mail-function 'smtpmail-send-it
-   smtpmail-smtp-server "smtp.gmail.com"
-   smtpmail-smtp-service 587)
-
-  ;; (setq mu4e-hide-index-messages t)
-  (setq mu4e-headers-include-related nil)
-  (setq mu4e-update-interval 120)
-  (setq message-kill-buffer-on-exit t)
-  (setq mu4e-get-mail-command "offlineimap")
-  (setq mu4e-change-filenames-when-moving t)
-  (setq mu4e-attachment-dir "/tmp/")
-  (setq mu4e-maildir "~/mail")
-
-
-  (setq message-kill-buffer-on-exit t)
-  (setq mu4e-sent-messages-behavior 'sent)
-
-  (setq mu4e-contexts
-        `(,(make-mu4e-context
-            :name "jbenma"
-            :enter-func (lambda () (mu4e-message "Gmail mode"))
-            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "jorgebenma@gmail.com")))
-
-            :vars '((user-mail-address . "jorgebenma@gmail.com")
-                    (user-full-name    . "Jorge Benavides M.")
-                    (mu4e-drafts-folder  . "/jorgebenma/[Gmail].Borradores")
-                    (mu4e-sent-folder  . "/jorgebenma/[Gmail].Enviados")
-                    (mu4e-refile-folder  . "/jorgebenma/INBOX")
-                    (mu4e-trash-folder  . "/jorgebenma/[Gmail].Papelera")
-                    (mu4e-compose-signature . (concat
-                                               "Jorge Benavides M.\n"
-                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
-                                               "\n"))
-                    (mu4e-sent-messages-behavior . sent)
-                    (mu4e-maildir-shortcuts . ( ("/jorgebenma/INBOX"    . ?i)
-                                                ("/jorgebenma/[Gmail].Enviados" . ?s)
-                                                ("/jorgebenma/[Gmail].Papelera"    . ?t)
-                                                ("/jorgebenma/[Gmail].Borradores"   . ?d)
-                                                ))))
-
-          ,(make-mu4e-context
-            :name "rhyloot"
-            :enter-func (lambda () (mu4e-message "Gmail mode"))
-            :leave-func (lambda () (mu4e-message "Leaving Gmail mode"))
-            :match-func (lambda (msg)
-                          (when msg
-                            (mu4e-message-contact-field-matches
-                             msg '(:from :to :cc :bcc) "rhyloot@gmail.com")))
-
-            :vars '((user-mail-address . "rhyloot@gmail.com")
-                    (user-full-name    . "rhyloot")
-                    (mu4e-drafts-folder  . "/rhyloot/[Gmail].Borradores")
-                    (mu4e-sent-folder  . "/rhyloot/[Gmail].Enviados")
-                    (mu4e-refile-folder  . "/rhyloot/INBOX")
-                    (mu4e-trash-folder  . "/rhyloot/[Gmail].Papelera")
-                    (mu4e-compose-signature . (concat
-                                               "Rhyloot\n"
-                                               "Estudiante de Ingeniería en electrónica, robótica y mecatrónica\n"
-                                               "\n"))
-                    (mu4e-sent-messages-behavior . sent)
-                    (mu4e-maildir-shortcuts . ( ("/rhyloot/INBOX"    . ?i)
-                                                ("/rhyloot/[Gmail].Enviados" . ?s)
-                                                ("/rhyloot/[Gmail].Papelera"    . ?t)
-                                                ("/rhyloot/[Gmail].Borradores"   . ?d)
-                                                ))))))
-  (setq mu4e-context-policy 'pick-first)
-  (setq mail-user-agent 'mu4e-user-agent)
-  (mu4e t))
-#+end_src
-
-**** EXPERIMENTAL Mu4e-delay
-#+begin_src emacs-lisp
-;; (use-package mu4e-send-delay
-;;   :ensure nil
-;;   :load-path "~/.emacs.d/private/packages/mu4e-send-delay"
-;;   :after (mu4e)
-;;   :config
-;;   (mu4e-send-delay-setup) ; sets up headers to show up by default
-;;   (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
-;;   (add-hook 'mu4e-main-mode-hook (lambda ()
-;;                                    (define-key mu4e-compose-mode-map
-;;                                      (kbd "C-c C-c")
-;;                                      'mu4e-send-delay-send-and-exit))))
-
-#+end_src
-
-**** Mu4e-alert
-#+begin_src emacs-lisp
-;; (mu4e-alert-set-default-style 'notifications)
-(mu4e-alert-set-default-style 'libnotify)
-(setq mu4e-alert-max-messages-to-process 2000)
-(add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
-(add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
-
-(use-package mu4e-alert
-  :defer t
-  :after mu4e
-  :init
-  ;; (setq mu4e-alert-interesting-mail-query
-  ;;       (concat
-  ;;        "flag:unread maildir:/INBOX"))
-  ;; (mu4e-alert-enable-mode-line-display)
-  ;; (defun my/mu4e-alert ()
-  ;;   (interactive)
-  ;;   (mu4e~proc-kill)
-  ;;   (mu4e-alert-enable-mode-line-display)
-  ;;   )
-  ;; (run-with-timer 0 2700 'my/mu4e-alert)
-  ;; ;; (setq mu4e-alert-enable-notifications t)
-  ;; ;; :config
-  ;; ;; (mu4e-alert-set-default-style 'libnotify)
-  ;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
-  ;; (setq mu4e-alert-notify-repeated-mails t)
-  ;; (setq mu4e-alert-enable-notifications t)
-  ;; (mu4e-alert-enable-mode-line-display)
-  )
-
-#+end_src
-
-*** COMMENT Internet
-#+begin_src emacs-lisp
-(unless (display-graphic-p)
-  (setq browse-url-browser-function 'eww-browse-url))
-#+end_src 
 * Packages
 ** Magit
 Magit is a complete text-based user interface to Git.
 #+begin_src emacs-lisp
 (use-package magit
+  :ensure t
   :defer t
   :bind ("C-x g" . magit-status)
   :config
   (setq magit-auto-revert-mode t)
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
-
-;; (setq auth-sources '("~/.authinfo"))
-;; (use-package forge
-;;   :defer t
-;;   :after (magit))
-
-;; (use-package magit-pretty-graph
-;;   :ensure nil
-;;   :load-path "~/.emacs.d/private/packages/magit-pretty-graph"
-;;   :after (magit))
 #+end_src
 ** Minions
 #+begin_src emacs-lisp
 (use-package minions
+  :ensure t
   :defer t
   :hook (after-init . minions-mode))
 #+end_src
-
 ** Undo-tree
 #+begin_src emacs-lisp
 (use-package undo-tree
+  :ensure t
   :defer t
   :commands (global-undo-tree-mode)
   :init
@@ -700,10 +572,16 @@ Magit is a complete text-based user interface to Git.
   (undo-tree-history-directory-alist '(("." . "/tmp/")))
   (undo-tree-visualizer-timestamps t))
 #+end_src
-
 ** Ivy/Swiper
 #+begin_src emacs-lisp
+(use-package counsel
+  :ensure t
+  :defer t
+  :bind     
+  ("M-x" . counsel-M-x))
+
 (use-package swiper
+  :ensure t
   :defer t
   :bind 
   ("C-s" . swiper-isearch)
@@ -711,14 +589,9 @@ Magit is a complete text-based user interface to Git.
   (after-init . ivy-mode)
   :config
   (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t))
-
-(use-package counsel
-  :defer t
-  :bind     
-  ("M-x" . counsel-M-x))
+  (setq enable-recursive-minibuffers t)
+  (setopt ivy-use-selectable-prompt t))
 #+end_src
-
 ** Languages coding
 *** COMMENT LaTeX 
 #+begin_src emacs-lisp
@@ -759,44 +632,30 @@ Magit is a complete text-based user interface to Git.
 ;;   )
 
 (use-package writegood-mode  
-  :ensure t)
-
-(setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
-(setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
-      languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
-(use-package languagetool
   :ensure t
-  :defer t
-  :commands (languagetool-check
-             languagetool-clear-suggestions
-             languagetool-correct-at-point
-             languagetool-correct-buffer
-             languagetool-set-language
-             languagetool-server-mode
-             languagetool-server-start
-             languagetool-server-stop))
+  :defer t)
+
+;; (setq languagetool-java-arguments '("-Dfile.encoding=UTF-8"))
+;; (setq languagetool-console-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-commandline.jar"
+;;       languagetool-server-command "~/fastText/LanguageTool-20250202-snapshot/LanguageTool-6.6-SNAPSHOT/languagetool-server.jar")
+;; (use-package languagetool
+;;   :ensure t
+;;   :defer t
+;;   :commands (languagetool-check
+;;              languagetool-clear-suggestions
+;;              languagetool-correct-at-point
+;;              languagetool-correct-buffer
+;;              languagetool-set-language
+;;              languagetool-server-mode
+;;              languagetool-server-start
+;;              languagetool-server-stop))
 #+end_src
 
 *** VHDL
 #+begin_src emacs-lisp
 (use-package vhdl-mode
   :defer t)
-
-(flycheck-define-checker vhdl-tool
-  "A VHDL syntax checker, type checker and linter using VHDL-Tool.
-
-See URL `http://vhdltool.com'."
-  :command ("vhdl-tool" "client" "lint" "--compact" "--stdin" "-f" source
-            )
-  :standard-input t
-  :error-patterns
-  ((warning line-start (file-name) ":" line ":" column ":w:" (message) line-end)
-   (error line-start (file-name) ":" line ":" column ":e:" (message) line-end))
-  :modes (vhdl-mode))
-
-(add-to-list 'flycheck-checkers 'vhdl-tool)
 #+end_src
-
 *** COMMENT LSP
 #+begin_src emacs-lisp
 (defun efs/lsp-mode-setup()
@@ -857,6 +716,8 @@ See URL `http://vhdltool.com'."
 ** Company
 #+begin_src emacs-lisp
 (use-package company
+  :ensure t
+  :defer t
   :config
   (add-hook 'after-init-hook 'global-company-mode)
   ;; Disable company-mode in shell-mode
@@ -884,7 +745,7 @@ See URL `http://vhdltool.com'."
   (with-eval-after-load 'winum
     (define-key winum-keymap (kbd "M-0") #'treemacs-select-window)))
 #+end_src
-* COMMENT Ready for integration
+* Ready for integration
 ** WORKS Matlab
 #+begin_src emacs-lisp
 ;; Session evaluation of MATLAB in org-babel is broken, this goes some
@@ -1069,11 +930,10 @@ See URL `http://vhdltool.com'."
 
          ;; Caso 2: Si estamos en el servidor remoto "debian"
          ((string= remote-hostname "debian")
-          (let ((default-directory (expand-file-name "/ssh:root@www.rhyloo.com:~/")))
-            ;; Limpiar los nombres de archivos eliminando el prefijo "/ssh:root@www.rhyloo.com:"
+          (let ((default-directory (expand-file-name my-remote-path)))
             (let* ((cleaned-files
                     (mapcar (lambda (file)
-                              (replace-regexp-in-string "^/ssh:root@www.rhyloo.com:" "" file))
+                              (replace-regexp-in-string my-remote-path-mod "" file))
                             files))
                    (du-output (shell-command-to-string (concat "du -sch " (mapconcat 'identity cleaned-files " ")))))
               ;; Mostrar la salida en el buffer de mensajes
@@ -1092,6 +952,11 @@ See URL `http://vhdltool.com'."
 
 (with-eval-after-load 'dired
   (define-key dired-mode-map (kbd "z") 'dired-get-size))
+#+end_src
+
+** DONE Email config
+#+begin_src emacs-lisp
+(setq gnus-home-directory "~/.emacs.d/")
 #+end_src
 * COMMENT Experimental
 ** TODO Autocomplete on replace
@@ -1162,112 +1027,6 @@ See URL `http://vhdltool.com'."
 #+begin_src emacs-lisp
 (use-package writegood-mode  
   :ensure t)  
-#+end_src
-** EXPERIMENTAL Org-roam
-#+begin_src emacs-lisp
-(use-package org-roam
-  :ensure t
-  :init
-  (setq org-roam-v2-ack t) ; Acknowledge v2 upgrade
-  :custom
-  (org-roam-directory "/ssh:root@www.rhyloo.com:~/content/") ; Tu directorio de notas
-  (org-roam-database-connector 'sqlite) ; Usar SQLite (más rápido)
-  (org-roam-db-location (expand-file-name "org-roam.db" "~/"))
-  (org-roam-capture-templates
-   '(("p" "Proyecto" plain
-      "%?"
-      :if-new (file+head "/ssh:root@www.rhyloo.com:~/content/projects/${slug}-draft.org" ; Carpeta 'proyectos'
-                         "#+title: ${title}\n#+category: ${title}\n")
-      :unnarrowed t)
-     ("b" "Blog Post" plain
-      "%?"
-      :if-new (file+head "blog/${slug}-draft.org" ; Carpeta 'blog'
-                         "#+title: ${title}\n#+category: blog\n#+date: %<%Y-%m-%d>\n")
-      :unnarrowed t)
-     ("d" "Nota Default" plain
-      "%?"
-      :if-new (file+head "${slug}-draft.org" ; Sin subcarpeta
-                         "#+title: ${title}\n")
-      :unnarrowed t)))
-  :bind (("C-c n f" . org-roam-node-find)
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n c" . org-roam-capture)
-         ("C-c n r" . org-roam-buffer-toggle)
-         ("C-c n p" . org-roam-capture-proyecto) ; Atajos personalizados
-         ("C-c n b" . org-roam-capture-blog)
-         ("C-c n d" . org-roam-capture-default))
-  :config
-  (org-roam-db-autosync-mode) ; Sincronización automática de la base de datos
-  (setq org-roam-node-display-template
-        (concat "${title:*} " (propertize "${tags:40}" 'face 'org-tag))))
-
-;; ;; Opcional: UI gráfica (requiere npm/pnpm)
-;; (use-package org-roam-ui
-;;   :ensure t
-;;   :after org-roam
-;;   :config
-;;   (setq org-roam-ui-sync-theme t
-;;         org-roam-ui-follow-mode t
-;;         org-roam-ui-update-on-save t
-;;         org-roam-ui-browser-function #'xwidget-webkit-browse-url
-;;         org-roam-ui-port 8080)
-;;   :bind ("C-c n u" . org-roam-ui-mode))
-
-;; ;; Integración con consult (búsqueda mejorada)
-;; (use-package consult-org-roam
-;;   :ensure t
-;;   :after org-roam
-;;   :config
-;;   (consult-org-roam-mode))
-
-;; ;; Templates para capturas (opcional)
-;; (setq org-roam-capture-templates
-;;       '(("d" "Nota básica" plain
-;;          "%?"
-;;          :if-new (file+head "${slug}.org"
-;;                             "#+title: ${title}\n#+date: %<%Y-%m-%d>\n")
-;;          :unnarrowed t)))
-
-;; (use-package consult-org-roam
-;;    :ensure t
-;;    :after org-roam
-;;    :init
-;;    (require 'consult-org-roam)
-;;    ;; Activate the minor mode
-;;    (consult-org-roam-mode 1)
-;;    :custom
-;;    ;; Use `ripgrep' for searching with `consult-org-roam-search'
-;;    ;; (consult-org-roam-grep-func #'consult-ripgrep)
-;;    ;; Configure a custom narrow key for `consult-buffer'
-;;    (consult-org-roam-buffer-narrow-key ?r)
-;;    ;; Display org-roam buffers right after non-org-roam buffers
-;;    ;; in consult-buffer (and not down at the bottom)
-;;    (consult-org-roam-buffer-after-buffers t)
-;;    :config
-;;    ;; Eventually suppress previewing for certain functions
-;;    (consult-customize
-;;     consult-org-roam-forward-links
-;;     :preview-key "M-.")
-;;    :bind
-;;    ;; Define some convenient keybindings as an addition
-;;    ("C-c n e" . consult-org-roam-file-find)
-;;    ("C-c n b" . consult-org-roam-backlinks)
-;;    ("C-c n B" . consult-org-roam-backlinks-recursive)
-;;    ("C-c n l" . consult-org-roam-forward-links)
-;;    ("C-c n r" . consult-org-roam-search))
-
-;; (use-package consult
-;;   :ensure t
-;;   :defer t)
-
-;; (setq consult-ripgrep-command "rg --null --line-buffered --color=never --max-columns=1000 --path-separator / --smart-case --no-heading --line-number --hidden -g !.git/ -g !.svn/ -g !.hg/ -g !node_modules/ -g !.cache/ -- .")
-
-;; (defun bms/org-roam-rg-search ()
-;;   "Search org-roam directory using consult-ripgrep. With live-preview."
-;;   (interactive)
-;;   (let ((consult-ripgrep-command "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
-;;     (consult-ripgrep org-roam-directory)))
-;; (global-set-key (kbd "C-c r") 'bms/org-roam-rg-search)
 #+end_src
 * COMMENT Finish startup optimization
 ** Restaurar valores razonables tras el inicio
