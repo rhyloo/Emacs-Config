@@ -266,12 +266,6 @@
 (add-hook 'shell-mode-hook
           (lambda () (local-set-key (kbd "C-l") #'comint-clear-buffer)))
 
-(setq-default tab-width 2)                           ;; Default to an indentation size of 2 spaces
-(setq-default evil-shift-width tab-width)            ;; Default to an indentation size of 2 spaces
-(setq-default indent-tabs-mode nil)                  ;; Use spaces instead of tabs for indentation
-(setq-default buffer-file-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-
 (defun my/org-table-install-formulas ()
   "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line.
 Do nothing when point is not inside a table."
@@ -727,4 +721,5 @@ Do nothing when point is not inside a table."
   (define-key dired-mode-map (kbd "z") 'dired-get-size))
 
 (setq gnus-home-directory "~/.emacs.d/")
+(setq mail-signature-file "~/.emacs.d/.signature")
 (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)

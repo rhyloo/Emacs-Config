@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-07-06 21:17:57
+#+last_modified: 2025-07-07 22:28:33
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -363,7 +363,7 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
 #+begin_src emacs-lisp
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs)) ;; Open pdfs by default with emacs
 #+end_src
-*** COMMENT Custom functions
+*** Custom functions
 #+begin_src emacs-lisp
 (defun my/org-table-install-formulas ()
   "Install formulas in cells starting with = or := at the bottom of the table as #+TBLFM line.
