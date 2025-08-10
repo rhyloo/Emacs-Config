@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-07-07 22:28:33
+#+last_modified: 2025-08-10 19:47:27
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -1028,3 +1028,29 @@ chore: Tareas menores (ej. actualización de dependencias).
 
 * References
 1. https://web.archive.org/web/20220516055538/https://blog.d46.us/advanced-emacs-startup/
+* Improves
+  Readeable file size
+  #+begin_src emacs-lisp
+  (setq dired-listing-switches "-alhF")
+  #+end_src
+
+  Dired always use the same buffer. 
+  #+begin_src emacs-lisp
+  (require 'dired )
+  (when (>= emacs-major-version 28)
+    (setq dired-kill-when-opening-new-dired-buffer t))
+  (when (< emacs-major-version 28)
+   (progn
+     (define-key dired-mode-map (kbd "RET") 'dired-find-alternate-file) ; was dired-advertised-find-file
+     (define-key dired-mode-map (kbd "^") (lambda () (interactive) (find-alternate-file ".."))) ; was dired-up-directory
+     ))
+  #+end_src
+
+  Cuentas bancarias
+  #+begin_src emacs-lisp
+  (use-package hledger-mode
+    :ensure t
+    :defer t
+    :config
+    (add-to-list 'company-backends 'hledger-company))
+  #+end_src
