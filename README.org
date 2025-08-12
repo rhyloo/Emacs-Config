@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-07-07 22:28:33
+#+last_modified: 2025-08-03 12:44:06
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -263,6 +263,7 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
         (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
 
 (add-hook 'before-save-hook 'update-last-modified)
+;; (setq org-special-ctrl-a/e t)
 #+end_src
 **** Keywords states
 #+begin_src emacs-lisp
@@ -928,6 +929,29 @@ Magit is a complete text-based user interface to Git.
 (setq gnus-home-directory "~/.emacs.d/")
 (setq mail-signature-file "~/.emacs.d/.signature")
 (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
+#+end_src
+* Tramp
+#+begin_src emacs-lisp
+;; https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./
+(setq remote-file-name-inhibit-cache nil)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+                    vc-ignore-dir-regexp
+                    tramp-file-name-regexp))
+(setq tramp-copy-size-limit (* 1024 1024) ;; 1MB
+      tramp-verbose 2)
+(setq remote-file-name-inhibit-locks t
+      tramp-use-scp-direct-remote-copying t
+      remote-file-name-inhibit-auto-save-visited t)
+;; (connection-local-set-profile-variables
+;;  'remote-direct-async-process
+;;  '((tramp-direct-async-process . t)))
+
+;; (connection-local-set-profiles
+;;  '(:application tramp :protocol "scp")
+;;  'remote-direct-async-process)
+
+;; (setq magit-tramp-pipe-stty-settings 'pty)
 #+end_src
 * COMMENT Experimental
 ** TODO Autocomplete on replace

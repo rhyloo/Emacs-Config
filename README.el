@@ -191,6 +191,7 @@
         (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
 
 (add-hook 'before-save-hook 'update-last-modified)
+;; (setq org-special-ctrl-a/e t)
 
 (setq org-todo-keywords
 	'((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
@@ -723,3 +724,24 @@ Do nothing when point is not inside a table."
 (setq gnus-home-directory "~/.emacs.d/")
 (setq mail-signature-file "~/.emacs.d/.signature")
 (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
+
+;; https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./
+(setq remote-file-name-inhibit-cache nil)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+                    vc-ignore-dir-regexp
+                    tramp-file-name-regexp))
+(setq tramp-copy-size-limit (* 1024 1024) ;; 1MB
+      tramp-verbose 2)
+(setq remote-file-name-inhibit-locks t
+      tramp-use-scp-direct-remote-copying t
+      remote-file-name-inhibit-auto-save-visited t)
+;; (connection-local-set-profile-variables
+;;  'remote-direct-async-process
+;;  '((tramp-direct-async-process . t)))
+
+;; (connection-local-set-profiles
+;;  '(:application tramp :protocol "scp")
+;;  'remote-direct-async-process)
+
+;; (setq magit-tramp-pipe-stty-settings 'pty)
