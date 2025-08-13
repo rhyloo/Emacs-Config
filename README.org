@@ -1060,7 +1060,7 @@ chore: Tareas menores (ej. actualización de dependencias).
 
   Dired always use the same buffer. 
   #+begin_src emacs-lisp
-  (require 'dired )
+  ;; (require 'dired )
   (when (>= emacs-major-version 28)
     (setq dired-kill-when-opening-new-dired-buffer t))
   (when (< emacs-major-version 28)
