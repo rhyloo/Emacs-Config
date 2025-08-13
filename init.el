@@ -15,7 +15,7 @@
  '(org-agenda-files
    '("~/Documents/org-mode-files/Agenda_Fastmail.org" "/home/rhyloo/Documents/org-mode-files/Agenda.org"))
  '(package-selected-packages
-   '(org-caldav appt org-super-agenda writegood-mode vscode-dark-plus-theme undo-tree minions magit counsel company))
+   '(pyvenv python-mode hledger-mode org-caldav appt org-super-agenda writegood-mode vscode-dark-plus-theme undo-tree minions magit counsel company))
  '(safe-local-variable-values
    '((eval add-hook 'before-save-hook
 	   (lambda nil

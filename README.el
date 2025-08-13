@@ -64,8 +64,9 @@
         ("melpa"        . "https://melpa.org/packages/")))       ;; Set Melpa repository
 (unless package-archive-contents (package-refresh-contents))     ;; Are package archives up to date?
 (unless (package-installed-p 'use-package)                       ;; Is 'use-package' installed?
-  (package-install 'use-package)
-  (setq use-package-always-ensure t))
+  (package-install 'use-package))
+(setq use-package-always-ensure t
+      use-package-always-defer t) ;; también puedes diferir todos por defecto
 
 ;; Configuración optimizada de números de línea
 (use-package emacs
@@ -207,10 +208,12 @@
 (setq org-src-fontify-natively t)
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (use-package ob-python
+  :ensure nil
   :defer t
   :commands (org-babel-execute:python))
 
 (use-package ob-shell
+  :ensure nil
   :defer t
   :commands
   (org-babel-execute:sh
@@ -218,30 +221,37 @@
    org-babel-execute:bash))
 
 (use-package ob-js
+  :ensure nil
   :defer t
   :commands (org-babel-execute:js))
 
 (use-package ob-octave
+  :ensure nil
   :defer t
   :commands (org-babel-execute:octave))
 
 (use-package ob-css
+  :ensure nil
   :defer t
   :commands (org-babel-execute:css))
 
 (use-package ob-dot
+  :ensure nil  
   :defer t
   :commands (org-babel-execute:dot))
 
 (use-package ob-latex
+  :ensure nil
   :defer t
   :commands (org-babel-execute:latex))
 
 (use-package ob-lua
+  :ensure nil  
   :defer t
   :commands (org-babel-execute:lua))
 
 (use-package ob-C
+  :ensure nil  
   :defer t
   :commands
   (org-babel-execute:C
@@ -250,6 +260,7 @@
    org-babel-expand-body:C++))
 
 (use-package ob-matlab
+  :ensure nil
   :defer t
   :commands (org-babel-execute:matlab))
 
@@ -510,13 +521,15 @@ Do nothing when point is not inside a table."
   :defer t)
 
 (use-package pyvenv
+  :ensure t
   :defer t
   :config
   (pyvenv-mode 1))
 
 (use-package python-mode
+  :ensure t
   :defer t
-  :hook (python-mode . lsp-deferred)
+  ;; :hook (python-mode . lsp-deferred)
   :custom
   (python-shell-interpreter "python3")
   (setq python-indent-offset 4)
@@ -745,3 +758,20 @@ Do nothing when point is not inside a table."
 ;;  'remote-direct-async-process)
 
 ;; (setq magit-tramp-pipe-stty-settings 'pty)
+
+(setq dired-listing-switches "-alhF")
+
+;; (require 'dired )
+(when (>= emacs-major-version 28)
+  (setq dired-kill-when-opening-new-dired-buffer t))
+(when (< emacs-major-version 28)
+ (progn
+   (define-key dired-mode-map (kbd "RET") 'dired-find-alternate-file) ; was dired-advertised-find-file
+   (define-key dired-mode-map (kbd "^") (lambda () (interactive) (find-alternate-file ".."))) ; was dired-up-directory
+   ))
+
+(use-package hledger-mode
+  :ensure t
+  :defer t
+  :config
+  (add-to-list 'company-backends 'hledger-company))

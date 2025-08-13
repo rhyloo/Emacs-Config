@@ -695,7 +695,7 @@ Magit is a complete text-based user interface to Git.
 
 (use-package python-mode
   :defer t
-  :hook (python-mode . lsp-deferred)
+  ;; :hook (python-mode . lsp-deferred)
   :custom
   (python-shell-interpreter "python3")
   (setq python-indent-offset 4)
