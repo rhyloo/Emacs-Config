@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-08-12 12:10:04
+#+last_modified: 2025-08-13 12:08:34
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -126,8 +126,9 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
         ("melpa"        . "https://melpa.org/packages/")))       ;; Set Melpa repository
 (unless package-archive-contents (package-refresh-contents))     ;; Are package archives up to date?
 (unless (package-installed-p 'use-package)                       ;; Is 'use-package' installed?
-  (package-install 'use-package)
-  (setq use-package-always-ensure t)) 
+  (package-install 'use-package))
+(setq use-package-always-ensure t
+      use-package-always-defer t) ;; también puedes diferir todos por defecto
 #+end_src
 ** EMACS
 #+begin_src emacs-lisp
@@ -283,10 +284,12 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
 (setq org-src-fontify-natively t)
 (setq org-confirm-babel-evaluate nil) ;; Stop the confirmation to evaluate org babel
 (use-package ob-python
+  :ensure nil
   :defer t
   :commands (org-babel-execute:python))
 
 (use-package ob-shell
+  :ensure nil
   :defer t
   :commands
   (org-babel-execute:sh
@@ -294,30 +297,37 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
    org-babel-execute:bash))
 
 (use-package ob-js
+  :ensure nil
   :defer t
   :commands (org-babel-execute:js))
 
 (use-package ob-octave
+  :ensure nil
   :defer t
   :commands (org-babel-execute:octave))
 
 (use-package ob-css
+  :ensure nil
   :defer t
   :commands (org-babel-execute:css))
 
 (use-package ob-dot
+  :ensure nil  
   :defer t
   :commands (org-babel-execute:dot))
 
 (use-package ob-latex
+  :ensure nil
   :defer t
   :commands (org-babel-execute:latex))
 
 (use-package ob-lua
+  :ensure nil  
   :defer t
   :commands (org-babel-execute:lua))
 
 (use-package ob-C
+  :ensure nil  
   :defer t
   :commands
   (org-babel-execute:C
@@ -326,6 +336,7 @@ Se utiliza =use-package= para simplificar la configuración de paquetes.
    org-babel-expand-body:C++))
 
 (use-package ob-matlab
+  :ensure nil
   :defer t
   :commands (org-babel-execute:matlab))
 #+end_src
