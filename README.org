@@ -1123,7 +1123,12 @@ chore: Tareas menores (ej. actualización de dependencias).
 * Improves
   Readeable file size
   #+begin_src emacs-lisp
-  (setq dired-listing-switches "-alhF")
+(if (display-graphic-p)
+    (setq dired-listing-switches "-alh")
+  (setq dired-listing-switches "-alhF"))
+
+(custom-set-faces
+ '(dired-directory ((t (:inherit font-lock-keyword-face :weight bold)))))
   #+end_src
 
   Dired always use the same buffer. 
