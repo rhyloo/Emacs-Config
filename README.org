@@ -1022,6 +1022,12 @@ Magit is a complete text-based user interface to Git.
 
 ;; (setq magit-tramp-pipe-stty-settings 'pty)
 #+end_src
+* EXPERIMENTAL Multiple cursors
+#+begin_src emacs-lisp
+(use-package multiple-cursors
+  :ensure t
+  :defer t)
+#+end_src
 * COMMENT Experimental
 ** TODO Autocomplete on replace
 ** EXPERIMENTAL Org-mode
@@ -1031,13 +1037,6 @@ Magit is a complete text-based user interface to Git.
   (define-key org-mode-map [remap move-end-of-line] nil))
 
 (setq org-tidy-protect-overlay nil)
-#+end_src
-
-** EXPERIMENTAL Multiple cursors
-#+begin_src emacs-lisp
-(use-package multiple-cursors
-  :ensure t
-  :defer t)
 #+end_src
 
 ** EXPERIMENTAL Org mode solution
