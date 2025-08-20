@@ -1,6 +1,6 @@
 #+TITLE:  EMACS: Anatomy of a personal configuration
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-08-13 12:08:34
+#+last_modified: 2025-08-20 14:42:46
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -506,7 +506,7 @@ Do nothing when point is not inside a table."
 (global-set-key (kbd "<f8>") 'my/upload-doc)
 (global-set-key (kbd "<f7>") 'my/actualization-repo)
 (global-set-key (kbd "<f12>") 'list-bookmarks)
-(global-set-key (kbd "C-x k") 'kill-this-buffer)
+(global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
 (global-set-key (kbd "C-c a") 'org-agenda)
