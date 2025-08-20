@@ -1,6 +1,6 @@
-#+TITLE:  EMACS: Anatomy of a personal configuration
+#+TITLE:  EMACS
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-08-20 14:42:46
+#+last_modified: 2025-08-20 16:08:46
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
