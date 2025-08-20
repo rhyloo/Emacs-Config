@@ -1151,3 +1151,70 @@ chore: Tareas menores (ej. actualización de dependencias).
     :config
     (add-to-list 'company-backends 'hledger-company))
   #+end_src
+
+  If you don't like emacs telling you about its guessing the offset, customize the variable 
+  #+begin_src emacs-lisp
+  (setq python-indent-guess-indent-offset-verbose nil)
+  #+end_src
+
+ EXPERIMENTAL Cambia el color de la agenda al día de hoy.
+  #+begin_src emacs-lisp :eval never
+  (custom-set-faces
+ '(org-agenda-date-today ((t (:background "yellow" :weight bold)))))
+  #+end_src
+
+ EXPERIMENTAL Cambia el color de la agenda al día de hoy.
+  #+begin_src emacs-lisp
+(setq org-agenda-remove-tags t)
+;; (setq org-agenda-custom-commands
+;;       '(("n" "My Weekly Agenda"
+;;          ((agenda "")
+;;           (tags-todo "+RECEIPTLAB/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+NYMBOLATOR/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+PCB_PORTFOLIO/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+FLASHIA/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+BLOG/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+MOVIES/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+WEBPAGE/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+EMACS/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+ADA_MODE/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+MST/(IN-PROGRESS|TODO)"))
+;;          nil)))
+
+(setq org-agenda-custom-commands
+      '(("n" "My Weekly Agenda"
+         ((agenda "")
+          (tags-todo "+RECEIPTLAB+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "RECEIPTLAB")))
+          (tags-todo "+NYMBOLATOR+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "NYMBOLATOR")))
+          (tags-todo "+PCB_PORTFOLIO+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "PCB Portfolio")))
+          (tags-todo "+FLASHIA+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "FLASHIA")))
+          (tags-todo "+BLOG+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "BLOG")))
+          (tags-todo "+MOVIES+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "MOVIES")))
+          (tags-todo "+WEBPAGE+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "WEBPAGE")))
+          (tags-todo "+EMACS+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "EMACS")))
+          (tags-todo "+ADA_MODE+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "ADA_MODE")))
+          (tags-todo "+MST+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "MST"))))
+         nil)))
+
+(setq org-agenda-prefix-format
+      '((agenda . " %i %?-12t% s")
+        (todo   . " %i %?-12t% s")
+        (tags   . " %i %?-12t% s")
+        (search . " %i %?-12t% s")))
+  #+end_src
+
+Experimental multiple minibuffers
+#+begin_src emacs-lisp
+(setq enable-recursive-minibuffers t)
+(setq electric-pair-mode t)
+#+end_src

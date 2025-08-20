@@ -31,9 +31,10 @@
               (append mode-line-format
                       (list
                        '(:eval (if (use-region-p)
-                                   (format "W:%d, C:%d"
+                                   (format " W:%d C:%d L:%d"
                                            (count-words-region (region-beginning) (region-end))
-                                           (- (region-end) (region-beginning)))
+                                           (- (region-end) (region-beginning))
+                                           (count-lines (region-beginning) (region-end)))
                                  "")))))
 (column-number-mode)                                    ;; Show collumn in modeline
 
@@ -521,13 +522,11 @@ Do nothing when point is not inside a table."
   :defer t)
 
 (use-package pyvenv
-  :ensure t
   :defer t
   :config
   (pyvenv-mode 1))
 
 (use-package python-mode
-  :ensure t
   :defer t
   ;; :hook (python-mode . lsp-deferred)
   :custom
@@ -552,7 +551,64 @@ Do nothing when point is not inside a table."
   (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
   (setq company-dabbrev-downcase nil)    ; Preserve case in completions
   (setq company-dabbrev-ignore-case nil) ; Case-sensitive matching
+  (setq company-idle-delay 0)
+  (setq company-minimum-prefix-length 3)
   )
+
+(use-package company-irony
+  :config
+  (add-to-list 'company-backends 'company-irony))
+
+(use-package irony
+  :config
+  (add-hook 'c++-mode-hook 'irony-mode)
+  (add-hook 'c-mode-hook 'irony-mode)
+  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
+
+(use-package company-c-headers
+  :config
+  (add-to-list 'company-backends 'company-c-headers))
+
+(defun my/c-eldoc-macro ()
+  "If point is on a C macro, show its definition."
+  (let* ((sym (thing-at-point 'symbol t))
+         (cmd (format "echo | gcc -E -dM -include %s - | grep '^#define %s '"
+                      buffer-file-name (or sym "")))
+         (out (and sym (shell-command-to-string cmd))))
+    (when (and out (not (string-empty-p out)))
+      (string-trim out))))
+
+(add-hook 'c-mode-hook
+          (lambda ()
+            (setq-local eldoc-documentation-function #'my/c-eldoc-macro)
+            (eldoc-mode 1)))
+
+;; Set multi line in C.
+(setq comment-style 'multi-line)
+(setq comment-continue "   ")
+
+(defun my-prettify-c-block-comment (orig-fun &rest args)
+  (let* ((first-comment-line (looking-back "/\\*\\s-*.*"))
+         (star-col-num (when first-comment-line
+                         (save-excursion
+                           (re-search-backward "/\\*")
+                           (1+ (current-column))))))
+    (apply orig-fun args)
+    (when first-comment-line
+      (save-excursion
+        (newline)
+        (dotimes (cnt star-col-num)
+          (insert " "))
+        (move-to-column star-col-num)
+        (insert "*/"))
+      (move-to-column star-col-num) ; comment this line if using bsd style
+      (insert "*") ; comment this line if using bsd style
+     ))
+  ;; Ensure one space between the asterisk and the comment
+  (when (not (looking-back " "))
+    (insert " ")))
+
+(advice-add 'c-indent-new-comment-line :around #'my-prettify-c-block-comment)
 
 ;; Session evaluation of MATLAB in org-babel is broken, this goes some
 ;; way towards addressing the problem.
@@ -759,7 +815,16 @@ Do nothing when point is not inside a table."
 
 ;; (setq magit-tramp-pipe-stty-settings 'pty)
 
-(setq dired-listing-switches "-alhF")
+(use-package multiple-cursors
+  :ensure t
+  :defer t)
+
+(if (display-graphic-p)
+    (setq dired-listing-switches "-alh")
+  (setq dired-listing-switches "-alhF"))
+
+(custom-set-faces
+ '(dired-directory ((t (:inherit font-lock-keyword-face :weight bold)))))
 
 ;; (require 'dired )
 (when (>= emacs-major-version 28)
@@ -775,3 +840,58 @@ Do nothing when point is not inside a table."
   :defer t
   :config
   (add-to-list 'company-backends 'hledger-company))
+
+(setq python-indent-guess-indent-offset-verbose nil)
+
+(custom-set-faces
+'(org-agenda-date-today ((t (:background "yellow" :weight bold)))))
+
+(setq org-agenda-remove-tags t)
+;; (setq org-agenda-custom-commands
+;;       '(("n" "My Weekly Agenda"
+;;          ((agenda "")
+;;           (tags-todo "+RECEIPTLAB/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+NYMBOLATOR/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+PCB_PORTFOLIO/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+FLASHIA/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+BLOG/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+MOVIES/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+WEBPAGE/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+EMACS/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+ADA_MODE/(IN-PROGRESS|TODO)")
+;; 	  (tags-todo "+MST/(IN-PROGRESS|TODO)"))
+;;          nil)))
+
+(setq org-agenda-custom-commands
+      '(("n" "My Weekly Agenda"
+         ((agenda "")
+          (tags-todo "+RECEIPTLAB+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "RECEIPTLAB")))
+          (tags-todo "+NYMBOLATOR+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "NYMBOLATOR")))
+          (tags-todo "+PCB_PORTFOLIO+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "PCB Portfolio")))
+          (tags-todo "+FLASHIA+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "FLASHIA")))
+          (tags-todo "+BLOG+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "BLOG")))
+          (tags-todo "+MOVIES+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "MOVIES")))
+          (tags-todo "+WEBPAGE+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "WEBPAGE")))
+          (tags-todo "+EMACS+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "EMACS")))
+          (tags-todo "+ADA_MODE+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "ADA_MODE")))
+          (tags-todo "+MST+TODO={TODO\\|IN-PROGRESS}"
+                     ((org-agenda-overriding-header "MST"))))
+         nil)))
+
+(setq org-agenda-prefix-format
+      '((agenda . " %i %?-12t% s")
+        (todo   . " %i %?-12t% s")
+        (tags   . " %i %?-12t% s")
+        (search . " %i %?-12t% s")))
+
+(setq enable-recursive-minibuffers t)
+(setq electric-pair-mode t)
