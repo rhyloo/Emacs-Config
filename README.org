@@ -77,9 +77,10 @@ To add words and characters to modeline
               (append mode-line-format
                       (list
                        '(:eval (if (use-region-p)
-                                   (format "W:%d, C:%d"
+                                   (format " W:%d C:%d L:%d"
                                            (count-words-region (region-beginning) (region-end))
-                                           (- (region-end) (region-beginning)))
+                                           (- (region-end) (region-beginning))
+                                           (count-lines (region-beginning) (region-end)))
                                  "")))))
 (column-number-mode)                                    ;; Show collumn in modeline
 #+end_src
