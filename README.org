@@ -723,7 +723,64 @@ Magit is a complete text-based user interface to Git.
   (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
   (setq company-dabbrev-downcase nil)    ; Preserve case in completions
   (setq company-dabbrev-ignore-case nil) ; Case-sensitive matching
+  (setq company-idle-delay 0)
+  (setq company-minimum-prefix-length 3)
   )
+
+(use-package company-irony
+  :config
+  (add-to-list 'company-backends 'company-irony))
+
+(use-package irony
+  :config
+  (add-hook 'c++-mode-hook 'irony-mode)
+  (add-hook 'c-mode-hook 'irony-mode)
+  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
+
+(use-package company-c-headers
+  :config
+  (add-to-list 'company-backends 'company-c-headers))
+
+(defun my/c-eldoc-macro ()
+  "If point is on a C macro, show its definition."
+  (let* ((sym (thing-at-point 'symbol t))
+         (cmd (format "echo | gcc -E -dM -include %s - | grep '^#define %s '"
+                      buffer-file-name (or sym "")))
+         (out (and sym (shell-command-to-string cmd))))
+    (when (and out (not (string-empty-p out)))
+      (string-trim out))))
+
+(add-hook 'c-mode-hook
+          (lambda ()
+            (setq-local eldoc-documentation-function #'my/c-eldoc-macro)
+            (eldoc-mode 1)))
+
+;; Set multi line in C.
+(setq comment-style 'multi-line)
+(setq comment-continue "   ")
+
+(defun my-prettify-c-block-comment (orig-fun &rest args)
+  (let* ((first-comment-line (looking-back "/\\*\\s-*.*"))
+         (star-col-num (when first-comment-line
+                         (save-excursion
+                           (re-search-backward "/\\*")
+                           (1+ (current-column))))))
+    (apply orig-fun args)
+    (when first-comment-line
+      (save-excursion
+        (newline)
+        (dotimes (cnt star-col-num)
+          (insert " "))
+        (move-to-column star-col-num)
+        (insert "*/"))
+      (move-to-column star-col-num) ; comment this line if using bsd style
+      (insert "*") ; comment this line if using bsd style
+     ))
+  ;; Ensure one space between the asterisk and the comment
+  (when (not (looking-back " "))
+    (insert " ")))
+
+(advice-add 'c-indent-new-comment-line :around #'my-prettify-c-block-comment)
 #+end_src
 ** COMMENT Pdf-tools
 #+begin_src emacs-lisp
