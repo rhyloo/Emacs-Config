@@ -15,9 +15,45 @@
  '(org-agenda-files
    '("~/Documents/org-mode-files/Agenda_Fastmail.org" "/home/rhyloo/Documents/org-mode-files/Agenda.org"))
  '(package-selected-packages
-   '(company-irony dashboard multiple-cursors pyvenv python-mode hledger-mode org-caldav appt org-super-agenda writegood-mode vscode-dark-plus-theme undo-tree minions magit counsel company))
+   '(auto-complete-c-headers sr-speedbar projectile company-irony dashboard multiple-cursors pyvenv python-mode hledger-mode org-caldav appt org-super-agenda writegood-mode vscode-dark-plus-theme undo-tree minions magit counsel company))
  '(safe-local-variable-values
-   '((eval add-hook 'before-save-hook
+   '((eval setq-local my/c-eldoc-includes
+	   (list
+	    (concat
+	     (projectile-project-root)
+	     "include")))
+     (company-clang-arguments list
+			      ("-I/home/rhyloo/Documents/nymbolator/include/"))
+     (company-clang-arguments "-I/home/rhyloo/Documents/nymbolator/include/")
+     (company-clang-arguments "-I/home/rhyloo/nymbolator/include/")
+     (eval add-to-list 'irony-additional-clang-options
+	   (concat "-I"
+		   (projectile-project-root)
+		   "include"))
+     (eval setq-local company-c-headers-path-system
+	   (list
+	    (concat
+	     (projectile-project-root)
+	     "include")))
+     (eval setq-local company-clang-arguments
+	   (list
+	    (concat
+	     (projectile-project-root)
+	     "include")
+	    "-std=c11"))
+     (eval setq-local company-clang-arguments
+	   (list
+	    (concat "-I"
+		    (projectile-project-root)
+		    "include")
+	    "-std=c11"))
+     (eval setq-local lsp-clients-clangd-args
+	   '("-Iinclude"))
+     (eval setq-local flycheck-clang-include-path
+	   '("include"))
+     (eval setq-local company-clang-arguments
+	   '("-Iinclude"))
+     (eval add-hook 'before-save-hook
 	   (lambda nil
 	     (org-babel-ref-resolve "photo_generation"))
 	   nil t)

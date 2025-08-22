@@ -406,7 +406,7 @@ Do nothing when point is not inside a table."
 (global-set-key (kbd "<f8>") 'my/upload-doc)
 (global-set-key (kbd "<f7>") 'my/actualization-repo)
 (global-set-key (kbd "<f12>") 'list-bookmarks)
-(global-set-key (kbd "C-x k") 'kill-this-buffer)
+(global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
 (global-set-key (kbd "C-c a") 'org-agenda)
@@ -543,42 +543,68 @@ Do nothing when point is not inside a table."
 (setq matlab-shell-command-switches '("-nodesktop" "-softwareopengl"))
 
 (use-package company
-  :ensure t
-  :defer t  ; Load when needed, not at startup
-  :init     ; Execute immediately (before package loads)
+  :init
   (add-hook 'after-init-hook #'global-company-mode)
-  :config   ; Execute after package loads
-  (add-hook 'shell-mode-hook (lambda () (company-mode -1)))
-  (setq company-dabbrev-downcase nil)    ; Preserve case in completions
-  (setq company-dabbrev-ignore-case nil) ; Case-sensitive matching
-  (setq company-idle-delay 0)
-  (setq company-minimum-prefix-length 3)
-  )
+  :config
+  (setq company-dabbrev-downcase nil
+        company-dabbrev-ignore-case nil
+        company-idle-delay 0
+        company-minimum-prefix-length 3)
+  (add-hook 'shell-mode-hook (lambda () (company-mode -1))))
+
+(use-package irony
+  :hook ((c++-mode c-mode) . irony-mode)
+  :config
+  (add-hook 'irony-mode-hook #'irony-cdb-autosetup-compile-options)
+  (add-hook 'irony-mode-hook
+            (lambda ()
+              (add-to-list 'irony-additional-clang-options
+                           (concat "-I" (projectile-project-root) "include")))))
 
 (use-package company-irony
+  :after company irony
   :config
   (add-to-list 'company-backends 'company-irony))
 
-(use-package irony
-  :config
-  (add-hook 'c++-mode-hook 'irony-mode)
-  (add-hook 'c-mode-hook 'irony-mode)
-  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
-
 (use-package company-c-headers
+  :after company
   :config
-  (add-to-list 'company-backends 'company-c-headers))
+  (add-to-list 'company-backends 'company-c-headers)
+  ;; Remove semantic backend if you don't want it
+  (setq company-backends (delete 'company-semantic company-backends)))
+
+;; Keybindings (optional - consider using company-active-map instead)
+(add-hook 'c-mode-hook
+          (lambda ()
+            (local-set-key (kbd "<tab>") #'company-complete)))
+(add-hook 'c++-mode-hook
+          (lambda ()
+            (local-set-key (kbd "<tab>") #'company-complete)))
+
+(defvar-local my/c-eldoc-includes nil
+  "Lista de directorios de include para my/c-eldoc-macro.")
 
 (defun my/c-eldoc-macro ()
   "If point is on a C macro, show its definition."
   (let* ((sym (thing-at-point 'symbol t))
-         (cmd (format "echo | gcc -E -dM -include %s - | grep '^#define %s '"
-                      buffer-file-name (or sym "")))
+         (include-flags (mapconcat (lambda (dir) (concat "-I" dir))
+                                   (or my/c-eldoc-includes '())
+                                   " "))
+         (cmd (format "echo | gcc -E -dM %s -include %s - | grep '^#define %s '"
+                      include-flags
+                      buffer-file-name
+                      (or sym "")))
          (out (and sym (shell-command-to-string cmd))))
     (when (and out (not (string-empty-p out)))
       (string-trim out))))
 
+;; Hook para activar el eldoc
 (add-hook 'c-mode-hook
+          (lambda ()
+            (setq-local eldoc-documentation-function #'my/c-eldoc-macro)
+            (eldoc-mode 1)))
+
+(add-hook 'c++-mode-hook
           (lambda ()
             (setq-local eldoc-documentation-function #'my/c-eldoc-macro)
             (eldoc-mode 1)))
@@ -895,3 +921,16 @@ Do nothing when point is not inside a table."
 
 (setq enable-recursive-minibuffers t)
 (setq electric-pair-mode t)
+
+(use-package projectile
+  :init
+  (projectile-mode +1)
+  :bind-keymap
+  ("C-c p" . projectile-command-map))
+
+
+(add-hook 'company-mode-hook
+          (lambda ()
+            (local-set-key (kbd "<backtab>") 'indent-region)))
+
+(use-package sr-speedbar)
