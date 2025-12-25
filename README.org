@@ -119,55 +119,48 @@ To add words and characters to modeline
 #+end_src
 * Packages
 ** Configuration
-Configuración de repositorios para ELPA, MELPA y soporte adicional para Org mode.  
-Se utiliza =use-package= para simplificar la configuración de paquetes.
+Since I use =use-package= and =elpaca= for package management, I want to speed up the configuration loading process by deferring all packages.
 #+begin_src emacs-lisp
-(setq package-archives                                           ;; Init package repositories.
-      '(("gnu"          . "https://elpa.gnu.org/packages/")      ;; Set GNU repository
-        ("melpa"        . "https://melpa.org/packages/")))       ;; Set Melpa repository
-(unless package-archive-contents (package-refresh-contents))     ;; Are package archives up to date?
-(unless (package-installed-p 'use-package)                       ;; Is 'use-package' installed?
-  (package-install 'use-package))
-(setq use-package-always-ensure t
-      use-package-always-defer t) ;; también puedes diferir todos por defecto
+  (setq use-package-always-ensure nil
+        use-package-always-defer t) 
 #+end_src
 ** EMACS
 #+begin_src emacs-lisp
-;; Configuración optimizada de números de línea
-(use-package emacs
-  :init
-  ;; ---------------------------
-  ;; 1. Habilitar en modos padres (evita redundancia)
-  ;; ---------------------------
-  ;; text-mode-hook ya cubre org-mode, markdown-mode, etc.
-  ;; prog-mode-hook cubre todos los lenguajes de programación
-  (defun my/enable-line-numbers ()
-    "Activar números de línea solo en GUI y modos específicos."
-    (when (display-graphic-p)
-    (display-line-numbers-mode 1)))
+  ;; Configuración optimizada de números de línea
+  ;; (use-package emacs
+  ;;   :no-require
+  ;;   :init
+  ;;   ;; ---------------------------
+  ;;   ;; 1. Habilitar en modos padres (evita redundancia)
+  ;;   ;; ---------------------------
+  ;;   ;; text-mode-hook ya cubre org-mode, markdown-mode, etc.
+  ;;   ;; prog-mode-hook cubre todos los lenguajes de programación
+  ;;   (defun my/enable-line-numbers ()
+  ;;     "Activar números de línea solo en GUI y modos específicos."
+  ;;     (when (display-graphic-p)
+  ;;     (display-line-numbers-mode 1)))
 
-  ;; Añadir solo a los hooks principales
-  (dolist (hook '(text-mode-hook prog-mode-hook conf-mode-hook))
-    (add-hook hook #'my/enable-line-numbers :append))
+  ;;   ;; Añadir solo a los hooks principales
+  ;;   (dolist (hook '(text-mode-hook prog-mode-hook conf-mode-hook))
+  ;;     (add-hook hook #'my/enable-line-numbers :append))
 
-  ;; ---------------------------
-  ;; 2. Deshabilitar en modos específicos (más eficiente)
-  ;; ---------------------------
-  (defun my/disable-line-numbers ()
-    "Desactivar números de línea donde no se necesitan."
-    (display-line-numbers-mode -1))
+  ;;   ;; ---------------------------
+  ;;   ;; 2. Deshabilitar en modos específicos (más eficiente)
+  ;;   ;; ---------------------------
+  ;;   (defun my/disable-line-numbers ()
+  ;;     "Desactivar números de línea donde no se necesitan."
+  ;;     (display-line-numbers-mode -1))
 
-  ;; Org Mode (sobrescribe text-mode-hook)
-  (add-hook 'org-mode-hook #'my/disable-line-numbers :append))
+  ;;   ;; Org Mode (sobrescribe text-mode-hook)
+  ;;   (add-hook 'org-mode-hook #'my/disable-line-numbers :append))
 #+end_src
 ** Vscode Dark Theme
 #+begin_src emacs-lisp
-(when (display-graphic-p)
-  (use-package vscode-dark-plus-theme
-    :ensure t
-    :defer t
-    :init
-    (add-hook 'after-init-hook (load-theme 'vscode-dark-plus t))))
+(use-package vscode-dark-plus-theme
+  :ensure t
+  :init
+  (when (display-graphic-p)
+    (load-theme 'vscode-dark-plus t)))
 #+end_src
 ** Org-mode
 *** Visual
