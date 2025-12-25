@@ -1,73 +1,126 @@
-(package-initialize)
+;;; init.el --- Emacs init file for Emacs 30.2.5  -*- lexical-binding: t -*-
+;; Company:       RhylooSolutions
+;; Engineer:      Rhyloo
+;; 
+;; Create Date:   2025-12-25
+;; Project Name:  Personal Emacs configuration
+;; Version:       0.0.2v
+;;
+;;; Description:
+;;
+;; This is the main configuration file for Emacs.
+;; In this file:
+;; - Set no-littering etc and var locations
+;; - Set elpaca as default install method for use-package
+;; - Set eln-cache location for no-littering
+;; - Set the bootstratp for elpaca.el
+;; - Install the latest release of org
+;; - Load no-littering
+;; - Set elpaca for no-littering
+;; - Add elpaca-use-package-mode
+;; - Load the file ~/.config/emacs/slv-config.org
+;;
+;;; Revision:
+;;
+;; Revision 0.0.1 - File Created
+;;
+;;; Additional Comments:
+;;
+;; -----------------------------------------------------------------------------
 
-(defun load-if-exists (f)
-  (if (file-exists-p (expand-file-name f))
-      (load-file (expand-file-name f))))
+;;; Code:
+;; Set alternative locations for no-littering
+(setq no-littering-etc-directory (expand-file-name "~/.cache/emacs/etc")
+      no-littering-var-directory (expand-file-name "~/.cache/emacs/var"))
+(when (boundp 'native-comp-eln-load-path)
+  (startup-redirect-eln-cache (expand-file-name "eln-cache" no-littering-var-directory)))
+;; -----------------------------------------------------------------------------
+;; Uncomment next line for use-package statistics
+(defvar use-package-compute-statistics t)
+;; -----------------------------------------------------------------------------
+(when (boundp 'native-comp-eln-load-path)
+  (startup-redirect-eln-cache (expand-file-name "eln-cache" no-littering-var-directory)))
+;; -----------------------------------------------------------------------------
+;; Needed to avoid elpaca warning
+(setq elpaca-core-date '(20251225)) ;; Build date of Emacs in my system
+;; -----------------------------------------------------------------------------
+;; Define elpaca bootstrap (Copied from: https://github.com/progfolio/elpaca)
+(defvar elpaca-installer-version 0.11)
+(defvar elpaca-directory (expand-file-name "elpaca/" no-littering-var-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil :depth 1
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (< emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                 ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                 ,@(when-let ((depth (plist-get order :depth)))
+                                                     (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                 ,(plist-get order :repo) ,repo))))
+                 ((zerop (call-process "git" nil buffer t "checkout"
+                                       (or (plist-get order :ref) "--"))))
+                 (emacs (concat invocation-directory invocation-name))
+                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                 ((require 'elpaca))
+                 ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
+      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (load "./elpaca-autoloads")))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
+;; -----------------------------------------------------------------------------
+;; Install elpaca use-package support
+(elpaca elpaca-use-package
+  ;; Enable use-package :ensure support for Elpaca.
+  (elpaca-use-package-mode))
+;; -----------------------------------------------------------------------------
+;; Update transient
+(use-package transient
+  :ensure (:host github :repo "magit/transient" :branch "main")
+  :defer t)
+;; -----------------------------------------------------------------------------
+;; Keep emacs clean!
+(use-package no-littering
+  :ensure t
+  :demand t  
+  :config
+  ;; Enable backups logic
+  (no-littering-theme-backups)
+  ;; Set custom files (Cleaned up: You had 'custom-file' defined twice)
+  (setq custom-file (no-littering-expand-etc-file-name "custom.el")
+        url-history-file (no-littering-expand-etc-file-name "url/history")))
+;; -----------------------------------------------------------------------------
+;; Wait to every queued elpaca order to finish
+(elpaca-wait)
+;; -----------------------------------------------------------------------------
+;; Load org config file.
+(let ((config-el (expand-file-name "README.el" user-emacs-directory))
+      (config-org (expand-file-name "README.org" user-emacs-directory)))
+  (if (and (file-exists-p config-el)
+           (file-exists-p config-org)
+           (time-less-p (file-attribute-modification-time (file-attributes config-org))
+                        (file-attribute-modification-time (file-attributes config-el))))
+      (load-file config-el)
+    (if (file-exists-p config-org)
+        (org-babel-load-file config-org)
+      (error "No file `%s' found!! No configuration loaded!!" config-org))))
+;; -----------------------------------------------------------------------------
+(provide 'init)
+;; -----------------------------------------------------------------------------
+;;; init.el ends here
 
-(load-if-exists "~/.emacs.d/secrets.el")
-
-(org-babel-load-file (expand-file-name "README.org" user-emacs-directory))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(org-agenda-files
-   '("~/Documents/org-mode-files/Agenda_Fastmail.org" "/home/rhyloo/Documents/org-mode-files/Agenda.org"))
- '(package-selected-packages
-   '(auto-complete-c-headers sr-speedbar projectile company-irony dashboard multiple-cursors pyvenv python-mode hledger-mode org-caldav appt org-super-agenda writegood-mode vscode-dark-plus-theme undo-tree minions magit counsel company))
- '(safe-local-variable-values
-   '((eval setq-local my/c-eldoc-includes
-	   (list
-	    (concat
-	     (projectile-project-root)
-	     "include")))
-     (company-clang-arguments list
-			      ("-I/home/rhyloo/Documents/nymbolator/include/"))
-     (company-clang-arguments "-I/home/rhyloo/Documents/nymbolator/include/")
-     (company-clang-arguments "-I/home/rhyloo/nymbolator/include/")
-     (eval add-to-list 'irony-additional-clang-options
-	   (concat "-I"
-		   (projectile-project-root)
-		   "include"))
-     (eval setq-local company-c-headers-path-system
-	   (list
-	    (concat
-	     (projectile-project-root)
-	     "include")))
-     (eval setq-local company-clang-arguments
-	   (list
-	    (concat
-	     (projectile-project-root)
-	     "include")
-	    "-std=c11"))
-     (eval setq-local company-clang-arguments
-	   (list
-	    (concat "-I"
-		    (projectile-project-root)
-		    "include")
-	    "-std=c11"))
-     (eval setq-local lsp-clients-clangd-args
-	   '("-Iinclude"))
-     (eval setq-local flycheck-clang-include-path
-	   '("include"))
-     (eval setq-local company-clang-arguments
-	   '("-Iinclude"))
-     (eval add-hook 'before-save-hook
-	   (lambda nil
-	     (org-babel-ref-resolve "photo_generation"))
-	   nil t)
-     (eval add-hook 'after-save-hook
-	   (lambda nil
-	     (run-with-idle-timer 0.1 nil
-				  (lambda nil
-				    (org-babel-tangle))))
-	   nil t))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(dired-directory ((t (:inherit font-lock-keyword-face :weight bold))))
- '(org-agenda-date-today ((t (:background "yellow" :weight bold))))
- '(which-func ((((class color) (min-colors 88) (background light)) (:inherit (font-lock-function-name-face))) (((class grayscale mono) (background dark)) (:inherit (font-lock-function-name-face))) (((class color) (background light)) (:inherit (font-lock-function-name-face))) (((class color) (min-colors 88) (background dark)) (:foreground "green")) (((background dark)) (:foreground "red")) (t (:foreground "red")))))
