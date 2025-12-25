@@ -3,6 +3,7 @@
 *
 
 # But not these files...
+!early-init.el
 !.gitignore
 !README.org
 !blog.el
