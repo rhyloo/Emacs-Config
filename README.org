@@ -597,25 +597,31 @@ Magit is a complete text-based user interface to Git.
   (undo-tree-history-directory-alist '(("." . "/tmp/")))
   (undo-tree-visualizer-timestamps t))
 #+end_src
-** Ivy/Swiper
+** Ivy
+After testing these tools, I found them essential. As stated in their documentation, they provide flexible and simple tools for minibuffer completion in Emacs.
 #+begin_src emacs-lisp
+(use-package ivy
+  :ensure t
+  :demand t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t
+        ivy-count-format "(%d/%d) "))
+
 (use-package swiper
   :ensure t
-  :defer t
-  :bind 
-  ("C-s" . swiper-isearch)
-  :hook 
-  (after-init . ivy-mode)
-  :config
-  (setq ivy-use-virtual-buffers nil)
-  ;; (setq enable-recursive-minibuffers t)
-  ;; (setopt ivy-use-selectable-prompt t)
-  )
+  :demand t
+  :bind ("C-s" . swiper-isearch))
+
 (use-package counsel
   :ensure t
-  :defer t
-  :bind     
-  ("M-x" . counsel-M-x))
+  :demand t
+  :bind (("M-x" . counsel-M-x)
+         ("C-x C-f" . counsel-find-file)
+         ("C-h f" . counsel-describe-function)
+         ("C-h v" . counsel-describe-variable))
+  :config
+  (setq counsel-find-file-ignore-regexp "\\.elc\\|\\.pyc"))
 #+end_src
 ** Languages coding
 *** Writting
