@@ -108,17 +108,26 @@
 ;; Wait to every queued elpaca order to finish
 (elpaca-wait)
 ;; -----------------------------------------------------------------------------
-;; Load org config file.
-(let ((config-el (expand-file-name "README.el" user-emacs-directory))
-      (config-org (expand-file-name "README.org" user-emacs-directory)))
-  (if (and (file-exists-p config-el)
-           (file-exists-p config-org)
-           (time-less-p (file-attribute-modification-time (file-attributes config-org))
-                        (file-attribute-modification-time (file-attributes config-el))))
-      (load-file config-el)
-    (if (file-exists-p config-org)
-        (org-babel-load-file config-org)
-      (error "No file `%s' found!! No configuration loaded!!" config-org))))
+;; Load org config file
+(let* ((base-name "README")
+       (org-file (expand-file-name (concat base-name ".org") user-emacs-directory))
+       (el-file  (expand-file-name (concat base-name ".el")  user-emacs-directory)))
+
+  ;; Si el .org es más nuevo que el .el (o el .el no existe), generamos el .el
+  ;; Usamos un proceso externo para no cargar Org en esta sesión todavía.
+  (when (and (file-exists-p org-file)
+             (or (not (file-exists-p el-file))
+                 (time-less-p (file-attribute-modification-time (file-attributes el-file))
+                              (file-attribute-modification-time (file-attributes org-file)))))
+    (message "Tangling configuration file...")
+    (call-process (concat invocation-directory invocation-name) nil nil nil
+                  "-Q" "--batch" "--eval" "(require 'org)"
+                  "--eval" (format "(org-babel-tangle-file \"%s\" \"%s\" \"emacs-lisp\")" org-file el-file)))
+
+  ;; Cargamos el archivo .el resultante
+  (if (file-exists-p el-file)
+      (load-file el-file)
+    (error "No se pudo cargar la configuración: %s no existe" el-file)))
 ;; -----------------------------------------------------------------------------
 (provide 'init)
 ;; -----------------------------------------------------------------------------
