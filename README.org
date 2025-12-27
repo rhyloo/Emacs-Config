@@ -1,6 +1,6 @@
 #+TITLE:  EMACS
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-27 15:38:30
+#+last_modified: 2025-12-28 00:24:07
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -430,6 +430,8 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
   :demand t
   :init
   (prefer-coding-system 'utf-8)
+  :config
+  (setq delete-by-moving-to-trash t)
   :hook ((prog-mode text-mode conf-mode matlab-mode lisp-mode) . my/enable-line-numbers))
 #+end_src
 ** Theme
