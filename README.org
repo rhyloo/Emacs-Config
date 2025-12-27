@@ -1,6 +1,6 @@
 #+TITLE:  EMACS
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-25 22:18:58
+#+last_modified: 2025-12-27 14:08:17
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -410,7 +410,7 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 (global-set-key (kbd "\C-c M-+") 'my/create-temp)
 
 (global-set-key (kbd "C-c l") 'counsel-locate)
-(global-set-key (kbd "C-x q") 'compile)
+(global-set-key (kbd "C-x q") 'project-compile)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "C-c a") 'org-agenda)
