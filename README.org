@@ -1,6 +1,6 @@
 #+TITLE:  EMACS
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-27 14:08:17
+#+last_modified: 2025-12-27 15:38:30
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -612,6 +612,7 @@ Magit is a complete text-based user interface to Git.
   :bind
   ("C-x g" . magit-status)
   :config
+  (transient-append-suffix 'magit-merge "-s" '("-a" "Allow unrelated histories" "--allow-unrelated-histories"))
   (setq magit-auto-revert-mode t)
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))

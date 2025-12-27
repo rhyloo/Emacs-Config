@@ -330,7 +330,7 @@
 (global-set-key (kbd "\C-c M-+") 'my/create-temp)
 
 (global-set-key (kbd "C-c l") 'counsel-locate)
-(global-set-key (kbd "C-x q") 'compile)
+(global-set-key (kbd "C-x q") 'project-compile)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "C-c a") 'org-agenda)
@@ -513,6 +513,7 @@
   :bind
   ("C-x g" . magit-status)
   :config
+  (transient-append-suffix 'magit-merge "-s" '("-a" "Allow unrelated histories" "--allow-unrelated-histories"))
   (setq magit-auto-revert-mode t)
   (setq magit-auto-revert-immediately t)
   (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
