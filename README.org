@@ -7,7 +7,7 @@
 #+STARTUP: hideblocks
 #+cover_image: ./../projects/files/cover/EmacsIcon.png
 
-[[https://img.shields.io/badge/Emacs-30.2.5-purple.svg]] [[https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-blue?style=plastic]]
+[[https://img.shields.io/badge/Emacs-30.2.5-purple.svg]] [[https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-blue.svg]]
 
 * About
 This is my personal Emacs configuration, maintained since 2021 (though my journey with Emacs started back in 2013). I treat Emacs as a "Swiss Army knife"—I use it for blogging, programming, and productivity.
