@@ -109,7 +109,7 @@
 (elpaca-wait)
 ;; -----------------------------------------------------------------------------
 ;; Load org config file
-(let* ((base-name "README")
+(let* ((base-name "blog")
        (org-file (expand-file-name (concat base-name ".org") user-emacs-directory))
        (el-file  (expand-file-name (concat base-name ".el")  user-emacs-directory)))
 
