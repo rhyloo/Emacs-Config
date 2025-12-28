@@ -1,7 +1,7 @@
 #+TITLE: Rhyloo's Emacs Configuration
 #+AUTHOR: Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: 2025-12-28 15:01:48
+#+LAST_MODIFIED: 2025-12-28 21:14:10
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent :tangle yes
@@ -64,7 +64,7 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 #+begin_src emacs-lisp
 (defun my/find-emacs-configuration ()
   (interactive)
-  (find-file (concat user-emacs-directory my-user-init-file)))
+  (find-file (concat user-emacs-directory my-user-init-file ".org")))
 
 (defun my/reload-emacs-configuration ()
   (interactive)

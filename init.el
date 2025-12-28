@@ -108,7 +108,7 @@
 ;; Wait to every queued elpaca order to finish
 (elpaca-wait)
 ;; -----------------------------------------------------------------------------
-(setq my-user-init-file "blog.org")
+(setq my-user-init-file "blog")
 ;; Load org config file
 (let* ((base-name my-user-init-file)
        (org-file (expand-file-name (concat base-name ".org") user-emacs-directory))
