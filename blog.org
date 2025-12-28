@@ -1,12 +1,10 @@
-#+TITLE:  EMACS
-#+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-28 14:01:37
+#+TITLE: Rhyloo's Emacs Configuration
 #+AUTHOR: Rhyloo
-#+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
+#+DATE: [2022-12-26 Mon]
+#+LAST_MODIFIED: 2025-12-28 15:01:48
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent :tangle yes
-#+cover_image: ./../projects/files/cover/EmacsIcon.png
 
 * Introduction
 ** Why EMACS?
@@ -59,7 +57,6 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 #+end_src
 ** Custom variables and sets
 #+begin_src emacs-lisp
-(setq my-user-init-file "README.org")
 (setq auth-sources '("~/.authinfo" "~/.authinfo.gpg" "~/.netrc" "~/.emacs.d/.authinfo"))
 (setq backup-directory-alist `(("." . "~/.cache/emacs/backups"))) ;;Backup directory
 #+end_src
@@ -752,6 +749,3 @@ Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo
 #+begin_src emacs-lisp
 (run-with-idle-timer 60 t #'garbage-collect)
 #+end_src
-* References
-1. https://web.archive.org/web/20220516055538/https://blog.d46.us/advanced-emacs-startup/
-2. https://comacero.com/posts/notes_emacs_elpaca/

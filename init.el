@@ -108,12 +108,18 @@
 ;; Wait to every queued elpaca order to finish
 (elpaca-wait)
 ;; -----------------------------------------------------------------------------
+(setq my-user-init-file "blog.org")
 ;; Load org config file
-(let* ((base-name "blog")
+(let* ((base-name my-user-init-file)
+       (org-file (expand-file-name (concat base-name ".org") user-emacs-directory))
        (el-file  (expand-file-name (concat base-name ".el")  user-emacs-directory)))
   (if (file-exists-p el-file)
-      (load-file el-file)
-    (error "No se pudo cargar la configuración: %s no existe" el-file)))
+      (load el-file nil t) 
+    (when (file-exists-p org-file)
+      ;; Solo cargamos org-babel si es estrictamente necesario (el .el no existe)
+      (require 'ob-tangle) 
+      (org-babel-tangle-file org-file el-file)
+      (load el-file))))
 ;; -----------------------------------------------------------------------------
 (provide 'init)
 ;; -----------------------------------------------------------------------------
