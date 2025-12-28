@@ -6,6 +6,7 @@
 #+DESCRIPTION: My personal literate Emacs configuration.
 #+STARTUP: hideblocks
 #+cover_image: ./../projects/files/cover/EmacsIcon.png
+#+options: toc:nil num:nil
 
 [[https://img.shields.io/badge/Emacs-30.2.5-purple.svg]] [[https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-blue.svg]]
 
