@@ -1,748 +1,89 @@
-#+TITLE:  EMACS
-#+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-28 14:01:24
+#+TITLE: EMACS
+#+SUBTITLE: Rhyloo's Configuration
 #+AUTHOR: Rhyloo
-#+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
+#+DATE: [2022-12-26 Mon]
+#+LAST_MODIFIED: 2025-12-28 15:01:52
+#+DESCRIPTION: My personal literate Emacs configuration.
 #+STARTUP: hideblocks
-#+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
-#+PROPERTY: header-args :results silent :tangle yes
 #+cover_image: ./../projects/files/cover/EmacsIcon.png
-* Introduction
-** Why EMACS?
-No sé como empecé con EMACS, recuerdo que con aproximadamente 13 años empecé en linux. Visualicé muchos videos de diferentes distros, incluso borré varias veces mi SO - Desde aquí envío un saludo a mis padres por no "matarme" - En cualquier caso, supongo que el ecosistema Linux me llevó a investigar más sobre el tema. Las conferencias de RMS sobe el proyecto GNU y porqué no la página de la propia FSF me llevaron a este maravilloso editor.
 
-He probado muchos, atom, VScode, notepad++, bloc de notas, sublime e incluso vi/vim, pero me seguiría quedando con este. Me adapto en el trabajo he tenido que utilizar vscode y no hay ningún problema, no voy tan fluido como cuando trabajo en mi entorno, pero lo hago sin problemas. Ahora bien siempre que puedo vuelvo a él porque por alguna razón yo lo encuentro fascinante, no tanto por lo que ofrece ya que hay gente que incluso ha jugado al doom en él, supera eso VIM. Creo que es la personalización, creo que esa es la mejor parte. Me atrevería a decir que me llena por dentro construirme mis propias herramientas desde cero - menos mal que no he bajado a nivel de bit, transistor u átomo ;) - bromas aparte, sí creo que es parte de la naturaleza ingenieril y EMACS te da esa posibilidad.
+[[https://img.shields.io/badge/Emacs-30.2.5-purple.svg]] [[https://img.shields.io/badge/license-GNU%20GPLv3-blue]]
 
-Hoy en día, con la IA, tenemos muchos problemas para escribir código. El cerebro se acostumbra muy rápido a lo fácil. Intentaré en la medida de lo posible no utilizarlo, esto no lo hago por tener un proyecto más, lo hago porque me gusta, así que si la utilizo al menos indicaré que no es mi obra con algún tag o etiqueta. 
+* About
+This is my personal Emacs configuration, maintained since 2021 (though my journey with Emacs started back in 2013). I treat Emacs as a "Swiss Army knife"—I use it for blogging, programming, and productivity.
 
-** Information
-- Name: Personal EMACS Configuration
-- Versión: v0.1.0
-- Project-ID: SW-ELISP-0.1.0-JESTER
-- Status: IN-PROGRESS
-  
-* Startup optimization
-Este bloque de configuración optimiza el proceso de inicio de Emacs y proporciona información útil sobre el rendimiento.
-** Lexical Binding
-#+begin_src emacs-lisp
-;; -*- lexical-binding: t; -*-
+* Specifications
+This configuration is tailored for and tested on:
+- *Build*: Emacs 30.2.5 (compiled with =tree-sitter=).
+- *OS*: Ubuntu 20.04.6 LTS & 24.04 LTS.
+- *LSP*: Integrated with =clangd= (C/C++) and =pyls= (Python).
+- *Package Management*: Uses =elpaca.el= and =use-package= for a modern, non-blocking startup.
+- *Structure*: Employs =no-littering= to separate configuration from persistent data.
+
+* Installation
+To install, clone the repository into your =user-emacs-directory=.
+
+#+begin_src bash
+# 1. Backup your existing configuration
+mv ~/.emacs.d ~/.emacs.d.bak
+
+# 2. Clone this repository
+git clone https://github.com/rhyloo/Emacs-Config.git ~/.emacs.d
+
+# 3. Launch Emacs
+emacs
 #+end_src
-** Perfil del tiempo de inicio
-Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs y cuántas recolecciones de basura ocurrieron durante el proceso.
-#+begin_src emacs-lisp
-(add-hook 'emacs-startup-hook
-	        (lambda ()
-            (message "*** Emacs loaded in %s with %d garbage collections."
-	                   (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done)))
-#+end_src
-** Minimizar la recolección de basura durante el inicio
-Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
-#+begin_src emacs-lisp
-;; From https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
-(setq gc-cons-threshold most-positive-fixnum)
-(defvar default-file-name-handler-alist file-name-handler-alist)
-(setq file-name-handler-alist nil)
 
-;; Restaurar valores tras el inicio
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq gc-cons-threshold 16777216 ; 16mb
-                  file-name-handler-alist default-file-name-handler-alist)))
-#+end_src
-* Core
-** Personal information
-#+begin_src emacs-lisp
-(setq user-full-name "Rhyloo"  ;; Set my name
-      user-mail-address "me@rhyloo.com"
-      user-real-login-name "Rhyloo")    ;; Set my user
-#+end_src
-** Custom variables and sets
-#+begin_src emacs-lisp
-(setq my-user-init-file "README.org")
-(setq auth-sources '("~/.authinfo" "~/.authinfo.gpg" "~/.netrc" "~/.emacs.d/.authinfo"))
-(setq backup-directory-alist `(("." . "~/.cache/emacs/backups"))) ;;Backup directory
-#+end_src
-** Custom functions
-#+begin_src emacs-lisp
-(defun my/find-emacs-configuration ()
-  (interactive)
-  (find-file (concat user-emacs-directory my-user-init-file)))
-
-(defun my/reload-emacs-configuration ()
-  (interactive)
-  (load-file "~/.emacs.d/init.el"))
-
-(defun my/get-pwd ()
-  "Put the current file name (include directory) on the clipboard"
-  (interactive)
-  (let ((filename (if (equal major-mode 'dired-mode)
-                      default-directory
-                    (buffer-file-name))))
-    (when filename
-      (with-temp-buffer
-        (insert filename)
-        (clipboard-kill-region (point-min) (point-max)))
-      (message filename))))
-
-(defun my/create-temp ()
-  "Permite crear directorios o archivos en /tmp con completado de estilo counsel/find-file."
-  (interactive)
-  (let* ((choices '("file" "directory"))
-         (type (completing-read "Create (file/directory): " choices nil t))
-         ;; read-file-name permite navegar y autocompletar
-         (path (read-file-name "Name: " "/tmp/")))
-
-    (if (string-equal type "directory")
-        (progn
-          (make-directory path t)
-          (dired path))
-      (find-file path))
-    (message "Created %s: %s" type path)))
-
-(defun my/find-file (filename)
-  "Open a file in the background"
-  (interactive "FFind file: ")
-  (set-buffer (find-file-noselect filename)))
-
-(defun my/enable-line-numbers ()
-  "Activar números de línea solo en GUI y modos específicos."
-  (when (display-graphic-p)
-    (display-line-numbers-mode 1)))
-
-(defun my/update-last-modified ()
-  "Actualizar la clave 'last_modified' en el encabezado de Org-mode al guardar."
-  (when (eq major-mode 'org-mode)
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward "^#\\+last_modified:.*" nil t)
-        (replace-match (format "#+last_modified: %s" (format-time-string "%Y-%m-%d %H:%M:%S")))))))
-
-(defun my/enable-undo-tree-once ()
-  (when buffer-file-name
-    (global-undo-tree-mode 1)
-    (remove-hook 'find-file-hook #'my/enable-undo-tree-once)))
-
-;;; -----------------------------------------------------------
-(defun y-or-n-p-with-return (orig-func &rest args)
-  (let ((query-replace-map (copy-keymap query-replace-map)))
-    (define-key query-replace-map (kbd "RET") 'act)
-    (apply orig-func args)))
-
-(defun ar/compile-autoclose (buffer string)
-  "Handle compilation window based on success or failure."
-  (if (string-match "finished" string)
-      ;; SUCCESS CASE
-      (progn
-        (message "Build finished :)")
-        (run-with-timer 1 nil
-                        (lambda ()
-                          (when-let* ((multi-window (> (count-windows) 1))
-                                      (live (buffer-live-p buffer))
-                                      (window (get-buffer-window buffer t)))
-                            (delete-window window)))))
-    ;; FAILURE CASE
-    (progn
-      (message "Compilation Failed: %s" string)
-      (when-let ((window (get-buffer-window buffer t)))
-        (select-window window)      ;; This moves your cursor to the window
-        (goto-char (point-max)))))) ;; Ensure you are looking at the error output
-
-(defun ar/colorize-compilation-buffer ()
-  (let ((inhibit-read-only t))
-    (ansi-color-apply-on-region (point-min) (point-max))))
-
-(defun ct/create-proper-compilation-window ()
-  "Setup the *compilation* window with custom settings."
-  (when (not (get-buffer-window "*compilation*"))
-    (save-selected-window
-      (save-excursion
-        (let* ((w (split-window-vertically))
-               (h (window-height w)))
-          (select-window w)
-          (switch-to-buffer "*compilation*")
-
-          ;; Reduce window height
-          (shrink-window (- h compilation-window-height))
-
-          ;; Prevent other buffers from displaying inside
-          (set-window-dedicated-p w t) 
-          )))))
-
-;; https://adamoudad.github.io/posts/emacs/remote-command-ssh/
-;; https://oremacs.com/2015/01/12/dired-file-size/
-(defun dired-get-size ()
-  (interactive)
-  (let ((files (dired-get-marked-files)))
-    (with-temp-buffer
-      ;; Obtener el nombre del host remoto
-      (let ((remote-hostname (shell-command-to-string "hostname")))
-
-        ;; Eliminar posibles saltos de línea al final
-        (setq remote-hostname (string-trim remote-hostname))
-
-        ;; Dependiendo del nombre de la máquina, ejecutamos diferentes comandos
-        (cond
-         ;; Caso 1: Si estamos en la máquina local con nombre "DESKTOP-O45GL2P"
-         ((or           (string= remote-hostname "DESKTOP-AGD6PUD") 
-                        (string= remote-hostname "thinkpad")) 
-          (apply 'call-process "du" nil t nil "-sch" files)
-          (message "Output of du: %s" (buffer-string)))
-
-         ;; Caso 2: Si estamos en el servidor remoto "debian"
-         ((string= remote-hostname "debian")
-          (let ((default-directory (expand-file-name my-remote-path)))
-            (let* ((cleaned-files
-                    (mapcar (lambda (file)
-                              (replace-regexp-in-string my-remote-path-mod "" file))
-                            files))
-                   (du-output (shell-command-to-string (concat "du -sch " (mapconcat 'identity cleaned-files " ")))))
-              ;; Mostrar la salida en el buffer de mensajes
-              (message "Output of du: %s" du-output))))
-
-         ;; Caso 3: Si estamos en otra máquina, por ejemplo, "other-server"
-         ((string= remote-hostname "other-server")
-          (let ((default-directory (expand-file-name "/ssh:user@other-server:/path/to/directory")))
-            (let ((du-output (shell-command-to-string "du -sch /path/to/directory")))
-              ;; Mostrar la salida en el buffer de mensajes
-              (message "Output of du: %s" du-output))))
-
-         ;; Si el nombre del host no coincide con los anteriores
-         (t
-          (message "No se ha definido un comando para esta máquina.")))))))
-
-;; https://emacs.stackexchange.com/questions/62419/what-is-causing-emacs-remote-shell-to-be-slow-on-completion
-(defun my-shell-mode-setup-function () 
-  (when (and (fboundp 'company-mode)
-             (file-remote-p default-directory))
-    (company-mode -1)))
-#+end_src
-** Basic configurations
-Here is configurations without package needed.
-*** Init
-#+begin_src emacs-lisp
-(bookmark-bmenu-list)
-(switch-to-buffer "*Bookmark List*")
-#+end_src
-*** Screen
-#+begin_src emacs-lisp
-(setq inhibit-startup-message t)                        ;; Avoid startup message
-(setq frame-title-format '("%b [%m]"))                  ;; Title bar name
-(setq ring-bell-function 'ignore)                       ;; Remove bell ring
-(if (display-graphic-p)                                 ;; Highlight lines
-    (global-hl-line-mode 1)      
-  (global-hl-line-mode 0))
-
-(when (display-graphic-p) 
-  (scroll-bar-mode -1)                                  ;; Disable visible scrollbar
-  (tool-bar-mode -1)                                    ;; Disable the toolbar
-  (tooltip-mode -1)                                     ;; Disable tooltips
-  (set-fringe-mode 3)                                   ;; Give some breathing room (borders)
-  (add-to-list 'default-frame-alist '(fullscreen . maximized)))
-
-(menu-bar-mode -1)                                      ;; Disable the menu bar terminal and display mode
-#+end_src
-*** Mouse/Scroll
-#+begin_src emacs-lisp
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)))     ;; one line at a time
-(setq mouse-wheel-progressive-speed nil)                ;; don't accelerate scrolling
-(setq mouse-wheel-follow-mouse 't)                      ;; scroll window under mouse
-(setq scroll-step 1)                                    ;; keyboard scroll one line at a time
-#+end_src
-*** Writting
-#+begin_src emacs-lisp
-(show-paren-mode 1)                                     ;; Show parens
-(global-visual-line-mode 1)                             ;; Better than fix the lines with set-fill-column
-(delete-selection-mode 1)                               ;; Let you select and replace with yank or write
-(add-hook 'prog-mode-hook #'subword-mode) 
-(add-hook 'org-mode-hook #'subword-mode)
-#+end_src
-*** Shell
-#+begin_src emacs-lisp
-(add-hook 'shell-mode-hook
-          (lambda () (local-set-key (kbd "C-l") #'comint-clear-buffer)))
-#+end_src
-*** Buffers
-#+begin_src emacs-lisp
-(global-auto-revert-mode 1)                          ;; Revert buffers when the underlying file has changed
-(setq global-auto-revert-non-file-buffers t)         ;; Revert Dired and other buffers
-;; (setq auto-revert-remote-files nil)                    ;; Revert buffer in remote (SLOW)
-
-#+end_src
-*** Dired
-#+begin_src emacs-lisp
-(put 'dired-find-alternate-file 'disabled nil)
-(setq dired-dwim-target t)                             ;; Allow you move files splitting the window
-(setq dired-listing-switches "-la")
-(setq read-file-name-completion-ignore-case t)        ;; Insensitive letter case
-(setq large-file-warning-threshold nil)               ;; Dont warn for large files
-
-;; Show file size
-(if (display-graphic-p)
-    (setq dired-listing-switches "-alh")
-  (setq dired-listing-switches "-alhF"))
-
-(custom-set-faces
- '(dired-directory ((t (:inherit font-lock-keyword-face :weight bold)))))
-
-;; Dired always use the same buffer. 
-(when (>= emacs-major-version 28)
-  (setq dired-kill-when-opening-new-dired-buffer t))
-(when (< emacs-major-version 28)
-  (progn
-    (define-key dired-mode-map (kbd "RET") 'dired-find-alternate-file) ; was dired-advertised-find-file
-    (define-key dired-mode-map (kbd "^") (lambda () (interactive) (find-alternate-file ".."))) ; was dired-up-directory
-    ))
-
-
-(with-eval-after-load 'dired
-  (define-key dired-mode-map (kbd "z") 'dired-get-size))
-#+end_src
-*** Minibuffer
-#+begin_src emacs-lisp
-(advice-add 'y-or-n-p :around #'y-or-n-p-with-return)
-(fset 'yes-or-no-p 'y-or-n-p)                           ;; Replace yes or no for y or n
-(setq enable-recursive-minibuffers t)
-(setq electric-pair-mode t)
-#+end_src
-*** Mode line
-To config time display
-#+begin_src emacs-lisp
-(setq display-time-format "%H:%M %d %b %y" display-time-default-load-average nil) ;; Show hour minute day month and year
-(setq display-time-day-and-date t display-time-24hr-format t) ;; Change format to 24h
-(display-time)               ;; Show the time in the bar
-#+end_src
-To config battery display
-#+begin_src emacs-lisp
-(unless (equal "Battery status not available" (battery)) ;;Show battery
-  (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
-#+end_src
-To add words and characters to modeline
-#+begin_src emacs-lisp
-(setq-default mode-line-format
-              (append mode-line-format
-                      (list
-                       '(:eval (if (use-region-p)
-                                   (format " W:%d C:%d L:%d"
-                                           (count-words-region (region-beginning) (region-end))
-                                           (- (region-end) (region-beginning))
-                                           (count-lines (region-beginning) (region-end)))
-                                 "")))))
-(column-number-mode)                                    ;; Show collumn in modeline
-#+end_src
-Show function
-#+begin_src emacs-lisp
-(which-function-mode 1)
-(custom-set-faces
- '(which-func
-   ((((class color)
-      (min-colors 88)
-      (background light))
-     (:inherit
-      (font-lock-function-name-face)))
-    (((class grayscale mono)
-      (background dark))
-     (:inherit
-      (font-lock-function-name-face)))
-    (((class color)
-      (background light))
-     (:inherit
-      (font-lock-function-name-face)))
-    (((class color)
-      (min-colors 88)
-      (background dark))
-     (:foreground "green"))
-    (((background dark))
-     (:foreground "red"))
-    (t
-     (:foreground "red")))))
-#+end_src
-*** Writting
-#+begin_src emacs-lisp
-(setq-default tab-width 2)                           ;; Default to an indentation size of 2 spaces
-(setq-default indent-tabs-mode nil)                  ;; Use spaces instead of tabs for indentation
-#+end_src
-*** Coding
-https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilationmode_config/
-#+begin_src emacs-lisp
-(setq compilation-auto-jump-to-first-error t)
-(setq compilation-scroll-output t)
-(setq compilation-max-output-line-length nil)
-(setq compilation-window-height 10)
-(setq compilation-finish-functions #'ar/compile-autoclose)
-(add-hook 'compilation-filter-hook 'ar/colorize-compilation-buffer)
-(add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
-#+end_src
-*** Email
-#+begin_src emacs-lisp
-(setq gnus-home-directory "~/.emacs.d/")
-(setq mail-signature-file "~/.emacs.d/.signature")
-(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
-#+end_src
-*** Tramp
-#+begin_src emacs-lisp
-;; https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./
-(setq remote-file-name-inhibit-cache nil)
-(setq shell-history-file-name t)
-(setq vc-ignore-dir-regexp
-      (format "%s\\|%s"
-                    vc-ignore-dir-regexp
-                    tramp-file-name-regexp))
-(setq tramp-copy-size-limit (* 1024 1024) ;; 1MB
-      tramp-verbose 2)
-(setq remote-file-name-inhibit-locks t
-      tramp-use-scp-direct-remote-copying t
-      remote-file-name-inhibit-auto-save-visited t)
-
-(connection-local-set-profile-variables
- 'remote-direct-async-process
- '((tramp-direct-async-process . t)))
-
-(connection-local-set-profiles
- '(:application tramp :protocol "scp")
- 'remote-direct-async-process)
-
-(setq magit-tramp-pipe-stty-settings 'pty)
-
-(with-eval-after-load 'tramp
-  (with-eval-after-load 'compile
-    (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
-
-(add-hook 'shell-mode-hook 'my-shell-mode-setup-function)
-#+end_src
-** Keybindings
-#+begin_src emacs-lisp
-(global-set-key (kbd "C-c <left>")  'windmove-left)
-(global-set-key (kbd "C-c <right>") 'windmove-right)
-(global-set-key (kbd "C-c <up>")    'windmove-up)
-(global-set-key (kbd "C-c <down>")  'windmove-down)
-
-(global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
-(global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
-(global-set-key (kbd "<f6>") 'recompile)
-(global-set-key (kbd "<f9>") 'my/get-pwd)
-(global-set-key (kbd "\C-c M-+") 'my/create-temp)
-
-(global-set-key (kbd "C-c l") 'counsel-locate)
-(global-set-key (kbd "C-x q") 'project-compile)
-(global-set-key (kbd "C-x k") 'kill-current-buffer)
-(global-set-key (kbd "C-c k") 'kill-buffer-and-window)
-(global-set-key (kbd "C-c a") 'org-agenda)
-(global-set-key (kbd "M-+") 'dired-create-empty-file)
-
-#+end_src
-* Packages
-** Use-package 
-Since I use =use-package= and =elpaca= for package management, I want to speed up the configuration loading process by deferring all packages.
-#+begin_src emacs-lisp
-(setq use-package-always-ensure nil
-      use-package-always-defer t) 
-#+end_src
-** EMACS
-#+begin_src emacs-lisp
-(use-package emacs
-  :demand t
-  :init
-  (prefer-coding-system 'utf-8)
-  :config
-  (setq delete-by-moving-to-trash t)
-  :hook ((prog-mode text-mode conf-mode matlab-mode lisp-mode) . my/enable-line-numbers))
-#+end_src
-** Theme
-#+begin_src emacs-lisp
-(use-package vscode-dark-plus-theme
-  :ensure t
-  :demand t
-  :init
-  (when (display-graphic-p)
-    (load-theme 'vscode-dark-plus t)))
-#+end_src
-** Org-mode
-#+begin_src emacs-lisp
-(use-package org
-  :ensure t
-  :demand t
-  :bind (("C-c a" . org-agenda))
-  :hook ((org-mode . (lambda () 
-                       (display-line-numbers-mode -1)
-                       (when (display-graphic-p) (org-indent-mode 1)))))
-  :config
-  ;; --- General Org Settings ---
-  (setq org-startup-folded t
-        org-adapt-indentation t
-        org-odd-levels-only nil
-        org-cycle-separator-lines 0
-        org-return-follows-link t
-        org-special-ctrl-a/e t
-        org-hide-leading-stars t
-        org-fold-core-style 'overlays)
-
-  ;; --- Images and Source Code ---
-  (setq org-startup-with-inline-images nil
-        org-image-actual-width nil
-        org-src-fontify-natively t
-        org-src-tab-acts-natively t
-        org-src-preserve-indentation t
-        org-edit-src-content-indentation 1
-        org-confirm-babel-evaluate nil)
-
-  ;; --- Keyword and states ---
-  (setq org-todo-keywords
-	      '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
-	        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
-
-  (setq org-todo-keyword-faces
-	      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
-	        ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
-	        ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
-	        ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
-	        ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))))  
-  
-  ;; --- Agenda Settings ---
-  (setq org-agenda-files '("~/Documents/org-mode-files/Agenda.org")
-        org-agenda-block-separator 61
-        org-agenda-restore-windows-after-quit t
-        org-agenda-window-setup 'only-window)
-  ;; Cambia el color de la agenda al día de hoy.
-  (custom-set-faces
-   '(org-agenda-date-today ((t (:background "yellow" :weight bold)))))
-
-
-  ;; --- LaTeX Export (XeLaTeX + Minted) ---
-  (with-eval-after-load 'ox-latex
-    (setq org-latex-compiler "xelatex"
-          org-latex-listings 'minted
-          org-latex-packages-alist '(("outputdir=./build" "minted" nil))
-          org-latex-pdf-process 
-          '("mkdir -p build"
-            "latexmk -f -pdf -%latex -shell-escape -interaction=nonstopmode -output-directory=%o/build %f"
-            "mv %o/build/%b.pdf %O"))
-
-    (add-to-list 'org-latex-classes
-                 '("reporti"
-                   "\\documentclass{reporti} [NO-DEFAULT-PACKAGES] [NO-PACKAGES]"
-                   ("\\section{%s}" . "\\section*{%s}")
-                   ("\\subsection{%s}" . "\\subsection*{%s}")
-                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
-
-  ;; --- Automatic Updates ---
-  (add-hook 'before-save-hook #'my/update-last-modified))
-#+end_src
-*** Org-babel
-#+begin_src emacs-lisp
-(use-package ob-python
-  :ensure nil
-  :defer t
-  :commands (org-babel-execute:python))
-
-(use-package ob-shell
-  :ensure nil
-  :defer t
-  :commands
-  (org-babel-execute:sh
-   org-babel-expand-body:sh
-   org-babel-execute:bash))
-
-(use-package ob-js
-  :ensure nil
-  :defer t
-  :commands (org-babel-execute:js))
-
-(use-package ob-octave
-  :ensure nil
-  :defer t
-  :commands (org-babel-execute:octave))
-
-(use-package ob-css
-  :ensure nil
-  :defer t
-  :commands (org-babel-execute:css))
-
-(use-package ob-dot
-  :ensure nil  
-  :defer t
-  :commands (org-babel-execute:dot))
-
-(use-package ob-latex
-  :ensure nil
-  :defer t
-  :commands (org-babel-execute:latex))
-
-(use-package ob-lua
-  :ensure nil  
-  :defer t
-  :commands (org-babel-execute:lua))
-
-(use-package ob-C
-  :ensure nil  
-  :defer t
-  :commands
-  (org-babel-execute:C
-   org-babel-expand-body:C
-   org-babel-execute:C++
-   org-babel-expand-body:C++))
-
-(use-package ob-matlab
-  :ensure nil
-  :defer t
-  :commands (org-babel-execute:matlab))
-#+end_src
-** Ivy
-After testing these tools, I found them essential. As stated in their documentation, they provide flexible and simple tools for minibuffer completion in Emacs.
-#+begin_src emacs-lisp
-(use-package ivy
-  :ensure t
-  :demand t
-  :config
-  (ivy-mode 1)
-  (setq ivy-use-virtual-buffers t
-        ivy-count-format "(%d/%d) "))
-
-(use-package swiper
-  :ensure t
-  :demand t
-  :bind ("C-s" . swiper-isearch))
-
-(use-package counsel
-  :ensure t
-  :demand t
-  :bind (("M-x" . counsel-M-x)
-         ("C-x C-f" . counsel-find-file)
-         ("C-h f" . counsel-describe-function)
-         ("C-h v" . counsel-describe-variable))
-  :config
-  (setq counsel-find-file-ignore-regexp "\\.elc\\|\\.pyc"))
-#+end_src
-** Magit
-Magit is a complete text-based user interface to Git.
-#+begin_src emacs-lisp
-(use-package llama
-  :defer t
-  :ensure t)
-
-(use-package magit
-  :ensure t
-  :after (llama transient)
-  :bind
-  ("C-x g" . magit-status)
-  :config
-  (transient-append-suffix 'magit-merge "-s" '("-a" "Allow unrelated histories" "--allow-unrelated-histories"))
-  (setq magit-auto-revert-mode t)
-  (setq magit-auto-revert-immediately t)
-  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
-#+end_src
-** Minions
-#+begin_src emacs-lisp
-(use-package minions
-  :ensure t
-  :demand t
-  :config
-  (minions-mode 1))
-#+end_src
-** Undo-tree
-#+begin_src emacs-lisp
-(use-package undo-tree
-  :demand t
-  :ensure t
-  :defer t
-  :commands (global-undo-tree-mode)
-  :init
-  (add-hook 'find-file-hook #'my/enable-undo-tree-once)
-  :custom
-  (undo-tree-visualizer-diff t)
-  (undo-tree-history-directory-alist '(("." . "/tmp/")))
-  (undo-tree-visualizer-timestamps t))
-#+end_src
-** Coding
-#+begin_src emacs-lisp
-;; -----------------------------------------------------------------------------
-;; PAQUETES GLOBALES (Usamos :demand t para que funcionen siempre)
-;; -----------------------------------------------------------------------------
-
-;; Cierre automático de paréntesis (Arregla tu error anterior)
-(use-package elec-pair
-  :ensure nil
-  :demand t
-  :init (electric-pair-mode 1))
-
-(use-package yasnippet
-  :ensure t
-  :demand t
-  :config (yas-global-mode 1))
-
-(use-package company
-  :ensure t
-  :demand t
-  :init (global-company-mode 1)
-  :config
-  (setq company-idle-delay 0
-        company-minimum-prefix-length 1))
-
-(use-package flycheck
-  :ensure t
-  :demand t
-  :init (global-flycheck-mode 1))
-
-;; -----------------------------------------------------------------------------
-;; MODOS DE LENGUAJE (Carga diferida automática para velocidad)
-;; -----------------------------------------------------------------------------
-
-(use-package cc-mode
-  :ensure nil
-  :bind (:map c-mode-base-map ("RET" . newline-and-indent))
-  :config
-  (setq-default c-basic-offset 4)
-  (setq c-default-style "linux")
-  (add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode)))
-
-(use-package python
-  :ensure nil
-  :config
-  (setq python-indent-offset 4))
-
-(use-package sh-script
-  :ensure nil
-  :mode (("\\.sh\\'" . sh-mode)
-         ("\\.bash\\'" . sh-mode)
-         ("bashrc\\'" . sh-mode))
-  :config
-  (setq sh-basic-offset 4))
-
-(use-package rainbow-delimiters
-  :ensure t
-  :hook (prog-mode . rainbow-delimiters-mode))
-
-;; -----------------------------------------------------------------------------
-;; LSP (Se activa por hooks, no necesita :demand t)
-;; -----------------------------------------------------------------------------
-
-(use-package lsp-mode
-  :ensure t
-  :hook ((c-mode . lsp)
-         (c++-mode . lsp)
-         (python-mode . lsp)
-         (sh-mode . lsp))
-  :config
-  (setq lsp-enable-snippet t
-        lsp-keymap-prefix "C-c l"))
-
-(use-package lsp-ui
-  :ensure t
-  :commands lsp-ui-mode)
-#+end_src
-* Finish startup optimization
-** Restaurar valores razonables tras el inicio
-Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
-#+begin_src emacs-lisp
-(setq gc-cons-threshold (* 2 1000 1000)) ;; The default is 800 kilobytes. Measured in bytes.
-(setq gc-cons-percentage 0.5)
-#+end_src
-** Recolección de basura periódica
-Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
-#+begin_src emacs-lisp
-(run-with-idle-timer 60 t #'garbage-collect)
-#+end_src
-* References
-1. https://web.archive.org/web/20220516055538/https://blog.d46.us/advanced-emacs-startup/
-2. https://comacero.com/posts/notes_emacs_elpaca/
+* Keybindings
+| Key             | Function                       | Description                                    |
+|-----------------+--------------------------------+------------------------------------------------|
+| ~C-c <arrows>~  | =windmove=                     | Navigate between split windows                 |
+| ~<f1>~          | =my/find-emacs-configuration=  | Open the main configuration file               |
+| ~<f5>~          | =my/reload-emacs-configuration=| Reload the Emacs configuration                 |
+| ~<f6>~          | =recompile=                    | Re-run the last compilation command            |
+| ~<f9>~          | =my/get-pwd=                   | Copy current file/dir path to clipboard        |
+| ~C-c M-+~       | =my/create-temp=               | Create temp file/dir in =/tmp= with completion |
+| ~C-c l~         | =counsel-locate=               | Find files using the locate database           |
+| ~C-x q~         | =project-compile=              | Compile the current project                    |
+| ~C-x k~         | =kill-current-buffer=          | Close the current buffer                       |
+| ~C-c k~         | =kill-buffer-and-window=       | Close both buffer and its window               |
+| ~C-c a~         | =org-agenda=                   | Open the Org-mode agenda                       |
+| ~M-+~           | =dired-create-empty-file=      | Create a new empty file in Dired               |
+| ~C-x C-f~       | =find-file=                    | Open or create a file                          |
+| ~C-c p f~       | =projectile-find-file=         | Find file in project                           |
+
+* Custom Functions
+A brief overview of the custom logic included in this configuration:
+
+- *my/find-emacs-configuration*: Quickly opens the main configuration file.
+- *my/reload-emacs-configuration*: Reloads =init.el= to apply changes without restarting.
+- *my/get-pwd*: Copies the path of the current buffer or Dired directory to the system clipboard.
+- *my/create-temp*: Interactive helper to create temporary files or directories in =/tmp= with path completion.
+- *my/find-file*: Opens a file in the background without switching focus.
+- *my/enable-line-numbers*: Activates line numbers specifically for GUI sessions and programming modes.
+- *my/update-last-modified*: Automatically updates the =#+last_modified:= keyword in Org headers upon saving.
+- *my/enable-undo-tree-once*: Delayed activation of =undo-tree-mode= to optimize startup speed.
+- *y-or-n-p-with-return*: Allows using the =RET= key as a "Yes" response in confirmation prompts.
+- *ar/compile-autoclose*: Intelligent compilation handler: auto-closes the window on success, but scrolls to errors on failure.
+- *ar/colorize-compilation-buffer*: Applies ANSI color codes to the compilation output for better readability.
+- *ct/create-proper-compilation-window*: Sets up a dedicated, fixed-height window for compilation at the bottom.
+- *dired-get-size*: Calculates disk usage of marked files in Dired, supporting both local and remote (SSH) hosts.
+- *my-shell-mode-setup-function*: Disables heavy completion on remote TRAMP connections to prevent lag.
+- *efs/org-babel-tangle-config*: Automatically "tangles" code blocks from =blog.org= to =blog.el= whenever the file is saved.
+
+* Repository structure
+- =init.el=: Main entry point.
+- =early-init.el=: Performance tweaks and Elpaca bootstrap.
+- =blog.org=: The configuration itself (literate style).
+- =lisp/=: Custom functions and additional scripts.
+- =LICENSE=: The GNU General Public License v3 (GPLv3).
+- =.gnus=: Configuration for Gnus, the Emacs newsreader and email client.
+- =.signature=: My personal signature appended to emails and news posts.
+
+* License
+This project is licensed under The GNU General Public License v3 (GPLv3).
+
+* Credits & Resources
+- [[https://systemcrafters.net/][System Crafters]] - High-quality Emacs tutorials.
+- [[https://comacero.com/posts/notes_emacs_elpaca/][Comacero]] - Elpaca setup notes.
+- Various community solutions from StackOverflow, Reddit r/emacs, and specialized technical blogs.
