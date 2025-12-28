@@ -1,13 +1,12 @@
 #+TITLE:  EMACS
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-28 00:51:56
+#+last_modified: 2025-12-28 14:01:24
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent :tangle yes
 #+cover_image: ./../projects/files/cover/EmacsIcon.png
-
 * Introduction
 ** Why EMACS?
 No sé como empecé con EMACS, recuerdo que con aproximadamente 13 años empecé en linux. Visualicé muchos videos de diferentes distros, incluso borré varias veces mi SO - Desde aquí envío un saludo a mis padres por no "matarme" - En cualquier caso, supongo que el ecosistema Linux me llevó a investigar más sobre el tema. Las conferencias de RMS sobe el proyecto GNU y porqué no la página de la propia FSF me llevaron a este maravilloso editor.
