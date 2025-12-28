@@ -1,6 +1,6 @@
 #+TITLE:  EMACS
 #+DATE: [2022-12-26 Mon]
-#+last_modified: 2025-12-28 00:24:07
+#+last_modified: 2025-12-28 00:51:56
 #+AUTHOR: Rhyloo
 #+description: Rhyloo Solutions is a personal blog from Jorge Benavides Macias where I write about tech. My main interests are electronics.
 #+STARTUP: hideblocks
@@ -210,6 +210,12 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
          ;; Si el nombre del host no coincide con los anteriores
          (t
           (message "No se ha definido un comando para esta máquina.")))))))
+
+;; https://emacs.stackexchange.com/questions/62419/what-is-causing-emacs-remote-shell-to-be-slow-on-completion
+(defun my-shell-mode-setup-function () 
+  (when (and (fboundp 'company-mode)
+             (file-remote-p default-directory))
+    (company-mode -1)))
 #+end_src
 ** Basic configurations
 Here is configurations without package needed.
@@ -377,6 +383,7 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 #+begin_src emacs-lisp
 ;; https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./
 (setq remote-file-name-inhibit-cache nil)
+(setq shell-history-file-name t)
 (setq vc-ignore-dir-regexp
       (format "%s\\|%s"
                     vc-ignore-dir-regexp
@@ -386,15 +393,22 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 (setq remote-file-name-inhibit-locks t
       tramp-use-scp-direct-remote-copying t
       remote-file-name-inhibit-auto-save-visited t)
-;; (connection-local-set-profile-variables
-;;  'remote-direct-async-process
-;;  '((tramp-direct-async-process . t)))
 
-;; (connection-local-set-profiles
-;;  '(:application tramp :protocol "scp")
-;;  'remote-direct-async-process)
+(connection-local-set-profile-variables
+ 'remote-direct-async-process
+ '((tramp-direct-async-process . t)))
 
-;; (setq magit-tramp-pipe-stty-settings 'pty)
+(connection-local-set-profiles
+ '(:application tramp :protocol "scp")
+ 'remote-direct-async-process)
+
+(setq magit-tramp-pipe-stty-settings 'pty)
+
+(with-eval-after-load 'tramp
+  (with-eval-after-load 'compile
+    (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
+
+(add-hook 'shell-mode-hook 'my-shell-mode-setup-function)
 #+end_src
 ** Keybindings
 #+begin_src emacs-lisp
