@@ -6,7 +6,7 @@
 !early-init.el
 !.gitignore
 !README.org
-!blog.el
+!blog.org
 !LICENSE
 !init.el
 !.gnus
