@@ -89,6 +89,8 @@
   ;; Enable use-package :ensure support for Elpaca.
   (elpaca-use-package-mode))
 ;; -----------------------------------------------------------------------------
+;; Ensure there is a package compatible with the Emacs Version
+(use-package compat :ensure t)
 ;; Update transient
 (use-package transient
   :ensure (:host github :repo "magit/transient" :branch "main")
