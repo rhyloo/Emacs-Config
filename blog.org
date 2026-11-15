@@ -880,7 +880,20 @@ Claude Code dentro de Emacs, en una ventana a la derecha. Sabe qué fichero y qu
   (claude-code-ide-window-width 90)
   :config
   ;; Let Claude use Emacs itself: xref, imenu, project files, diagnostics.
-  (claude-code-ide-emacs-tools-setup))
+  (claude-code-ide-emacs-tools-setup)
+  ;; Two upstream bugs in its MCP tools server, seen as "Method not found"
+  ;; and "peculiar error" in *Messages*:
+  ;; - It advertises the logging capability, so Claude calls logging/setLevel,
+  ;;   which it does not implement.  Answer it with an empty result.
+  ;; - `json-rpc-error' is never declared, so the error it signals for any
+  ;;   other unknown method escapes every handler and Claude gets no reply.
+  ;;   Declared as an `error', the server's generic handler answers it.
+  (define-error 'json-rpc-error "JSON-RPC error")
+  (advice-add 'claude-code-ide-mcp-http-server--dispatch :around
+              (lambda (dispatch method params)
+                (if (equal method "logging/setLevel")
+                    (make-hash-table)
+                  (funcall dispatch method params)))))
 #+end_src
 ** Ellama
 LLM local con Ollama. Se carga la primera vez que se usa un comando =ellama-*=, no al arrancar.

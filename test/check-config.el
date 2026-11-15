@@ -66,6 +66,13 @@
       (let ((kill-buffer-query-functions nil)) (kill-buffer term)))
     ;; Loading it also runs its :config (the Emacs MCP tools setup).
     (require 'claude-code-ide)
+    (require 'claude-code-ide-mcp-http-server)
+    (push (format "claude-mcp: setLevel=%s unknown-method=%s"
+                  (hash-table-p (claude-code-ide-mcp-http-server--dispatch "logging/setLevel" nil))
+                  (condition-case nil
+                      (progn (claude-code-ide-mcp-http-server--dispatch "no/such-method" nil) 'answered)
+                    (error 'caught-as-error)))
+          out)
     (push (format "claude: key=%s cli=%s backend=%s"
                   (key-binding (kbd "C-c C-'"))
                   (and (executable-find "claude") t)

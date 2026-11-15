@@ -25,6 +25,7 @@ grep -q "^dirvish: vc-state=nil" "$work/report.txt" || { echo "FAIL: dirvish vc-
 grep -q "^preview dead-page: dropped=t errors=nil" "$work/report.txt" || { echo "FAIL: preview with a closed page"; exit 1; }
 grep -q "^terminal: ghostel-live=t" "$work/report.txt" || { echo "FAIL: ghostel"; exit 1; }
 grep -q "^claude: key=claude-code-ide-menu cli=t backend=ghostel" "$work/report.txt" || { echo "FAIL: claude"; exit 1; }
+grep -q "^claude-mcp: setLevel=t unknown-method=caught-as-error" "$work/report.txt" || { echo "FAIL: claude MCP errors"; exit 1; }
 [ "$(grep -A1 -- "--- \*Warnings\* ---" "$work/report.txt" | tail -1)" = "none" ] || { echo "FAIL: warnings"; exit 1; }
 # Diagram really drawn: render the static page in headless Chrome, if present.
 if command -v google-chrome >/dev/null; then
