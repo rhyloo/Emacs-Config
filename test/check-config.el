@@ -46,6 +46,25 @@
                                       (and (search-forward "====> Error" nil t) t))))
             out))
     (markdown-preview-mode -1)
+    ;; In-buffer diagrams: headless Chrome must produce a sized SVG that keeps
+    ;; spaces, and markup hiding must be on in every Markdown buffer.
+    (let* ((source (cdr (car (my/mermaid--blocks))))
+           (file (my/mermaid--svg-file source)))
+      (when (file-exists-p file) (delete-file file))
+      (my/mermaid--draw (list source) #'ignore)
+      (let ((deadline (+ (float-time) 60)))
+        (while (and (not (file-exists-p file)) (< (float-time) deadline))
+          (accept-process-output nil 0.2)))
+      (push (format "inline-diagram: svg=%s sized=%s spaces=%s hide-markup=%s"
+                    (file-exists-p file)
+                    (and (file-exists-p file)
+                         (with-temp-buffer (insert-file-contents file)
+                                           (and (re-search-forward "<svg[^>]* width=\"[0-9.]+\"" nil t) t)))
+                    (and (file-exists-p file)
+                         (with-temp-buffer (insert-file-contents file)
+                                           (and (search-forward "xml:space=\"preserve\"" nil t) t)))
+                    markdown-hide-markup)
+            out))
     ;; Files: dired must open through dirvish.
     (dired func-dir)
     (push (format "files: dirvish=%s side-key=%s"

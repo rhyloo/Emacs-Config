@@ -23,6 +23,7 @@ grep -q "^files: dirvish=t side-key=dirvish-side" "$work/report.txt" || { echo "
 grep -q "^git: diff-hl=t" "$work/report.txt" || { echo "FAIL: diff-hl"; exit 1; }
 grep -q "^dirvish: vc-state=nil" "$work/report.txt" || { echo "FAIL: dirvish vc-state is back (slow)"; exit 1; }
 grep -q "^preview dead-page: dropped=t errors=nil" "$work/report.txt" || { echo "FAIL: preview with a closed page"; exit 1; }
+grep -q "^inline-diagram: svg=t sized=t spaces=t hide-markup=t" "$work/report.txt" || { echo "FAIL: in-buffer diagrams"; exit 1; }
 grep -q "^terminal: ghostel-live=t" "$work/report.txt" || { echo "FAIL: ghostel"; exit 1; }
 grep -q "^claude: key=claude-code-ide-menu cli=t backend=ghostel" "$work/report.txt" || { echo "FAIL: claude"; exit 1; }
 grep -q "^claude-mcp: setLevel=t unknown-method=caught-as-error" "$work/report.txt" || { echo "FAIL: claude MCP errors"; exit 1; }

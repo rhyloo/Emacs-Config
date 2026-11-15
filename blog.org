@@ -809,6 +809,171 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
 
 (global-set-key (kbd "M-i") #'counsel-imenu)
 #+end_src
+*** Editar viendo el resultado
+El Markdown se edita casi como se ve publicado: sin asteriscos ni almohadillas a la vista, títulos grandes, imágenes y diagramas Mermaid dibujados dentro del propio buffer.
+
+- =C-c C-x C-m=: mostrar u ocultar las marcas (=**=, =#=, enlaces...).
+- Los diagramas se dibujan al abrir y al guardar, debajo de su bloque de código. =C-c C-x d= los redibuja a mano.
+- Los dibuja Chrome sin ventana con mermaid.js, descargado una vez a la caché; los ya dibujados se reutilizan.
+#+begin_src emacs-lisp
+(with-eval-after-load 'markdown-mode
+  ;; Buffer-local variables: `setq' here would only change the buffer that
+  ;; happened to be current when markdown-mode loaded.
+  (setq-default markdown-hide-markup t
+                markdown-hide-urls t)
+  (setq markdown-header-scaling t
+        markdown-max-image-size '(900 . 600))
+  (add-hook 'markdown-mode-hook
+            (lambda ()
+              (when (display-graphic-p)
+                (markdown-display-inline-images)
+                (my/mermaid-inline-mode 1)))))
+
+(defvar my/mermaid-js-url
+  "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
+  "mermaid.js release used to draw diagrams; downloaded once to the cache.")
+
+(defvar my/mermaid-chrome (or (executable-find "google-chrome")
+                              (executable-find "chromium")
+                              (executable-find "chromium-browser"))
+  "Headless browser that draws the diagrams.")
+
+(defun my/mermaid--dir ()
+  "Cache directory for mermaid.js and drawn diagrams."
+  (let ((dir (no-littering-expand-var-file-name "mermaid/")))
+    (make-directory dir t)
+    dir))
+
+(defun my/mermaid--js ()
+  "Local copy of mermaid.js, downloaded the first time it is needed."
+  (let ((file (expand-file-name "mermaid.min.js" (my/mermaid--dir))))
+    (unless (file-exists-p file)
+      (message "Descargando mermaid.js (solo la primera vez)...")
+      (url-copy-file my/mermaid-js-url file t))
+    file))
+
+(defun my/mermaid--blocks ()
+  "Mermaid blocks in the buffer as a list of (END-OF-FENCE . SOURCE)."
+  (save-excursion
+    (goto-char (point-min))
+    (let (blocks)
+      (while (re-search-forward "^```mermaid[ \t]*\n\\(\\(?:.*\n\\)*?\\)```[ \t]*$" nil t)
+        (push (cons (match-end 0) (match-string-no-properties 1)) blocks))
+      (nreverse blocks))))
+
+(defun my/mermaid--svg-file (source)
+  "Cache file for the diagram drawn from SOURCE."
+  (expand-file-name (concat (secure-hash 'sha1 source) ".svg") (my/mermaid--dir)))
+
+(defun my/mermaid--page (sources)
+  "HTML page that draws SOURCES and leaves the SVGs, base64 JSON, in #out.
+Labels are drawn as plain SVG text: Emacs's SVG renderer cannot show the
+HTML labels mermaid uses by default."
+  (concat
+   "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+   (format "<script src='file://%s'></script></head><body><pre id='out'></pre><script>"
+           (my/mermaid--js))
+   "mermaid.initialize({startOnLoad:false, theme:'dark', htmlLabels:false,"
+   " flowchart:{htmlLabels:false}, securityLevel:'strict'});"
+   (format "const sources = %s;" (json-encode (vconcat sources)))
+   "(async () => { const svgs = [];"
+   " for (let i = 0; i < sources.length; i++) {"
+   "  try { const svg = (await mermaid.render('m' + i, sources[i])).svg;"
+   ;; Emacs needs a real size (mermaid says width=100%) and kept spaces
+   ;; between the words, which it otherwise drops from SVG text.
+   "   const box = svg.match(/viewBox=\"[-0-9.]+ [-0-9.]+ ([0-9.]+) ([0-9.]+)\"/);"
+   "   svgs.push(svg.replace(/^<svg /, '<svg xml:space=\"preserve\" '"
+   "     + (box ? 'width=\"' + box[1] + '\" height=\"' + box[2] + '\" ' : ''))"
+   "     .replace(/ width=\"100%\"/, '')); }"
+   "  catch (e) { svgs.push(null); } }"
+   " const json = JSON.stringify(svgs);"
+   " document.getElementById('out').textContent ="
+   "   btoa(String.fromCharCode(...new TextEncoder().encode(json))); })();"
+   "</script></body></html>"))
+
+(defun my/mermaid--draw (sources done)
+  "Draw SOURCES in headless Chrome, save each SVG, then call DONE in Emacs."
+  (let* ((page (make-temp-file "mermaid" nil ".html" (my/mermaid--page sources)))
+         ;; Own throwaway profile: with the default one, a Chrome you already
+         ;; have open can grab the request and the headless one never ends.
+         (profile (make-temp-file "mermaid-chrome" t))
+         (out (generate-new-buffer " *mermaid-chrome*")))
+    (make-process
+     :name "mermaid" :buffer out :noquery t :connection-type 'pipe
+     :command (list my/mermaid-chrome "--headless=new" "--disable-gpu"
+                    (concat "--user-data-dir=" profile)
+                    "--allow-file-access-from-files" "--virtual-time-budget=10000"
+                    "--dump-dom" (concat "file://" page))
+     :sentinel
+     (lambda (proc _event)
+       (unless (process-live-p proc)
+         (let ((svgs (with-current-buffer out
+                       (goto-char (point-min))
+                       (when (re-search-forward "<pre id=\"out\">\\([A-Za-z0-9+/=]+\\)</pre>" nil t)
+                         (json-parse-string
+                          (decode-coding-string (base64-decode-string (match-string 1)) 'utf-8)
+                          :null-object nil)))))
+           (cl-loop for source in sources
+                    for svg across (or svgs [])
+                    when svg do (with-temp-file (my/mermaid--svg-file source) (insert svg)))
+           (kill-buffer out)
+           (delete-file page)
+           (delete-directory profile t)
+           (funcall done)))))))
+
+(defun my/mermaid--max-width ()
+  "Widest a diagram may be: the text column, or its window if narrower.
+Computed from the text width, not the selected window: when a file is
+opened the diagrams are placed before the buffer is in its window."
+  (let ((text (* (if (bound-and-true-p olivetti-mode) olivetti-body-width fill-column)
+                 (frame-char-width)))
+        (win (get-buffer-window (current-buffer))))
+    (if win (min text (window-body-width win t)) text)))
+
+(defun my/mermaid--show ()
+  "Show every drawn diagram under its block."
+  (remove-overlays (point-min) (point-max) 'my/mermaid t)
+  (dolist (block (my/mermaid--blocks))
+    (let ((file (my/mermaid--svg-file (cdr block))))
+      (when (file-exists-p file)
+        ;; Hang it on the start of the next line: the closing fence itself
+        ;; is invisible while markup is hidden, and so would be the image.
+        (let* ((pos (min (1+ (car block)) (point-max)))
+               (ov (make-overlay pos pos)))
+          (overlay-put ov 'my/mermaid t)
+          (overlay-put ov 'before-string
+                       (concat (propertize " " 'display
+                                                (create-image file 'svg nil
+                                                              :max-width (my/mermaid--max-width)
+                                                              :ascent 'center))
+                               "\n")))))))
+
+(defun my/mermaid-refresh ()
+  "Draw the Mermaid blocks that changed and show all diagrams in the buffer."
+  (interactive)
+  (if (not my/mermaid-chrome)
+      (message "Para ver los diagramas hace falta Google Chrome o Chromium")
+    (let* ((buf (current-buffer))
+           (missing (seq-uniq (seq-remove (lambda (s) (file-exists-p (my/mermaid--svg-file s)))
+                                          (mapcar #'cdr (my/mermaid--blocks))))))
+      (if (null missing)
+          (my/mermaid--show)
+        (my/mermaid--draw missing
+                          (lambda ()
+                            (when (buffer-live-p buf)
+                              (with-current-buffer buf (my/mermaid--show)))))))))
+
+(define-minor-mode my/mermaid-inline-mode
+  "Show Mermaid diagrams under their code blocks, redrawn on save."
+  :lighter nil
+  (if my/mermaid-inline-mode
+      (progn
+        (add-hook 'after-save-hook #'my/mermaid-refresh nil t)
+        (local-set-key (kbd "C-c C-x d") #'my/mermaid-refresh)
+        (my/mermaid-refresh))
+    (remove-hook 'after-save-hook #'my/mermaid-refresh t)
+    (remove-overlays (point-min) (point-max) 'my/mermaid t)))
+#+end_src
 ** Ficheros: dirvish
 Dired con vista previa del fichero, iconos, estado de git y árbol desplegable. Sustituye a dired, así que =C-x d= y todo lo de dired sigue funcionando.
 
