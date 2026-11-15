@@ -14,7 +14,10 @@
     (push (format "org: mode=%s version=%s lib=%s" major-mode (org-version) (locate-library "org")) out)
     (find-file (expand-file-name "test.md" func-dir))
     (push (format "md: mode=%s preview-bound=%s" major-mode (key-binding (kbd "C-c C-c p"))) out)
-    (setq markdown-preview-auto-open nil)
+    ;; Own ports, so the test also runs while a real preview is open.
+    (setq markdown-preview-auto-open nil
+          markdown-preview-ws-port 17379
+          markdown-preview-http-port 19000)
     (markdown-preview-mode 1)
     (push (format "preview-mode=%s ws=%s" markdown-preview-mode (and markdown-preview--websocket-server t)) out)
     (let ((html (expand-file-name ".markdown-preview.html" func-dir)))
