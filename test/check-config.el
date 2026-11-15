@@ -71,21 +71,31 @@
       (goto-char (point-max))
       (insert "\n| Pantalla | Para qué |\n|---|---|\n| Hoy | "
               (string-join (make-list 40 "texto") " ") " |\n\nfin\n"))
-    (my/md-table--show)
+    ;; The test runs in a terminal, where markdown-mode-hook skips the live
+    ;; view; turn it on by hand so its hooks are installed too.
+    (my/md-live-mode 1)
     (let* ((ov (car (seq-filter (lambda (o) (eq (overlay-get o 'my/md-live) 'table))
                                 (overlays-in (point-min) (point-max)))))
            (drawn (overlay-get ov 'display))
            (fits (cl-every (lambda (l) (<= (string-width l) (/ (my/mermaid--max-width) (frame-char-width))))
                            (split-string drawn "\n"))))
+      ;; Reading: opened read-only, no line numbers, and the table stays
+      ;; drawn with the cursor inside it.
+      (push (format "reading-mode: read-only=%s line-numbers=%s"
+                    buffer-read-only (bound-and-true-p display-line-numbers-mode))
+            out)
       (goto-char (overlay-start ov))
       (my/md-live--update)
-      (let ((revealed (null (overlay-get ov 'display))))
-        (goto-char (point-max))
-        (my/md-live--update)
-        (push (format "table: boxed=%s fits=%s revealed-inside=%s drawn-outside=%s"
-                      (and (string-match-p "┌" drawn) t) fits revealed
-                      (and (overlay-get ov 'display) t))
-              out)))
+      (let ((drawn-while-reading (and (overlay-get ov 'display) t)))
+        ;; Editing: leaving read-only reveals the Markdown under the cursor.
+        (read-only-mode -1)
+        (let ((revealed (null (overlay-get ov 'display))))
+          (goto-char (point-max))
+          (my/md-live--update)
+          (push (format "table: boxed=%s fits=%s drawn-while-reading=%s revealed-inside=%s drawn-outside=%s"
+                        (and (string-match-p "┌" drawn) t) fits drawn-while-reading revealed
+                        (and (overlay-get ov 'display) t))
+                out))))
     (set-buffer-modified-p nil)
     ;; Files: dired must open through dirvish.
     (dired func-dir)

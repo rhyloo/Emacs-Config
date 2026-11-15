@@ -91,8 +91,9 @@ Se ajusta en =early-init.el=: sin recolecciones durante el arranque y 32 MB desp
   (set-buffer (find-file-noselect filename)))
 
 (defun my/enable-line-numbers ()
-  "Activar números de línea solo en GUI y modos específicos."
-  (when (display-graphic-p)
+  "Activar números de línea solo en GUI y modos específicos.
+Markdown se lee como un documento, así que va sin ellos."
+  (when (and (display-graphic-p) (not (derived-mode-p 'markdown-mode)))
     (display-line-numbers-mode 1)))
 
 (defun my/update-last-modified ()
@@ -815,7 +816,8 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
 *** Editar viendo el resultado
 El Markdown se edita casi como se ve publicado, al estilo de Obsidian: sin asteriscos ni almohadillas a la vista, títulos de varios tamaños, imágenes, y tablas y diagramas Mermaid dibujados en el propio buffer.
 
-- Tablas y diagramas se ven dibujados; al entrar con el cursor aparece su Markdown para editarlo, y al salir se vuelven a dibujar. El fichero no cambia.
+- Los ficheros Markdown se abren en modo lectura: sin números de línea y con tablas y diagramas siempre dibujados. =C-x C-q= pasa a edición y vuelve a lectura.
+- En edición, tablas y diagramas se ven dibujados; al entrar con el cursor aparece su Markdown para editarlo, y al salir se vuelven a dibujar. El fichero no cambia.
 - =C-c C-x C-m=: mostrar u ocultar las marcas (=**=, =#=, enlaces...).
 - =C-c C-x d=: volver a dibujar todo a mano.
 - Los diagramas los dibuja Chrome sin ventana con mermaid.js, descargado una vez a la caché; los ya dibujados se reutilizan.
@@ -828,6 +830,10 @@ El Markdown se edita casi como se ve publicado, al estilo de Obsidian: sin aster
   (setq markdown-max-image-size '(900 . 600))
   (add-hook 'markdown-mode-hook
             (lambda ()
+              ;; Mostly read: open existing files read-only.  A new file
+              ;; is being written, so it starts editable.
+              (when (and buffer-file-name (file-exists-p buffer-file-name))
+                (read-only-mode 1))
               (when (display-graphic-p)
                 (markdown-display-inline-images)
                 (my/md-live-mode 1)))))
@@ -976,8 +982,9 @@ opened the diagrams are placed before the buffer is in its window."
             (overlays-in (line-beginning-position) (line-end-position))))
 
 (defun my/md-live--update ()
-  "Reveal the block under the cursor; redraw the one it just left."
-  (let ((here (my/md-live--at-point)))
+  "Reveal the block under the cursor; redraw the one it just left.
+A read-only buffer is only being read, so everything stays drawn."
+  (let ((here (unless buffer-read-only (my/md-live--at-point))))
     (unless (eq here my/md-live--revealed)
       (when (and my/md-live--revealed (overlay-buffer my/md-live--revealed))
         (my/md-live--draw my/md-live--revealed)
@@ -1179,12 +1186,16 @@ window half drawn, so the refit itself runs right after, from a timer."
   (if my/md-live-mode
       (progn
         (add-hook 'post-command-hook #'my/md-live--update nil t)
+        ;; Switching between reading and editing hides or shows the block
+        ;; under the cursor right away.
+        (add-hook 'read-only-mode-hook #'my/md-live--update nil t)
         (add-hook 'after-save-hook #'my/md-live-refresh nil t)
         (add-hook 'window-size-change-functions #'my/md-live--fit nil t)
         (add-hook 'window-buffer-change-functions #'my/md-live--fit nil t)
         (local-set-key (kbd "C-c C-x d") #'my/md-live-refresh)
         (my/md-live-refresh))
     (remove-hook 'post-command-hook #'my/md-live--update t)
+    (remove-hook 'read-only-mode-hook #'my/md-live--update t)
     (remove-hook 'after-save-hook #'my/md-live-refresh t)
     (remove-hook 'window-size-change-functions #'my/md-live--fit t)
     (remove-hook 'window-buffer-change-functions #'my/md-live--fit t)
