@@ -11,3 +11,5 @@
 !init.el
 !.gnus
 !.signature
+!test/
+!test/*

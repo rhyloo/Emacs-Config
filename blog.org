@@ -34,20 +34,8 @@ Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs
             (message "*** Emacs loaded in %s with %d garbage collections."
 	                   (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done)))
 #+end_src
-** Minimizar la recolección de basura durante el inicio
-Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
-#+begin_src emacs-lisp
-;; From https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
-(setq gc-cons-threshold most-positive-fixnum)
-(defvar default-file-name-handler-alist file-name-handler-alist)
-(setq file-name-handler-alist nil)
-
-;; Restaurar valores tras el inicio
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq gc-cons-threshold 16777216 ; 16mb
-                  file-name-handler-alist default-file-name-handler-alist)))
-#+end_src
+** Recolección de basura
+Se ajusta en =early-init.el=: sin recolecciones durante el arranque y 32 MB después. Así se configura en un único sitio.
 * Core
 ** Personal information
 #+begin_src emacs-lisp
@@ -68,7 +56,7 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 
 (defun my/reload-emacs-configuration ()
   (interactive)
-  (load-file "~/.emacs.d/init.el"))
+  (load-file (expand-file-name "init.el" user-emacs-directory)))
 
 (defun my/get-pwd ()
   "Put the current file name (include directory) on the clipboard"
@@ -216,7 +204,7 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 
 (defun efs/org-babel-tangle-config ()
   (when (string-equal (buffer-file-name)
-                      (expand-file-name "~/.emacs.d/blog.org"))
+                      (expand-file-name "blog.org" user-emacs-directory))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
@@ -307,7 +295,6 @@ Here is configurations without package needed.
 (advice-add 'y-or-n-p :around #'y-or-n-p-with-return)
 (fset 'yes-or-no-p 'y-or-n-p)                           ;; Replace yes or no for y or n
 (setq enable-recursive-minibuffers t)
-(setq electric-pair-mode t)
 #+end_src
 *** Mode line
 To config time display
@@ -379,8 +366,8 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 #+end_src
 *** Email
 #+begin_src emacs-lisp
-(setq gnus-home-directory "~/.emacs.d/")
-(setq mail-signature-file "~/.emacs.d/.signature")
+(setq gnus-home-directory user-emacs-directory)
+(setq mail-signature-file (expand-file-name ".signature" user-emacs-directory))
 (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
 #+end_src
 *** Tramp
@@ -465,7 +452,6 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
 #+begin_src emacs-lisp
 (use-package org
   :ensure t
-  :demand t
   :bind (("C-c a" . org-agenda))
   :hook ((org-mode . (lambda () 
                        (display-line-numbers-mode -1)
@@ -651,15 +637,15 @@ Magit is a complete text-based user interface to Git.
 ** Undo-tree
 #+begin_src emacs-lisp
 (use-package undo-tree
-  :demand t
   :ensure t
-  :defer t
   :commands (global-undo-tree-mode)
   :init
   (add-hook 'find-file-hook #'my/enable-undo-tree-once)
   :custom
   (undo-tree-visualizer-diff t)
-  (undo-tree-history-directory-alist '(("." . "/tmp/")))
+  ;; Kept under the cache directory so undo history survives a reboot.
+  (undo-tree-history-directory-alist
+   `(("." . ,(no-littering-expand-var-file-name "undo-tree-hist/"))))
   (undo-tree-visualizer-timestamps t))
 #+end_src
 ** Coding
@@ -745,26 +731,57 @@ Magit is a complete text-based user interface to Git.
   :ensure t
   :defer t)
 #+end_src
-* Finish startup optimization
-** Restaurar valores razonables tras el inicio
-Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
+** Markdown
+Edición de Markdown con vista previa en el navegador que se actualiza mientras escribes (como la de VSCode). Los bloques =```mermaid= se dibujan como diagramas.
+
+- =C-c C-c p= o =M-x markdown-preview-mode=: abre la vista previa en vivo.
+- El HTML lo genera =python3 -m markdown= (ya instalado); no hace falta =pandoc=.
 #+begin_src emacs-lisp
-(setq gc-cons-threshold (* 2 1000 1000)) ;; The default is 800 kilobytes. Measured in bytes.
-(setq gc-cons-percentage 0.5)
+(use-package markdown-mode
+  :ensure t
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :bind (:map markdown-mode-map ("C-c C-c p" . markdown-preview-mode))
+  :custom
+  (markdown-command "python3 -m markdown -x fenced_code -x tables -x toc")
+  (markdown-fontify-code-blocks-natively t))
+
+(defconst my/mermaid-render-js
+  "document.querySelectorAll('code.language-mermaid').forEach(function (code) {
+     var div = document.createElement('div');
+     div.className = 'mermaid';
+     div.textContent = code.textContent;
+     code.parentNode.replaceWith(div);
+   });
+   mermaid.run({suppressErrors: true});"
+  "Turn ```mermaid code blocks into diagrams in the Markdown preview page.")
+
+(use-package markdown-preview-mode
+  :ensure t
+  :commands (markdown-preview-mode)
+  :config
+  (setq markdown-preview-delay-time 0.5
+        markdown-preview-stylesheets
+        '("https://cdn.jsdelivr.net/npm/github-markdown-css@5.8.1/github-markdown-dark.min.css")
+        markdown-preview-javascript
+        '("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js")
+        markdown-preview-script-oninit
+        "mermaid.initialize({startOnLoad: false, theme: 'dark'});"
+        markdown-preview-script-onupdate my/mermaid-render-js))
+#+end_src
+** Ellama
+LLM local con Ollama. Se carga la primera vez que se usa un comando =ellama-*=, no al arrancar.
+#+begin_src emacs-lisp
 (use-package ellama
   :ensure t
-  :init
+  :commands (ellama-chat ellama-ask-about ellama-code-review ellama-transient-main-menu)
+  :config
   (require 'llm-ollama)
   (setopt ellama-provider
           (make-llm-ollama
            :chat-model "deepseek-r1:14b"
            :default-chat-non-standard-params
            '(("num_ctx" . 8192))))
-  :config
   (ellama-setup-agentic-coding))
-#+end_src
-** Recolección de basura periódica
-Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
-#+begin_src emacs-lisp
-(run-with-idle-timer 60 t #'garbage-collect)
 #+end_src
