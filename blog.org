@@ -787,6 +787,88 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
     (xwidget-webkit-browse-url url t)
     (select-window source-window)))
 #+end_src
+*** Lectura y navegación
+- =olivetti=: en Markdown el texto se centra con un ancho cómodo de leer.
+- =M-i=: saltar a cualquier título del documento (o función, en código).
+#+begin_src emacs-lisp
+(use-package olivetti
+  :ensure t
+  :hook (markdown-mode . olivetti-mode)
+  :custom
+  (olivetti-body-width 100))
+
+(global-set-key (kbd "M-i") #'counsel-imenu)
+#+end_src
+** Ficheros: dirvish
+Dired con vista previa del fichero, iconos, estado de git y árbol desplegable. Sustituye a dired, así que =C-x d= y todo lo de dired sigue funcionando.
+
+- =<f8>=: panel lateral de ficheros del proyecto (vuelve a pulsarlo para cerrarlo).
+- =TAB=: desplegar o plegar una carpeta en su sitio.
+- =?=: menú con todas las acciones.
+#+begin_src emacs-lisp
+(use-package nerd-icons
+  :ensure t)
+
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode)
+  :bind (("<f8>" . dirvish-side)
+         :map dirvish-mode-map
+         ("TAB" . dirvish-subtree-toggle)
+         ("?" . dirvish-dispatch)
+         ("q" . dirvish-quit))
+  :hook (dired-mode . dired-hide-details-mode)
+  :custom
+  (dirvish-attributes '(nerd-icons subtree-state vc-state file-size file-time))
+  ;; The side panel is narrow: icons, tree and git state only.
+  (dirvish-side-attributes '(nerd-icons subtree-state vc-state))
+  (dirvish-side-width 35)
+  :config
+  ;; Directories first and human sizes; owner and group add nothing here.
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  ;; The side panel follows the file you are editing.
+  (dirvish-side-follow-mode 1))
+#+end_src
+** Git: diff-hl
+Marca en el margen las líneas añadidas, cambiadas y borradas respecto a git, también mientras escribes. Se actualiza al hacer commit desde magit.
+#+begin_src emacs-lisp
+(use-package diff-hl
+  :ensure t
+  :demand t
+  :hook ((magit-pre-refresh . diff-hl-magit-pre-refresh)
+         (magit-post-refresh . diff-hl-magit-post-refresh))
+  :config
+  (global-diff-hl-mode 1)
+  (diff-hl-flydiff-mode 1))
+#+end_src
+** Claude Code
+Claude Code dentro de Emacs, en una ventana a la derecha. Sabe qué fichero y qué selección tienes, y sus cambios se muestran como diff para aceptarlos o no.
+
+- =C-c C-'=: menú de Claude (abrir, continuar, enviar la selección...).
+- El terminal es =ghostel= (motor de Ghostty): es el que mejor pinta la interfaz de Claude. La primera vez descarga su módulo nativo precompilado.
+#+begin_src emacs-lisp
+(use-package ghostel
+  :ensure t
+  :commands (ghostel)
+  :init
+  ;; Outside the package tree, so a package rebuild never pulls the module
+  ;; out from under a running Emacs.
+  (setq ghostel-module-directory (no-littering-expand-var-file-name "ghostel/")
+        ghostel-module-auto-install 'download))
+
+(use-package claude-code-ide
+  :ensure (:host github :repo "manzaltu/claude-code-ide.el")
+  :bind ("C-c C-'" . claude-code-ide-menu)
+  :custom
+  (claude-code-ide-terminal-backend 'ghostel)
+  (claude-code-ide-window-side 'right)
+  (claude-code-ide-window-width 90)
+  :config
+  ;; Let Claude use Emacs itself: xref, imenu, project files, diagnostics.
+  (claude-code-ide-emacs-tools-setup))
+#+end_src
 ** Ellama
 LLM local con Ollama. Se carga la primera vez que se usa un comando =ellama-*=, no al arrancar.
 #+begin_src emacs-lisp

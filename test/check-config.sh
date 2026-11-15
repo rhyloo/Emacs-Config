@@ -18,6 +18,11 @@ grep -q "^ERROR" "$work/report.txt" && { echo "FAIL"; exit 1; }
 grep -q "mode=org-mode version=.*elpaca" "$work/report.txt" || { echo "FAIL: org"; exit 1; }
 grep -q "^md: mode=markdown-mode preview-bound=markdown-preview-mode" "$work/report.txt" || { echo "FAIL: markdown"; exit 1; }
 grep -q "mermaid-js=t onupdate=t" "$work/report.txt" || { echo "FAIL: mermaid preview"; exit 1; }
+grep -q "^reading: olivetti=t imenu-key=counsel-imenu" "$work/report.txt" || { echo "FAIL: reading aids"; exit 1; }
+grep -q "^files: dirvish=t side-key=dirvish-side" "$work/report.txt" || { echo "FAIL: dirvish"; exit 1; }
+grep -q "^git: diff-hl=t" "$work/report.txt" || { echo "FAIL: diff-hl"; exit 1; }
+grep -q "^terminal: ghostel-live=t" "$work/report.txt" || { echo "FAIL: ghostel"; exit 1; }
+grep -q "^claude: key=claude-code-ide-menu cli=t backend=ghostel" "$work/report.txt" || { echo "FAIL: claude"; exit 1; }
 [ "$(grep -A1 -- "--- \*Warnings\* ---" "$work/report.txt" | tail -1)" = "none" ] || { echo "FAIL: warnings"; exit 1; }
 # Diagram really drawn: render the static page in headless Chrome, if present.
 if command -v google-chrome >/dev/null; then

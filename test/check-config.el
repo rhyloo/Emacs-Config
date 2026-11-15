@@ -2,7 +2,9 @@
 ;;
 ;; Loaded by test/check-config.sh after init. Waits for Elpaca to finish, then
 ;; checks startup time, Org (the Elpaca build, not the built-in one) and the
-;; Markdown live preview with Mermaid, writes a report to $PROBE_OUT and exits.
+;; Markdown live preview with Mermaid, reading aids, dirvish, diff-hl, the
+;; ghostel terminal and the Claude Code bindings; writes a report to
+;; $PROBE_OUT and exits.
 ;;
 ;;; Code:
 (require 'cl-lib)
@@ -14,6 +16,9 @@
     (push (format "org: mode=%s version=%s lib=%s" major-mode (org-version) (locate-library "org")) out)
     (find-file (expand-file-name "test.md" func-dir))
     (push (format "md: mode=%s preview-bound=%s" major-mode (key-binding (kbd "C-c C-c p"))) out)
+    (push (format "reading: olivetti=%s imenu-key=%s"
+                  (bound-and-true-p olivetti-mode) (key-binding (kbd "M-i")))
+          out)
     ;; Own ports, so the test also runs while a real preview is open.
     (setq markdown-preview-auto-open nil
           markdown-preview-ws-port 17379
@@ -28,6 +33,26 @@
             out))
     (push (format "markdown html: %s" (string-trim (shell-command-to-string (concat markdown-command " < " (expand-file-name "test.md" func-dir) " | grep -c language-mermaid")))) out)
     (markdown-preview-mode -1)
+    ;; Files: dired must open through dirvish.
+    (dired func-dir)
+    (push (format "files: dirvish=%s side-key=%s"
+                  (and (fboundp 'dirvish-curr) (dirvish-curr) t)
+                  (key-binding (kbd "<f8>")))
+          out)
+    (push (format "git: diff-hl=%s" (bound-and-true-p global-diff-hl-mode)) out)
+    ;; Terminal: ghostel must start a live shell with its native module.
+    (let ((term (ghostel)))
+      (push (format "terminal: ghostel-live=%s"
+                    (and (bufferp term) (process-live-p (get-buffer-process term)) t))
+            out)
+      (let ((kill-buffer-query-functions nil)) (kill-buffer term)))
+    ;; Loading it also runs its :config (the Emacs MCP tools setup).
+    (require 'claude-code-ide)
+    (push (format "claude: key=%s cli=%s backend=%s"
+                  (key-binding (kbd "C-c C-'"))
+                  (and (executable-find "claude") t)
+                  claude-code-ide-terminal-backend)
+          out)
     ;; Static page with the same scripts as the live preview, for
     ;; check-config.sh to render in headless Chrome and look for diagrams.
     (with-temp-file (expand-file-name "mermaid.html" func-dir)
