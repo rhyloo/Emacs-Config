@@ -925,14 +925,22 @@ HTML labels mermaid uses by default."
            (delete-directory profile t)
            (funcall done)))))))
 
+(defun my/md-live--text-width (win)
+  "Pixels available for text in WIN: its body minus the line numbers.
+An image wider than this cannot be wrapped and Emacs stops drawing the
+rest of the window."
+  (- (window-body-width win t)
+     (with-selected-window win
+       (if (bound-and-true-p display-line-numbers-mode) (line-number-display-width t) 0))))
+
 (defun my/mermaid--max-width ()
   "Widest a diagram may be: the text column, or its window if narrower.
 Computed from the text width, not the selected window: when a file is
 opened the diagrams are placed before the buffer is in its window."
   (let ((text (* (if (bound-and-true-p olivetti-mode) olivetti-body-width fill-column)
                  (frame-char-width)))
-        (win (get-buffer-window (current-buffer))))
-    (if win (min text (window-body-width win t)) text)))
+        (win (get-buffer-window (current-buffer) t)))
+    (round (* 0.95 (if win (min text (my/md-live--text-width win)) text)))))
 
 ;;;; Live view: blocks shown drawn, source revealed under the cursor
 
@@ -1136,6 +1144,35 @@ Columns shrink, widest first, until the table fits; cells wrap inside them."
   (setq my/md-live--revealed nil)
   (my/md-live--update))
 
+(defvar-local my/md-live--width nil
+  "Window width, in pixels, the drawings were last fitted to.")
+
+(defun my/md-live--fit (&optional window)
+  "Refit images, tables and diagrams when WINDOW's width changes.
+Runs when the buffer is shown in a window or that window is resized (a side
+panel opening, Claude's window, a split), so nothing is ever cut off.
+Emacs passes the window; its buffer need not be the current one.  These
+hooks run in the middle of redisplay, where swapping images leaves the
+window half drawn, so the refit itself runs right after, from a timer."
+  (when-let* ((win (if (windowp window) window (get-buffer-window (current-buffer))))
+              (width (my/md-live--text-width win))
+              (buf (window-buffer win)))
+    (unless (eql width (buffer-local-value 'my/md-live--width buf))
+      (with-current-buffer buf (setq my/md-live--width width))
+      (run-at-time 0 nil #'my/md-live--refit buf width))))
+
+(defun my/md-live--refit (buf width)
+  "Redraw BUF's images, tables and diagrams for a window WIDTH pixels wide."
+  (when (buffer-live-p buf)
+    (with-current-buffer buf
+      (setq-local markdown-max-image-size (cons (round (* 0.95 width)) 600))
+      (markdown-remove-inline-images)
+      (markdown-display-inline-images)
+      (my/md-table--show)
+      (my/mermaid--show)
+      (setq my/md-live--revealed nil)
+      (my/md-live--update))))
+
 (define-minor-mode my/md-live-mode
   "Show Markdown tables and Mermaid diagrams drawn; edit them in place."
   :lighter nil
@@ -1143,10 +1180,14 @@ Columns shrink, widest first, until the table fits; cells wrap inside them."
       (progn
         (add-hook 'post-command-hook #'my/md-live--update nil t)
         (add-hook 'after-save-hook #'my/md-live-refresh nil t)
+        (add-hook 'window-size-change-functions #'my/md-live--fit nil t)
+        (add-hook 'window-buffer-change-functions #'my/md-live--fit nil t)
         (local-set-key (kbd "C-c C-x d") #'my/md-live-refresh)
         (my/md-live-refresh))
     (remove-hook 'post-command-hook #'my/md-live--update t)
     (remove-hook 'after-save-hook #'my/md-live-refresh t)
+    (remove-hook 'window-size-change-functions #'my/md-live--fit t)
+    (remove-hook 'window-buffer-change-functions #'my/md-live--fit t)
     (remove-overlays (point-min) (point-max) 'my/md-live)))
 #+end_src
 ** Ficheros: dirvish
