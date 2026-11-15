@@ -20,7 +20,7 @@ grep -q "^md: mode=markdown-mode preview-bound=markdown-preview-mode" "$work/rep
 grep -q "mermaid-js=t onupdate=t" "$work/report.txt" || { echo "FAIL: mermaid preview"; exit 1; }
 grep -q "^reading: olivetti=t imenu-key=counsel-imenu" "$work/report.txt" || { echo "FAIL: reading aids"; exit 1; }
 grep -q "^files: mode=dired-mode own-mode-line=nil icons=t side-key=my/files-side" "$work/report.txt" || { echo "FAIL: dired"; exit 1; }
-grep -q "^dired-tree: folder-size=t guide=t mode-name=Dired$" "$work/report.txt" || { echo "FAIL: dired tree, folder sizes or mode line"; exit 1; }
+grep -q "^dired-tree: folder-size=t guide=t mode-name=Dired after-revert: size=t guide=t$" "$work/report.txt" || { echo "FAIL: dired tree, folder sizes or mode line"; exit 1; }
 grep -q "^side-panel: opened=t closed=t" "$work/report.txt" || { echo "FAIL: F8 side panel"; exit 1; }
 grep -q "^git: diff-hl=t" "$work/report.txt" || { echo "FAIL: diff-hl"; exit 1; }
 grep -q "^preview dead-page: dropped=t errors=nil" "$work/report.txt" || { echo "FAIL: preview with a closed page"; exit 1; }

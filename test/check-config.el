@@ -115,13 +115,29 @@
     (let ((size-line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
       (dired-subtree-insert)
       (forward-line 0)
-      ;; Levels are coloured bands at the start of the line.
-      (let* ((prefix (get-char-property (point) 'line-prefix))
-             (guided (and prefix (plist-get (get-text-property 0 'face prefix) :background))))
-        (push (format "dired-tree: folder-size=%s guide=%s mode-name=%s"
-                      (and (string-match-p "\\b\\(29[0-9]\\|30[0-9]\\)K\\b" size-line) t)
-                      (and guided t) mode-name)
-              out)))
+      ;; A coloured │ hangs the subfolder's files under its icon.
+      (let* ((name (dired-move-to-filename))
+             (guided (seq-some (lambda (o)
+                                 (and (overlay-get o 'my/dired-guide)
+                                      (string-match-p "│" (overlay-get o 'after-string))))
+                               (overlays-in (1- name) name))))
+        ;; A revert (dired does it by itself when the folder changes) must
+        ;; keep the guides and the sizes of the main folder.
+        (revert-buffer)
+        (let ((deadline (+ (float-time) 20)))
+          (while (and (process-live-p my/dired--du) (< (float-time) deadline))
+            (accept-process-output nil 0.1)))
+        (goto-char (point-min))
+        (search-forward "carpeta")
+        (let ((size-after (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+              (guides-after (seq-some (lambda (o) (overlay-get o 'my/dired-guide))
+                                      (overlays-in (point-min) (point-max)))))
+          (push (format "dired-tree: folder-size=%s guide=%s mode-name=%s after-revert: size=%s guide=%s"
+                        (and (string-match-p "\\b\\(29[0-9]\\|30[0-9]\\)K\\b" size-line) t)
+                        (and guided t) mode-name
+                        (and (string-match-p "\\b\\(29[0-9]\\|30[0-9]\\)K\\b" size-after) t)
+                        (and guides-after t))
+                out))))
     (push (format "files: mode=%s own-mode-line=%s icons=%s side-key=%s"
                   major-mode (local-variable-p 'mode-line-format)
                   (bound-and-true-p nerd-icons-dired-mode) (key-binding (kbd "<f8>")))
