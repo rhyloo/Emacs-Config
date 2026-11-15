@@ -809,7 +809,7 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
   :ensure t
   :hook (markdown-mode . olivetti-mode)
   :custom
-  (olivetti-body-width 100))
+  (olivetti-body-width 130))
 
 (global-set-key (kbd "M-i") #'counsel-imenu)
 #+end_src
@@ -817,6 +817,7 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
 El Markdown se edita casi como se ve publicado, al estilo de Obsidian: sin asteriscos ni almohadillas a la vista, títulos de varios tamaños, imágenes, y tablas y diagramas Mermaid dibujados en el propio buffer.
 
 - Los ficheros Markdown se abren en modo lectura: sin números de línea y con tablas y diagramas siempre dibujados. =C-x C-q= pasa a edición y vuelve a lectura.
+- En lectura el cursor recorre las tablas fila a fila y se oculta sobre las imágenes, donde parpadeaba como un bloque grande.
 - En edición, tablas y diagramas se ven dibujados; al entrar con el cursor aparece su Markdown para editarlo, y al salir se vuelven a dibujar. El fichero no cambia.
 - =C-c C-x C-m=: mostrar u ocultar las marcas (=**=, =#=, enlaces...).
 - =C-c C-x d=: volver a dibujar todo a mano.
@@ -951,7 +952,9 @@ opened the diagrams are placed before the buffer is in its window."
 ;;;; Live view: blocks shown drawn, source revealed under the cursor
 
 (defvar-local my/md-live--revealed nil
-  "Drawn block whose Markdown is shown because the cursor is inside it.")
+  "Drawn block whose Markdown is shown because the cursor is inside it.
+A block is the list of its overlays: one for a diagram, one per line for
+a table.")
 
 (defun my/md-live--put (start end display kind)
   "Draw DISPLAY over START..END, a block of KIND (`table' or `diagram')."
@@ -959,6 +962,8 @@ opened the diagrams are placed before the buffer is in its window."
     (overlay-put ov 'my/md-live kind)
     (overlay-put ov 'my/md-live-display display)
     (overlay-put ov 'evaporate t)
+    ;; The block it belongs to; a table regroups its line overlays.
+    (overlay-put ov 'my/md-live-block (list ov))
     (my/md-live--draw ov)
     ov))
 
@@ -976,22 +981,46 @@ opened the diagrams are placed before the buffer is in its window."
   (overlay-put ov 'invisible nil))
 
 (defun my/md-live--at-point ()
-  "Drawn block containing point, if any."
-  (seq-find (lambda (o) (and (overlay-get o 'my/md-live)
-                             (<= (overlay-start o) (point) (overlay-end o))))
-            (overlays-in (line-beginning-position) (line-end-position))))
+  "Drawn block containing point, if any, as the list of its overlays."
+  (when-let* ((ov (seq-find (lambda (o) (and (overlay-get o 'my/md-live)
+                                             (<= (overlay-start o) (point) (overlay-end o))))
+                            (overlays-in (line-beginning-position) (line-end-position)))))
+    (overlay-get ov 'my/md-live-block)))
 
 (defun my/md-live--update ()
   "Reveal the block under the cursor; redraw the one it just left.
 A read-only buffer is only being read, so everything stays drawn."
   (let ((here (unless buffer-read-only (my/md-live--at-point))))
     (unless (eq here my/md-live--revealed)
-      (when (and my/md-live--revealed (overlay-buffer my/md-live--revealed))
-        (my/md-live--draw my/md-live--revealed)
+      (when (seq-some #'overlay-buffer my/md-live--revealed)
+        (mapc #'my/md-live--draw (seq-filter #'overlay-buffer my/md-live--revealed))
         ;; It may have been edited while revealed.
         (my/md-live-refresh))
-      (when here (my/md-live--reveal here))
+      (mapc #'my/md-live--reveal here)
       (setq my/md-live--revealed here))))
+
+(defvar-local my/md-live--cursor-hidden nil
+  "Non-nil while the cursor is hidden because it sits on an image.")
+
+(defun my/md-live--cursor ()
+  "Keep the cursor usable over drawn blocks.
+On an image it is a big blinking box, so it is hidden.  On a drawn table
+row it goes to the row's start, where it shows, and line moves become
+logical: a visual move inside a row drawn on several lines stays put."
+  (let* ((display (get-char-property (point) 'display))
+         (on-image (and (consp display) (eq (car display) 'image)))
+         (row (seq-find (lambda (o) (and (eq (overlay-get o 'my/md-live) 'table)
+                                         (overlay-get o 'display)))
+                        (overlays-in (line-beginning-position) (line-end-position)))))
+    (cond ((and on-image (not my/md-live--cursor-hidden))
+           (setq-local cursor-type nil my/md-live--cursor-hidden t))
+          ((and my/md-live--cursor-hidden (not on-image))
+           (kill-local-variable 'cursor-type)
+           (setq my/md-live--cursor-hidden nil)))
+    (if row
+        (progn (goto-char (overlay-start row))
+               (setq-local line-move-visual nil))
+      (kill-local-variable 'line-move-visual))))
 
 ;;;; Diagrams
 
@@ -1088,7 +1117,9 @@ wider, and the borders no longer line up with the text."
 
 (defun my/md-table--render (rows width)
   "Draw ROWS (first one is the header) with box lines in WIDTH columns.
-Columns shrink, widest first, until the table fits; cells wrap inside them."
+Columns shrink, widest first, until the table fits; cells wrap inside them.
+Returns one drawing per line of the Markdown table: the header with the top
+border, the header separator, then each row with the border below it."
   (let* ((ncol (apply #'max (mapcar #'length rows)))
          (rows (mapcar (lambda (r) (append r (make-list (- ncol (length r)) ""))) rows))
          (widths (cl-loop for i below ncol
@@ -1117,29 +1148,52 @@ Columns shrink, widest first, until the table fits; cells wrap inside them."
                                         (number-sequence 0 (1- ncol)) "")
                              "\n"))
                    (number-sequence 0 (1- height)) ""))))
-      (string-trim-right
-       (cl-flet ((c (i) (string (aref box i))))
-         (concat (border (c 3) (c 4) (c 5) (aref box 0))
-                 (row (car rows) 'bold)
-                 (border (c 6) (c 7) (c 8) (aref box 1))
-                 (mapconcat (lambda (r) (row r 'default)) (cdr rows)
-                            (border (c 9) (c 10) (c 11) (aref box 0)))
-                 (border (c 12) (c 13) (c 14) (aref box 0))))
-       "\n"))))
+      (cl-flet ((c (i) (string (aref box i))))
+        (let ((middle (border (c 9) (c 10) (c 11) (aref box 0)))
+              (bottom (border (c 12) (c 13) (c 14) (aref box 0))))
+          (mapcar (lambda (chunk) (string-trim-right chunk "\n"))
+                  (append
+                   (list (concat (border (c 3) (c 4) (c 5) (aref box 0))
+                                 (row (car rows) 'bold))
+                         (if (cdr rows) (border (c 6) (c 7) (c 8) (aref box 1)) bottom))
+                   (cl-loop for (r . more) on (cdr rows)
+                            collect (concat (row r 'default) (if more middle bottom))))))))))
+
+(defun my/md-table--lines (start end)
+  "Lines in START..END as (BEG . END) pairs, without their newlines."
+  (save-excursion
+    (goto-char start)
+    (let (lines)
+      (while (< (point) end)
+        (push (cons (point) (line-end-position)) lines)
+        (forward-line 1))
+      (nreverse lines))))
 
 (defun my/md-table--show ()
-  "Draw every table in the buffer."
+  "Draw every table in the buffer.
+Each Markdown line gets the drawing of its own row, so the cursor and the
+scroll go through the table row by row instead of jumping over it."
   (remove-overlays (point-min) (point-max) 'my/md-live 'table)
   (let ((width (1- (/ (my/mermaid--max-width) (frame-char-width)))))
     (pcase-dolist (`(,start . ,end) (my/md-table--regions))
       (let ((rows (my/md-table--rows start end)))
         (when rows
-          (let ((drawn (my/md-table--render rows width)))
+          (let ((chunks (my/md-table--render rows width))
+                (lines (my/md-table--lines start end)))
             ;; Unstyled parts of a display string take the face of the text
             ;; they cover, here markdown's table/code face, with another
             ;; font and width; force the normal font on the whole drawing.
-            (add-face-text-property 0 (length drawn) '(:inherit default) t drawn)
-            (my/md-live--put start end drawn 'table)))))))
+            (dolist (chunk chunks)
+              (add-face-text-property 0 (length chunk) '(:inherit default) t chunk))
+            ;; Lines and rows match unless the table has stray separator
+            ;; lines; then the whole table is one drawing.
+            (unless (= (length chunks) (length lines))
+              (setq chunks (list (string-join chunks "\n"))
+                    lines (list (cons start end))))
+            (let ((block (cl-mapcar (lambda (line chunk)
+                                      (my/md-live--put (car line) (cdr line) chunk 'table))
+                                    lines chunks)))
+              (dolist (ov block) (overlay-put ov 'my/md-live-block block)))))))))
 
 ;;;; Mode
 
@@ -1186,6 +1240,7 @@ window half drawn, so the refit itself runs right after, from a timer."
   (if my/md-live-mode
       (progn
         (add-hook 'post-command-hook #'my/md-live--update nil t)
+        (add-hook 'post-command-hook #'my/md-live--cursor nil t)
         ;; Switching between reading and editing hides or shows the block
         ;; under the cursor right away.
         (add-hook 'read-only-mode-hook #'my/md-live--update nil t)
@@ -1195,45 +1250,76 @@ window half drawn, so the refit itself runs right after, from a timer."
         (local-set-key (kbd "C-c C-x d") #'my/md-live-refresh)
         (my/md-live-refresh))
     (remove-hook 'post-command-hook #'my/md-live--update t)
+    (remove-hook 'post-command-hook #'my/md-live--cursor t)
+    (kill-local-variable 'cursor-type)
+    (kill-local-variable 'line-move-visual)
     (remove-hook 'read-only-mode-hook #'my/md-live--update t)
     (remove-hook 'after-save-hook #'my/md-live-refresh t)
     (remove-hook 'window-size-change-functions #'my/md-live--fit t)
     (remove-hook 'window-buffer-change-functions #'my/md-live--fit t)
     (remove-overlays (point-min) (point-max) 'my/md-live)))
 #+end_src
-** Ficheros: dirvish
-Dired con vista previa del fichero, iconos, estado de git y árbol desplegable. Sustituye a dired, así que =C-x d= y todo lo de dired sigue funcionando.
+** Ficheros: dired con panel lateral
+Dired de siempre, con su barra inferior normal (hora, batería, columna...), más iconos y carpetas que se despliegan en su sitio.
 
-- =<f8>=: panel lateral de ficheros del proyecto (vuelve a pulsarlo para cerrarlo).
+- =<f8>=: panel lateral con la carpeta del proyecto (vuelve a pulsarlo para cerrarlo). =RET= abre el fichero en la ventana principal.
 - =TAB=: desplegar o plegar una carpeta en su sitio.
-- =?=: menú con todas las acciones.
+- =(=: mostrar u ocultar permisos, tamaños y fechas.
 #+begin_src emacs-lisp
 (use-package nerd-icons
   :ensure t)
 
-(use-package dirvish
+(use-package nerd-icons-dired
   :ensure t
-  :init
-  (dirvish-override-dired-mode)
-  :bind (("<f8>" . dirvish-side)
-         :map dirvish-mode-map
-         ("TAB" . dirvish-subtree-toggle)
-         ("?" . dirvish-dispatch)
-         ("q" . dirvish-quit))
-  :hook (dired-mode . dired-hide-details-mode)
-  :custom
-  ;; No `vc-state': on every refresh it starts a separate Emacs that runs git
-  ;; once per file, which made browsing slow (worst in busy dirs like /tmp).
-  ;; Git changes are already shown by diff-hl and magit.
-  (dirvish-attributes '(nerd-icons subtree-state file-size file-time))
-  (dirvish-side-attributes '(nerd-icons subtree-state))
-  (dirvish-side-width 35)
-  :config
+  :hook (dired-mode . nerd-icons-dired-mode))
+
+(use-package dired-subtree
+  :ensure t
+  :after dired
+  :bind (:map dired-mode-map ("TAB" . dired-subtree-toggle))
+  :custom (dired-subtree-use-backgrounds nil))
+
+(with-eval-after-load 'dired
   ;; Directories first and human sizes; owner and group add nothing here.
   (setq dired-listing-switches
-        "-l --almost-all --human-readable --group-directories-first --no-group")
-  ;; The side panel follows the file you are editing.
-  (dirvish-side-follow-mode 1))
+        "-l --almost-all --human-readable --group-directories-first --no-group"))
+
+(defvar my/files-side-width 35
+  "Width, in columns, of the side panel opened with F8.")
+
+(defun my/files-side--root ()
+  "Folder for the side panel: the project of the current file, or its folder."
+  (if-let* ((project (project-current)))
+      (project-root project)
+    default-directory))
+
+(defun my/files-side--open-file ()
+  "Open the file at point in the main window; folders open in the panel."
+  (interactive)
+  (let ((file (dired-get-file-for-visit)))
+    (if (file-directory-p file)
+        (dired-find-alternate-file)
+      (select-window (or (get-mru-window nil nil t) (next-window)))
+      (find-file file))))
+
+(defun my/files-side ()
+  "Show or hide a dired panel on the left with the current project."
+  (interactive)
+  (if-let* ((win (seq-find (lambda (w) (window-parameter w 'my/files-side))
+                           (window-list))))
+      (delete-window win)
+    (let* ((buf (dired-noselect (my/files-side--root)))
+           (win (display-buffer-in-side-window
+                 buf `((side . left) (slot . 0) (window-width . ,my/files-side-width)
+                       (preserve-size . (t . nil))
+                       (window-parameters . ((no-delete-other-windows . t)
+                                             (my/files-side . t)))))))
+      (with-current-buffer buf
+        (dired-hide-details-mode 1)
+        (local-set-key (kbd "RET") #'my/files-side--open-file))
+      (select-window win))))
+
+(global-set-key (kbd "<f8>") #'my/files-side)
 #+end_src
 ** Git: diff-hl
 Marca en el margen las líneas añadidas, cambiadas y borradas respecto a git; se actualiza al guardar. Se actualiza al hacer commit desde magit.

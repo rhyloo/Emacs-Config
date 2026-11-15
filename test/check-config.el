@@ -2,7 +2,7 @@
 ;;
 ;; Loaded by test/check-config.sh after init. Waits for Elpaca to finish, then
 ;; checks startup time, Org (the Elpaca build, not the built-in one) and the
-;; Markdown live preview with Mermaid, reading aids, dirvish, diff-hl, the
+;; Markdown live preview with Mermaid, reading aids, the dired side panel, diff-hl, the
 ;; ghostel terminal and the Claude Code bindings; writes a report to
 ;; $PROBE_OUT and exits.
 ;;
@@ -74,41 +74,51 @@
     ;; The test runs in a terminal, where markdown-mode-hook skips the live
     ;; view; turn it on by hand so its hooks are installed too.
     (my/md-live-mode 1)
-    (let* ((ov (car (seq-filter (lambda (o) (eq (overlay-get o 'my/md-live) 'table))
-                                (overlays-in (point-min) (point-max)))))
-           (drawn (overlay-get ov 'display))
+    ;; One overlay per Markdown line, so the cursor goes row by row.
+    (let* ((block (sort (seq-filter (lambda (o) (eq (overlay-get o 'my/md-live) 'table))
+                                    (overlays-in (point-min) (point-max)))
+                        (lambda (a b) (< (overlay-start a) (overlay-start b)))))
+           (row (car (last block)))
+           (drawn (mapconcat (lambda (o) (overlay-get o 'display)) block "\n"))
            (fits (cl-every (lambda (l) (<= (string-width l) (/ (my/mermaid--max-width) (frame-char-width))))
-                           (split-string drawn "\n"))))
+                           (split-string drawn "\n")))
+           (all-drawn (lambda () (cl-every (lambda (o) (overlay-get o 'display)) block))))
       ;; Reading: opened read-only, no line numbers, and the table stays
       ;; drawn with the cursor inside it.
       (push (format "reading-mode: read-only=%s line-numbers=%s"
                     buffer-read-only (bound-and-true-p display-line-numbers-mode))
             out)
-      (goto-char (overlay-start ov))
+      (goto-char (overlay-start row))
       (my/md-live--update)
-      (let ((drawn-while-reading (and (overlay-get ov 'display) t)))
-        ;; Editing: leaving read-only reveals the Markdown under the cursor.
+      (let ((drawn-while-reading (funcall all-drawn)))
+        ;; Editing: leaving read-only reveals the whole table's Markdown.
         (read-only-mode -1)
-        (let ((revealed (null (overlay-get ov 'display))))
+        (let ((revealed (cl-notany (lambda (o) (overlay-get o 'display)) block)))
           (goto-char (point-max))
           (my/md-live--update)
-          (push (format "table: boxed=%s fits=%s drawn-while-reading=%s revealed-inside=%s drawn-outside=%s"
-                        (and (string-match-p "┌" drawn) t) fits drawn-while-reading revealed
-                        (and (overlay-get ov 'display) t))
+          (push (format "table: rows=%s boxed=%s fits=%s drawn-while-reading=%s revealed-inside=%s drawn-outside=%s"
+                        (length block) (and (string-match-p "┌" drawn) t) fits
+                        drawn-while-reading revealed (funcall all-drawn))
                 out))))
     (set-buffer-modified-p nil)
-    ;; Files: dired must open through dirvish.
+    ;; Files: plain dired, keeping the normal mode line (time, battery...).
     (dired func-dir)
-    (push (format "files: dirvish=%s side-key=%s"
-                  (and (fboundp 'dirvish-curr) (dirvish-curr) t)
-                  (key-binding (kbd "<f8>")))
+    (push (format "files: mode=%s own-mode-line=%s icons=%s side-key=%s"
+                  major-mode (local-variable-p 'mode-line-format)
+                  (bound-and-true-p nerd-icons-dired-mode) (key-binding (kbd "<f8>")))
           out)
+    ;; F8 opens the side panel and closes it again.
+    (find-file (expand-file-name "test.md" func-dir))
+    (delete-other-windows)
+    (my/files-side)
+    (let ((opened (and (window-parameter (selected-window) 'my/files-side)
+                       (derived-mode-p 'dired-mode) t)))
+      (my/files-side)
+      (push (format "side-panel: opened=%s closed=%s"
+                    opened (null (seq-find (lambda (w) (window-parameter w 'my/files-side))
+                                           (window-list))))
+            out))
     (push (format "git: diff-hl=%s" (bound-and-true-p global-diff-hl-mode)) out)
-    ;; Slow-path guard: git state per file in dirvish spawns a process per refresh.
-    (push (format "dirvish: vc-state=%s" (and (or (memq 'vc-state dirvish-attributes)
-                                                  (memq 'vc-state dirvish-side-attributes))
-                                              t))
-          out)
     ;; Terminal: ghostel must start a live shell with its native module.
     (let ((term (ghostel)))
       (push (format "terminal: ghostel-live=%s"
