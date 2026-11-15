@@ -2,6 +2,7 @@
 # Smoke test: start this configuration in a hidden terminal (tmux), run
 # test/check-config.el and print its report. Exits non-zero if a check fails.
 # Usage: test/check-config.sh            (tests the directory this script lives in)
+#        EMACS=/path/to/emacs test/check-config.sh   (tests another Emacs binary)
 set -euo pipefail
 config_dir="$(cd "$(dirname "$0")/.." && pwd)"
 work="$(mktemp -d)"
@@ -9,7 +10,7 @@ trap 'tmux kill-session -t check-config 2>/dev/null || true; rm -rf "$work"' EXI
 printf '# Prueba\n\n```mermaid\ngraph TD\n  A-->B\n```\n' > "$work/test.md"
 printf '* Hola\n' > "$work/test.org"
 tmux new-session -d -s check-config -x 200 -y 50 \
-  "FUNC_DIR=$work PROBE_OUT=$work/report.txt emacs -nw --init-directory $config_dir -l $config_dir/test/check-config.el"
+  "FUNC_DIR=$work PROBE_OUT=$work/report.txt ${EMACS:-emacs} -nw --init-directory $config_dir -l $config_dir/test/check-config.el"
 for _ in $(seq 1 300); do [ -f "$work/report.txt" ] && break; sleep 1; done
 [ -f "$work/report.txt" ] || { echo "FAIL: no report after 300 s"; exit 1; }
 cat "$work/report.txt"; echo
