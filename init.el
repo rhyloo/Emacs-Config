@@ -121,8 +121,12 @@
   ;; so edits made outside Emacs, or a `git pull', are never silently ignored.
   (when (and (file-exists-p org-file)
              (file-newer-than-file-p org-file el-file))
-    (require 'ob-tangle)
-    (org-babel-tangle-file org-file el-file))
+    ;; Tangle in a separate Emacs: loading the built-in Org here would shadow
+    ;; the newer Org that Elpaca installs ("org loaded before Elpaca activation").
+    (call-process (expand-file-name invocation-name invocation-directory)
+                  nil nil nil "--batch" "-Q" "--eval"
+                  (format "(progn (require 'ob-tangle) (org-babel-tangle-file %S %S))"
+                          org-file el-file)))
   (load el-file nil t))
 ;; -----------------------------------------------------------------------------
 (provide 'init)

@@ -19,4 +19,13 @@ grep -q "mode=org-mode version=.*elpaca" "$work/report.txt" || { echo "FAIL: org
 grep -q "^md: mode=markdown-mode preview-bound=markdown-preview-mode" "$work/report.txt" || { echo "FAIL: markdown"; exit 1; }
 grep -q "mermaid-js=t onupdate=t" "$work/report.txt" || { echo "FAIL: mermaid preview"; exit 1; }
 [ "$(grep -A1 -- "--- \*Warnings\* ---" "$work/report.txt" | tail -1)" = "none" ] || { echo "FAIL: warnings"; exit 1; }
+# Diagram really drawn: render the static page in headless Chrome, if present.
+if command -v google-chrome >/dev/null; then
+  timeout 60 google-chrome --headless=new --disable-gpu --no-sandbox \
+    --virtual-time-budget=8000 --dump-dom "file://$work/mermaid.html" 2>/dev/null \
+    | grep -q "<svg" || { echo "FAIL: mermaid diagram not drawn"; exit 1; }
+  echo "mermaid: diagram drawn in headless Chrome"
+else
+  echo "mermaid: skipped drawing check (no google-chrome)"
+fi
 echo "OK"

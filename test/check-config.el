@@ -20,7 +20,7 @@
           markdown-preview-http-port 19000)
     (markdown-preview-mode 1)
     (push (format "preview-mode=%s ws=%s" markdown-preview-mode (and markdown-preview--websocket-server t)) out)
-    (let ((html (expand-file-name ".markdown-preview.html" func-dir)))
+    (let ((html markdown-preview-file-name))
       (push (format "preview html exists=%s mermaid-js=%s onupdate=%s"
                     (file-exists-p html)
                     (and (file-exists-p html) (with-temp-buffer (insert-file-contents html) (search-forward "mermaid.min.js" nil t) t))
@@ -28,6 +28,16 @@
             out))
     (push (format "markdown html: %s" (string-trim (shell-command-to-string (concat markdown-command " < " (expand-file-name "test.md" func-dir) " | grep -c language-mermaid")))) out)
     (markdown-preview-mode -1)
+    ;; Static page with the same scripts as the live preview, for
+    ;; check-config.sh to render in headless Chrome and look for diagrams.
+    (with-temp-file (expand-file-name "mermaid.html" func-dir)
+      (insert "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+              (mapconcat (lambda (src) (format "<script src=\"%s\"></script>" src))
+                         markdown-preview-javascript "")
+              "<script>" markdown-preview-script-oninit "</script></head><body>"
+              (shell-command-to-string
+               (concat markdown-command " < " (expand-file-name "test.md" func-dir)))
+              "<script>" markdown-preview-script-onupdate "</script></body></html>"))
     (with-temp-file (getenv "PROBE_OUT") (insert (mapconcat #'identity (nreverse out) "\n")
                                                  "\n--- *Warnings* ---\n"
                                                  (if (get-buffer "*Warnings*") (with-current-buffer "*Warnings*" (buffer-string)) "none"))))

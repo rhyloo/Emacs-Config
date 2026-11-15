@@ -754,7 +754,7 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
      div.textContent = code.textContent;
      code.parentNode.replaceWith(div);
    });
-   mermaid.run({suppressErrors: true});"
+   mermaid.run({querySelector: '.mermaid', suppressErrors: true});"
   "Turn ```mermaid code blocks into diagrams in the Markdown preview page.")
 
 (use-package markdown-preview-mode
@@ -762,6 +762,9 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
   :commands (markdown-preview-mode)
   :config
   (setq markdown-preview-delay-time 0.5
+        ;; Absolute path: keep the generated page out of the project directory.
+        markdown-preview-file-name
+        (expand-file-name "markdown-preview.html" temporary-file-directory)
         markdown-preview-stylesheets
         '("https://cdn.jsdelivr.net/npm/github-markdown-css@5.8.1/github-markdown-dark.min.css")
         markdown-preview-javascript
