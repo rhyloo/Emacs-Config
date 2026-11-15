@@ -940,12 +940,20 @@ rest of the window."
      (with-selected-window win
        (if (bound-and-true-p display-line-numbers-mode) (line-number-display-width t) 0))))
 
+(defun my/md-live--char-width ()
+  "Pixel width of a character in this buffer, with its text scale (C-x C-+).
+`frame-char-width' ignores the scale, so after shrinking the text tables
+came out with too few columns, and after enlarging it with too many."
+  (if-let* ((win (get-buffer-window (current-buffer) t)))
+      (window-font-width win)
+    (frame-char-width)))
+
 (defun my/mermaid--max-width ()
   "Widest a diagram may be: the text column, or its window if narrower.
 Computed from the text width, not the selected window: when a file is
 opened the diagrams are placed before the buffer is in its window."
   (let ((text (* (if (bound-and-true-p olivetti-mode) olivetti-body-width fill-column)
-                 (frame-char-width)))
+                 (my/md-live--char-width)))
         (win (get-buffer-window (current-buffer) t)))
     (round (* 0.95 (if win (min text (my/md-live--text-width win)) text)))))
 
@@ -1174,7 +1182,7 @@ border, the header separator, then each row with the border below it."
 Each Markdown line gets the drawing of its own row, so the cursor and the
 scroll go through the table row by row instead of jumping over it."
   (remove-overlays (point-min) (point-max) 'my/md-live 'table)
-  (let ((width (1- (/ (my/mermaid--max-width) (frame-char-width)))))
+  (let ((width (1- (/ (my/mermaid--max-width) (my/md-live--char-width)))))
     (pcase-dolist (`(,start . ,end) (my/md-table--regions))
       (let ((rows (my/md-table--rows start end)))
         (when rows
@@ -1222,6 +1230,11 @@ window half drawn, so the refit itself runs right after, from a timer."
       (with-current-buffer buf (setq my/md-live--width width))
       (run-at-time 0 nil #'my/md-live--refit buf width))))
 
+(defun my/md-live--rescale ()
+  "Redraw for the new text scale."
+  (setq my/md-live--width nil)
+  (my/md-live--fit))
+
 (defun my/md-live--refit (buf width)
   "Redraw BUF's images, tables and diagrams for a window WIDTH pixels wide."
   (when (buffer-live-p buf)
@@ -1247,6 +1260,9 @@ window half drawn, so the refit itself runs right after, from a timer."
         (add-hook 'after-save-hook #'my/md-live-refresh nil t)
         (add-hook 'window-size-change-functions #'my/md-live--fit nil t)
         (add-hook 'window-buffer-change-functions #'my/md-live--fit nil t)
+        ;; A new text scale changes how many columns fit even when the
+        ;; window keeps its width.
+        (add-hook 'text-scale-mode-hook #'my/md-live--rescale nil t)
         (local-set-key (kbd "C-c C-x d") #'my/md-live-refresh)
         (my/md-live-refresh))
     (remove-hook 'post-command-hook #'my/md-live--update t)
@@ -1257,13 +1273,15 @@ window half drawn, so the refit itself runs right after, from a timer."
     (remove-hook 'after-save-hook #'my/md-live-refresh t)
     (remove-hook 'window-size-change-functions #'my/md-live--fit t)
     (remove-hook 'window-buffer-change-functions #'my/md-live--fit t)
+    (remove-hook 'text-scale-mode-hook #'my/md-live--rescale t)
     (remove-overlays (point-min) (point-max) 'my/md-live)))
 #+end_src
 ** Ficheros: dired con panel lateral
 Dired de siempre, con su barra inferior normal (hora, batería, columna...), más iconos y carpetas que se despliegan en su sitio.
 
 - =<f8>=: panel lateral con la carpeta del proyecto (vuelve a pulsarlo para cerrarlo). =RET= abre el fichero en la ventana principal.
-- =TAB=: desplegar o plegar una carpeta en su sitio.
+- =TAB=: desplegar o plegar una carpeta en su sitio; su contenido sale sangrado junto al nombre, con guías =│=.
+- Las carpetas muestran lo que ocupa su contenido (=du=, en segundo plano), no los 4K de la propia carpeta.
 - =(=: mostrar u ocultar permisos, tamaños y fechas.
 #+begin_src emacs-lisp
 (use-package nerd-icons
@@ -1277,12 +1295,117 @@ Dired de siempre, con su barra inferior normal (hora, batería, columna...), má
   :ensure t
   :after dired
   :bind (:map dired-mode-map ("TAB" . dired-subtree-toggle))
-  :custom (dired-subtree-use-backgrounds nil))
+  :hook (dired-subtree-after-insert . my/dired-subtree-inserted)
+  :custom
+  (dired-subtree-use-backgrounds nil)
+  ;; Its indent goes at the start of the line, before the permissions, where
+  ;; it does not read as a tree; `my/dired-tree-guides' indents the names.
+  (dired-subtree-line-prefix ""))
 
 (with-eval-after-load 'dired
   ;; Directories first and human sizes; owner and group add nothing here.
   (setq dired-listing-switches
-        "-l --almost-all --human-readable --group-directories-first --no-group"))
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  (add-hook 'dired-after-readin-hook #'my/dired-dir-sizes t)
+  ;; The mode line showed every ls switch; the name and the sort are enough.
+  (advice-add 'dired-sort-set-mode-line :override #'my/dired-mode-line))
+
+(defun my/dired-mode-line ()
+  "Mode name for dired: \"Dired\", or \"Dired por fecha\" when sorted by time."
+  (when (eq major-mode 'dired-mode)
+    (setq mode-name (if (string-match-p "\\(?:\\`\\| \\)-[^- ]*t" dired-actual-switches)
+                        "Dired por fecha"
+                      "Dired"))
+    (force-mode-line-update)))
+
+;;;; Tree: subfolders opened with TAB
+
+(defun my/dired-tree-guides ()
+  "Indent the names of files inside opened subfolders, with │ guides.
+The indent joins the icon, so it lines up with the names, not the columns."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (while (not (eobp))
+        (when-let* ((depth (and (fboundp 'dired-subtree--get-ov)
+                                (when-let* ((ov (dired-subtree--get-ov)))
+                                  (overlay-get ov 'dired-subtree-depth))))
+                    (name (dired-move-to-filename)))
+          (let ((guide (propertize (apply #'concat (make-list depth "│ ")) 'face 'shadow))
+                (icon (seq-find (lambda (o) (overlay-get o 'nerd-icons-dired-overlay))
+                                (overlays-in (1- name) name))))
+            (if icon
+                (unless (overlay-get icon 'my/dired-guided)
+                  (overlay-put icon 'after-string (concat guide (overlay-get icon 'after-string)))
+                  (overlay-put icon 'my/dired-guided t))
+              (let ((ov (make-overlay (1- name) name)))
+                (overlay-put ov 'evaporate t)
+                (overlay-put ov 'after-string guide)))))
+        (forward-line 1)))))
+
+(defun my/dired-subtree-inserted ()
+  "Icons, guides and folder sizes for a subfolder just opened with TAB."
+  (when (bound-and-true-p nerd-icons-dired-mode)
+    (nerd-icons-dired--refresh))
+  (my/dired-tree-guides)
+  (when-let* ((ov (dired-subtree--get-ov)))
+    (my/dired-dir-sizes (overlay-get ov 'dired-subtree-name))))
+
+;;;; Folder sizes
+
+(defvar-local my/dired--du nil
+  "Running du for the folder of this dired buffer.")
+
+(defun my/dired-dir-sizes (&optional dir)
+  "Show, for each folder in DIR, the size of what it holds.
+ls gives a folder's own size (4K), which says nothing.  du can take a
+while on big folders, so it runs in the background and the sizes appear
+when it ends.  DIR defaults to the folder of this buffer; remote folders
+are skipped."
+  (let ((buf (current-buffer))
+        (dir (expand-file-name (or dir (dired-current-directory)))))
+    (unless (file-remote-p dir)
+      (let* ((out (generate-new-buffer " *dired-du*"))
+             (proc
+              (make-process
+               :name "dired-du" :buffer out :noquery t
+               ;; Unreadable folders only print errors; their size stays as is.
+               :command (list "sh" "-c" "du -h -d 1 -- \"$1\" 2>/dev/null" "sh" dir)
+               :sentinel
+               (lambda (proc _event)
+                 (unless (process-live-p proc)
+                   (let ((sizes (make-hash-table :test #'equal)))
+                     (with-current-buffer out
+                       (goto-char (point-min))
+                       (while (re-search-forward "^\\([^\t]+\\)\t\\(.+\\)$" nil t)
+                         (puthash (directory-file-name (match-string 2)) (match-string 1) sizes)))
+                     (kill-buffer out)
+                     (when (buffer-live-p buf)
+                       (with-current-buffer buf (my/dired--put-sizes sizes)))))))))
+        ;; A new listing of the whole folder replaces the previous run.
+        (when (string= dir (expand-file-name default-directory))
+          (when (process-live-p my/dired--du) (delete-process my/dired--du))
+          (setq my/dired--du proc))))))
+
+(defun my/dired--put-sizes (sizes)
+  "Write the folder SIZES (path -> size) in the size column of each folder."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (with-silent-modifications
+        (while (not (eobp))
+          (when-let* ((file (dired-get-filename nil t))
+                      (size (gethash (directory-file-name file) sizes)))
+            (beginning-of-line)
+            ;; Permissions, links, owner, then the size.
+            (when (re-search-forward "[-dl][-rwxsStT]\\{9\\}[.+@]?[ \t]+[0-9]+[ \t]+[^ \t]+[ \t]+\\([^ \t]+\\)"
+                                     (line-end-position) t)
+              (let ((old (match-string 1)))
+                (unless (string= old size)
+                  (replace-match (string-pad size (length old) nil t) t t nil 1)))))
+          (forward-line 1))))))
 
 (defvar my/files-side-width 35
   "Width, in columns, of the side panel opened with F8.")

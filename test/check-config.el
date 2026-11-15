@@ -80,7 +80,7 @@
                         (lambda (a b) (< (overlay-start a) (overlay-start b)))))
            (row (car (last block)))
            (drawn (mapconcat (lambda (o) (overlay-get o 'display)) block "\n"))
-           (fits (cl-every (lambda (l) (<= (string-width l) (/ (my/mermaid--max-width) (frame-char-width))))
+           (fits (cl-every (lambda (l) (<= (string-width l) (/ (my/mermaid--max-width) (my/md-live--char-width))))
                            (split-string drawn "\n")))
            (all-drawn (lambda () (cl-every (lambda (o) (overlay-get o 'display)) block))))
       ;; Reading: opened read-only, no line numbers, and the table stays
@@ -102,7 +102,26 @@
                 out))))
     (set-buffer-modified-p nil)
     ;; Files: plain dired, keeping the normal mode line (time, battery...).
+    (make-directory (expand-file-name "carpeta/sub" func-dir) t)
+    (with-temp-file (expand-file-name "carpeta/sub/datos" func-dir)
+      (insert (make-string 300000 ?x)))
     (dired func-dir)
+    ;; Folder sizes: du replaces the folder's own 4K with what it holds.
+    (let ((deadline (+ (float-time) 20)))
+      (while (and (process-live-p my/dired--du) (< (float-time) deadline))
+        (accept-process-output nil 0.1)))
+    (goto-char (point-min))
+    (search-forward "carpeta")
+    (let ((size-line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+      (dired-subtree-insert)
+      (forward-line 0)
+      (let* ((name (dired-move-to-filename))
+             (guided (seq-some (lambda (o) (string-match-p "│" (or (overlay-get o 'after-string) "")))
+                               (overlays-in (1- name) name))))
+        (push (format "dired-tree: folder-size=%s guide=%s mode-name=%s"
+                      (and (string-match-p "\\b\\(29[0-9]\\|30[0-9]\\)K\\b" size-line) t)
+                      (and guided t) mode-name)
+              out)))
     (push (format "files: mode=%s own-mode-line=%s icons=%s side-key=%s"
                   major-mode (local-variable-p 'mode-line-format)
                   (bound-and-true-p nerd-icons-dired-mode) (key-binding (kbd "<f8>")))
