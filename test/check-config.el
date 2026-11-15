@@ -48,7 +48,7 @@
     (markdown-preview-mode -1)
     ;; In-buffer diagrams: headless Chrome must produce a sized SVG that keeps
     ;; spaces, and markup hiding must be on in every Markdown buffer.
-    (let* ((source (cdr (car (my/mermaid--blocks))))
+    (let* ((source (nth 2 (car (my/mermaid--blocks))))
            (file (my/mermaid--svg-file source)))
       (when (file-exists-p file) (delete-file file))
       (my/mermaid--draw (list source) #'ignore)
@@ -65,6 +65,28 @@
                                            (and (search-forward "xml:space=\"preserve\"" nil t) t)))
                     markdown-hide-markup)
             out))
+    ;; Live view: a table is drawn with box lines that fit the text column,
+    ;; and its Markdown comes back while the cursor is inside it.
+    (let ((inhibit-read-only t))
+      (goto-char (point-max))
+      (insert "\n| Pantalla | Para qué |\n|---|---|\n| Hoy | "
+              (string-join (make-list 40 "texto") " ") " |\n\nfin\n"))
+    (my/md-table--show)
+    (let* ((ov (car (seq-filter (lambda (o) (eq (overlay-get o 'my/md-live) 'table))
+                                (overlays-in (point-min) (point-max)))))
+           (drawn (overlay-get ov 'display))
+           (fits (cl-every (lambda (l) (<= (string-width l) (/ (my/mermaid--max-width) (frame-char-width))))
+                           (split-string drawn "\n"))))
+      (goto-char (overlay-start ov))
+      (my/md-live--update)
+      (let ((revealed (null (overlay-get ov 'display))))
+        (goto-char (point-max))
+        (my/md-live--update)
+        (push (format "table: boxed=%s fits=%s revealed-inside=%s drawn-outside=%s"
+                      (and (string-match-p "┌" drawn) t) fits revealed
+                      (and (overlay-get ov 'display) t))
+              out)))
+    (set-buffer-modified-p nil)
     ;; Files: dired must open through dirvish.
     (dired func-dir)
     (push (format "files: dirvish=%s side-key=%s"

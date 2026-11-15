@@ -746,7 +746,10 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
   :bind (:map markdown-mode-map ("C-c C-c p" . markdown-preview-mode))
   :custom
   (markdown-command "python3 -m markdown -x fenced_code -x tables -x toc")
-  (markdown-fontify-code-blocks-natively t))
+  (markdown-fontify-code-blocks-natively t)
+  ;; Through :custom, not setq: its setter rebuilds the heading faces.
+  (markdown-header-scaling t)
+  (markdown-header-scaling-values '(1.6 1.4 1.2 1.1 1.0 1.0)))
 
 (defconst my/mermaid-render-js
   "document.querySelectorAll('code.language-mermaid').forEach(function (code) {
@@ -810,24 +813,24 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
 (global-set-key (kbd "M-i") #'counsel-imenu)
 #+end_src
 *** Editar viendo el resultado
-El Markdown se edita casi como se ve publicado: sin asteriscos ni almohadillas a la vista, títulos grandes, imágenes y diagramas Mermaid dibujados dentro del propio buffer.
+El Markdown se edita casi como se ve publicado, al estilo de Obsidian: sin asteriscos ni almohadillas a la vista, títulos de varios tamaños, imágenes, y tablas y diagramas Mermaid dibujados en el propio buffer.
 
+- Tablas y diagramas se ven dibujados; al entrar con el cursor aparece su Markdown para editarlo, y al salir se vuelven a dibujar. El fichero no cambia.
 - =C-c C-x C-m=: mostrar u ocultar las marcas (=**=, =#=, enlaces...).
-- Los diagramas se dibujan al abrir y al guardar, debajo de su bloque de código. =C-c C-x d= los redibuja a mano.
-- Los dibuja Chrome sin ventana con mermaid.js, descargado una vez a la caché; los ya dibujados se reutilizan.
+- =C-c C-x d=: volver a dibujar todo a mano.
+- Los diagramas los dibuja Chrome sin ventana con mermaid.js, descargado una vez a la caché; los ya dibujados se reutilizan.
 #+begin_src emacs-lisp
 (with-eval-after-load 'markdown-mode
   ;; Buffer-local variables: `setq' here would only change the buffer that
   ;; happened to be current when markdown-mode loaded.
   (setq-default markdown-hide-markup t
                 markdown-hide-urls t)
-  (setq markdown-header-scaling t
-        markdown-max-image-size '(900 . 600))
+  (setq markdown-max-image-size '(900 . 600))
   (add-hook 'markdown-mode-hook
             (lambda ()
               (when (display-graphic-p)
                 (markdown-display-inline-images)
-                (my/mermaid-inline-mode 1)))))
+                (my/md-live-mode 1)))))
 
 (defvar my/mermaid-js-url
   "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
@@ -853,12 +856,13 @@ El Markdown se edita casi como se ve publicado: sin asteriscos ni almohadillas a
     file))
 
 (defun my/mermaid--blocks ()
-  "Mermaid blocks in the buffer as a list of (END-OF-FENCE . SOURCE)."
+  "Mermaid blocks in the buffer as a list of (START END SOURCE).
+START is the opening fence and END the end of the closing one."
   (save-excursion
     (goto-char (point-min))
     (let (blocks)
       (while (re-search-forward "^```mermaid[ \t]*\n\\(\\(?:.*\n\\)*?\\)```[ \t]*$" nil t)
-        (push (cons (match-end 0) (match-string-no-properties 1)) blocks))
+        (push (list (match-beginning 0) (match-end 0) (match-string-no-properties 1)) blocks))
       (nreverse blocks))))
 
 (defun my/mermaid--svg-file (source)
@@ -930,49 +934,220 @@ opened the diagrams are placed before the buffer is in its window."
         (win (get-buffer-window (current-buffer))))
     (if win (min text (window-body-width win t)) text)))
 
+;;;; Live view: blocks shown drawn, source revealed under the cursor
+
+(defvar-local my/md-live--revealed nil
+  "Drawn block whose Markdown is shown because the cursor is inside it.")
+
+(defun my/md-live--put (start end display kind)
+  "Draw DISPLAY over START..END, a block of KIND (`table' or `diagram')."
+  (let ((ov (make-overlay start end nil t nil)))
+    (overlay-put ov 'my/md-live kind)
+    (overlay-put ov 'my/md-live-display display)
+    (overlay-put ov 'evaporate t)
+    (my/md-live--draw ov)
+    ov))
+
+(defun my/md-live--draw (ov)
+  "Show OV's drawing instead of its Markdown."
+  (overlay-put ov 'display (overlay-get ov 'my/md-live-display))
+  ;; The block starts with markup that markdown-mode hides, and a display
+  ;; on invisible text is never shown.  An overlay value wins over the text
+  ;; property; this symbol is not in the invisibility spec, so it shows.
+  (overlay-put ov 'invisible 'my/md-live-shown))
+
+(defun my/md-live--reveal (ov)
+  "Show OV's Markdown so it can be edited."
+  (overlay-put ov 'display nil)
+  (overlay-put ov 'invisible nil))
+
+(defun my/md-live--at-point ()
+  "Drawn block containing point, if any."
+  (seq-find (lambda (o) (and (overlay-get o 'my/md-live)
+                             (<= (overlay-start o) (point) (overlay-end o))))
+            (overlays-in (line-beginning-position) (line-end-position))))
+
+(defun my/md-live--update ()
+  "Reveal the block under the cursor; redraw the one it just left."
+  (let ((here (my/md-live--at-point)))
+    (unless (eq here my/md-live--revealed)
+      (when (and my/md-live--revealed (overlay-buffer my/md-live--revealed))
+        (my/md-live--draw my/md-live--revealed)
+        ;; It may have been edited while revealed.
+        (my/md-live-refresh))
+      (when here (my/md-live--reveal here))
+      (setq my/md-live--revealed here))))
+
+;;;; Diagrams
+
 (defun my/mermaid--show ()
-  "Show every drawn diagram under its block."
-  (remove-overlays (point-min) (point-max) 'my/mermaid t)
-  (dolist (block (my/mermaid--blocks))
-    (let ((file (my/mermaid--svg-file (cdr block))))
+  "Draw every Mermaid block that has a diagram ready."
+  (remove-overlays (point-min) (point-max) 'my/md-live 'diagram)
+  (pcase-dolist (`(,start ,end ,source) (my/mermaid--blocks))
+    (let ((file (my/mermaid--svg-file source)))
       (when (file-exists-p file)
-        ;; Hang it on the start of the next line: the closing fence itself
-        ;; is invisible while markup is hidden, and so would be the image.
-        (let* ((pos (min (1+ (car block)) (point-max)))
-               (ov (make-overlay pos pos)))
-          (overlay-put ov 'my/mermaid t)
-          (overlay-put ov 'before-string
-                       (concat (propertize " " 'display
-                                                (create-image file 'svg nil
-                                                              :max-width (my/mermaid--max-width)
-                                                              :ascent 'center))
-                               "\n")))))))
+        (my/md-live--put start end
+                         (create-image file 'svg nil
+                                       :max-width (my/mermaid--max-width)
+                                       :ascent 'center)
+                         'diagram)))))
 
 (defun my/mermaid-refresh ()
   "Draw the Mermaid blocks that changed and show all diagrams in the buffer."
-  (interactive)
   (if (not my/mermaid-chrome)
       (message "Para ver los diagramas hace falta Google Chrome o Chromium")
     (let* ((buf (current-buffer))
            (missing (seq-uniq (seq-remove (lambda (s) (file-exists-p (my/mermaid--svg-file s)))
-                                          (mapcar #'cdr (my/mermaid--blocks))))))
+                                          (mapcar #'caddr (my/mermaid--blocks))))))
       (if (null missing)
           (my/mermaid--show)
         (my/mermaid--draw missing
                           (lambda ()
                             (when (buffer-live-p buf)
-                              (with-current-buffer buf (my/mermaid--show)))))))))
+                              (with-current-buffer buf
+                                (my/mermaid--show)
+                                (setq my/md-live--revealed nil)
+                                (my/md-live--update)))))))))
 
-(define-minor-mode my/mermaid-inline-mode
-  "Show Mermaid diagrams under their code blocks, redrawn on save."
+;;;; Tables
+
+(defun my/md-table--regions ()
+  "Markdown tables as (START . END), whole lines, outside code blocks."
+  (save-excursion
+    (goto-char (point-min))
+    (let (tables)
+      (while (re-search-forward "^[ \t]*|" nil t)
+        (let ((start (line-beginning-position)))
+          (forward-line 1)
+          (if (and (looking-at "^[ \t]*|?[ \t]*:?-+:?[ \t]*|")
+                   (not (markdown-code-block-at-pos start)))
+              (progn
+                (while (looking-at "^[ \t]*|") (forward-line 1))
+                (push (cons start (1- (point))) tables))
+            (goto-char (line-end-position)))))
+      (nreverse tables))))
+
+(defun my/md-table--clean (cell)
+  "CELL as plain text: no emphasis marks, code ticks or link targets."
+  (thread-last cell
+               (replace-regexp-in-string "\\[\\([^]]*\\)\\]([^)]*)" "\\1")
+               (replace-regexp-in-string "\\*\\*\\|__\\|`" "")
+               string-trim))
+
+(defun my/md-table--rows (start end)
+  "Rows of the table in START..END as lists of cells, separator dropped."
+  (let (rows)
+    (dolist (line (split-string (buffer-substring-no-properties start end) "\n" t))
+      (unless (string-match-p "^[ \t]*|?[ \t:|-]*-[ \t:|-]*$" line)
+        (let* ((l (string-trim line))
+               (l (string-remove-suffix "|" (string-remove-prefix "|" l)))
+               (l (replace-regexp-in-string "\\\\|" "\x1" l)))
+          (push (mapcar (lambda (c) (my/md-table--clean (subst-char-in-string ?\x1 ?| c)))
+                        (split-string l "|"))
+                rows))))
+    (nreverse rows)))
+
+(defun my/md-table--wrap (text width)
+  "TEXT broken into lines of at most WIDTH columns, at spaces if possible."
+  (let (lines (line ""))
+    (dolist (word (split-string text " " t))
+      (while (> (string-width word) width)
+        (unless (string-empty-p line) (push line lines) (setq line ""))
+        (push (truncate-string-to-width word width) lines)
+        (setq word (substring word (length (truncate-string-to-width word width)))))
+      (cond ((string-empty-p line) (setq line word))
+            ((<= (+ (string-width line) 1 (string-width word)) width)
+             (setq line (concat line " " word)))
+            (t (push line lines) (setq line word))))
+    (nreverse (if (string-empty-p line) (or lines '("")) (cons line lines)))))
+
+(defun my/md-table--box-chars ()
+  "Box-drawing characters if the font draws them one column wide, else ASCII.
+When the font lacks them Emacs borrows them from another font, usually
+wider, and the borders no longer line up with the text."
+  (let* ((box "─═│┌┬┐╞╪╡├┼┤└┴┘")
+         (one (string-pixel-width "x")))
+    (if (cl-every (lambda (c) (= (string-pixel-width (string c)) one)) box)
+        box
+      "-=|+++++++++++++")))
+
+(defun my/md-table--render (rows width)
+  "Draw ROWS (first one is the header) with box lines in WIDTH columns.
+Columns shrink, widest first, until the table fits; cells wrap inside them."
+  (let* ((ncol (apply #'max (mapcar #'length rows)))
+         (rows (mapcar (lambda (r) (append r (make-list (- ncol (length r)) ""))) rows))
+         (widths (cl-loop for i below ncol
+                          collect (max 1 (apply #'max (mapcar (lambda (r) (string-width (nth i r))) rows)))))
+         (budget (- width (1+ (* 3 ncol))))
+         (box (my/md-table--box-chars))
+         (bar (string (aref box 2))))
+    (while (and (> (apply #'+ widths) budget) (> (apply #'max widths) 6))
+      (let ((i (cl-position (apply #'max widths) widths)))
+        (setf (nth i widths) (1- (nth i widths)))))
+    (cl-flet ((border (l m r fill)
+                (propertize (concat l (mapconcat (lambda (w) (make-string (+ w 2) fill)) widths m) r "\n")
+                            'face 'shadow))
+              (row (cells face)
+                (let* ((wrapped (cl-mapcar #'my/md-table--wrap cells widths))
+                       (height (apply #'max (mapcar #'length wrapped))))
+                  (mapconcat
+                   (lambda (k)
+                     (concat (propertize bar 'face 'shadow)
+                             (mapconcat (lambda (i)
+                                          (concat " " (propertize (truncate-string-to-width
+                                                                   (or (nth k (nth i wrapped)) "")
+                                                                   (nth i widths) nil ?\s)
+                                                                  'face face)
+                                                  " " (propertize bar 'face 'shadow)))
+                                        (number-sequence 0 (1- ncol)) "")
+                             "\n"))
+                   (number-sequence 0 (1- height)) ""))))
+      (string-trim-right
+       (cl-flet ((c (i) (string (aref box i))))
+         (concat (border (c 3) (c 4) (c 5) (aref box 0))
+                 (row (car rows) 'bold)
+                 (border (c 6) (c 7) (c 8) (aref box 1))
+                 (mapconcat (lambda (r) (row r 'default)) (cdr rows)
+                            (border (c 9) (c 10) (c 11) (aref box 0)))
+                 (border (c 12) (c 13) (c 14) (aref box 0))))
+       "\n"))))
+
+(defun my/md-table--show ()
+  "Draw every table in the buffer."
+  (remove-overlays (point-min) (point-max) 'my/md-live 'table)
+  (let ((width (1- (/ (my/mermaid--max-width) (frame-char-width)))))
+    (pcase-dolist (`(,start . ,end) (my/md-table--regions))
+      (let ((rows (my/md-table--rows start end)))
+        (when rows
+          (let ((drawn (my/md-table--render rows width)))
+            ;; Unstyled parts of a display string take the face of the text
+            ;; they cover, here markdown's table/code face, with another
+            ;; font and width; force the normal font on the whole drawing.
+            (add-face-text-property 0 (length drawn) '(:inherit default) t drawn)
+            (my/md-live--put start end drawn 'table)))))))
+
+;;;; Mode
+
+(defun my/md-live-refresh ()
+  "Redraw tables now and diagrams that changed (in the background)."
+  (interactive)
+  (my/md-table--show)
+  (my/mermaid-refresh)
+  (setq my/md-live--revealed nil)
+  (my/md-live--update))
+
+(define-minor-mode my/md-live-mode
+  "Show Markdown tables and Mermaid diagrams drawn; edit them in place."
   :lighter nil
-  (if my/mermaid-inline-mode
+  (if my/md-live-mode
       (progn
-        (add-hook 'after-save-hook #'my/mermaid-refresh nil t)
-        (local-set-key (kbd "C-c C-x d") #'my/mermaid-refresh)
-        (my/mermaid-refresh))
-    (remove-hook 'after-save-hook #'my/mermaid-refresh t)
-    (remove-overlays (point-min) (point-max) 'my/mermaid t)))
+        (add-hook 'post-command-hook #'my/md-live--update nil t)
+        (add-hook 'after-save-hook #'my/md-live-refresh nil t)
+        (local-set-key (kbd "C-c C-x d") #'my/md-live-refresh)
+        (my/md-live-refresh))
+    (remove-hook 'post-command-hook #'my/md-live--update t)
+    (remove-hook 'after-save-hook #'my/md-live-refresh t)
+    (remove-overlays (point-min) (point-max) 'my/md-live)))
 #+end_src
 ** Ficheros: dirvish
 Dired con vista previa del fichero, iconos, estado de git y árbol desplegable. Sustituye a dired, así que =C-x d= y todo lo de dired sigue funcionando.
