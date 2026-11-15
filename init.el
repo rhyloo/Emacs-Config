@@ -28,6 +28,9 @@
 ;;
 ;; -----------------------------------------------------------------------------
 
+(setq native-comp-speed 3)
+
+
 ;;; Code:
 ;; Set alternative locations for no-littering
 (setq no-littering-etc-directory (expand-file-name "~/.cache/emacs/etc")

@@ -1,7 +1,7 @@
 #+TITLE: Rhyloo's Emacs Configuration
 #+AUTHOR: Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: 2025-12-28 21:14:10
+#+LAST_MODIFIED: 2026-11-02 21:49:54
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent :tangle yes
@@ -523,6 +523,8 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
             "latexmk -f -pdf -%latex -shell-escape -interaction=nonstopmode -output-directory=%o/build %f"
             "mv %o/build/%b.pdf %O"))
 
+    (setq org-latex-listings (quote minted))
+
     (add-to-list 'org-latex-classes
                  '("reporti"
                    "\\documentclass{reporti} [NO-DEFAULT-PACKAGES] [NO-PACKAGES]"
@@ -682,7 +684,7 @@ Magit is a complete text-based user interface to Git.
   :demand t
   :init (global-company-mode 1)
   :config
-  (setq company-idle-delay 0
+  (setq company-idle-delay 0.3
         company-minimum-prefix-length 1))
 
 (use-package flycheck
@@ -737,12 +739,29 @@ Magit is a complete text-based user interface to Git.
   :ensure t
   :commands lsp-ui-mode)
 #+end_src
+** Atomic-Chrome
+#+begin_src emacs-lisp
+(use-package atomic-chrome
+  :ensure t
+  :defer t)
+#+end_src
 * Finish startup optimization
 ** Restaurar valores razonables tras el inicio
 Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
 #+begin_src emacs-lisp
 (setq gc-cons-threshold (* 2 1000 1000)) ;; The default is 800 kilobytes. Measured in bytes.
 (setq gc-cons-percentage 0.5)
+(use-package ellama
+  :ensure t
+  :init
+  (require 'llm-ollama)
+  (setopt ellama-provider
+          (make-llm-ollama
+           :chat-model "deepseek-r1:14b"
+           :default-chat-non-standard-params
+           '(("num_ctx" . 8192))))
+  :config
+  (ellama-setup-agentic-coding))
 #+end_src
 ** Recolección de basura periódica
 Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
