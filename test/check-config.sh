@@ -21,6 +21,8 @@ grep -q "mermaid-js=t onupdate=t" "$work/report.txt" || { echo "FAIL: mermaid pr
 grep -q "^reading: olivetti=t imenu-key=counsel-imenu" "$work/report.txt" || { echo "FAIL: reading aids"; exit 1; }
 grep -q "^files: dirvish=t side-key=dirvish-side" "$work/report.txt" || { echo "FAIL: dirvish"; exit 1; }
 grep -q "^git: diff-hl=t" "$work/report.txt" || { echo "FAIL: diff-hl"; exit 1; }
+grep -q "^dirvish: vc-state=nil" "$work/report.txt" || { echo "FAIL: dirvish vc-state is back (slow)"; exit 1; }
+grep -q "^preview dead-page: dropped=t errors=nil" "$work/report.txt" || { echo "FAIL: preview with a closed page"; exit 1; }
 grep -q "^terminal: ghostel-live=t" "$work/report.txt" || { echo "FAIL: ghostel"; exit 1; }
 grep -q "^claude: key=claude-code-ide-menu cli=t backend=ghostel" "$work/report.txt" || { echo "FAIL: claude"; exit 1; }
 [ "$(grep -A1 -- "--- \*Warnings\* ---" "$work/report.txt" | tail -1)" = "none" ] || { echo "FAIL: warnings"; exit 1; }

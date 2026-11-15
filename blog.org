@@ -258,6 +258,7 @@ Here is configurations without package needed.
 #+begin_src emacs-lisp
 (global-auto-revert-mode 1)                          ;; Revert buffers when the underlying file has changed
 (setq global-auto-revert-non-file-buffers t)         ;; Revert Dired and other buffers
+(setq auto-revert-verbose nil)                        ;; No "Reverting buffer" message on every refresh
 ;; (setq auto-revert-remote-files nil)                    ;; Revert buffer in remote (SLOW)
 
 #+end_src
@@ -772,6 +773,15 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
         markdown-preview-script-oninit
         "mermaid.initialize({startOnLoad: false, theme: 'dark'});"
         markdown-preview-script-onupdate my/mermaid-render-js)
+  ;; Closing or reloading the preview page leaves a dead connection behind;
+  ;; sending to it fails on every update (and the package's own error report
+  ;; breaks on any % in the page, hence "Not enough arguments for format
+  ;; string").  Drop dead connections first and skip when no page is open.
+  (advice-add 'markdown-preview--send-preview :around
+              (lambda (send uuid)
+                (markdown-preview--drop-closed-clients)
+                (when (gethash uuid markdown-preview--remote-clients)
+                  (funcall send uuid))))
   ;; With an xwidgets build, show the preview inside Emacs, in a window to the
   ;; right, and keep the cursor in the Markdown buffer. Otherwise, the browser.
   (when (featurep 'xwidget-internal)
@@ -820,9 +830,11 @@ Dired con vista previa del fichero, iconos, estado de git y árbol desplegable. 
          ("q" . dirvish-quit))
   :hook (dired-mode . dired-hide-details-mode)
   :custom
-  (dirvish-attributes '(nerd-icons subtree-state vc-state file-size file-time))
-  ;; The side panel is narrow: icons, tree and git state only.
-  (dirvish-side-attributes '(nerd-icons subtree-state vc-state))
+  ;; No `vc-state': on every refresh it starts a separate Emacs that runs git
+  ;; once per file, which made browsing slow (worst in busy dirs like /tmp).
+  ;; Git changes are already shown by diff-hl and magit.
+  (dirvish-attributes '(nerd-icons subtree-state file-size file-time))
+  (dirvish-side-attributes '(nerd-icons subtree-state))
   (dirvish-side-width 35)
   :config
   ;; Directories first and human sizes; owner and group add nothing here.
@@ -832,7 +844,7 @@ Dired con vista previa del fichero, iconos, estado de git y árbol desplegable. 
   (dirvish-side-follow-mode 1))
 #+end_src
 ** Git: diff-hl
-Marca en el margen las líneas añadidas, cambiadas y borradas respecto a git, también mientras escribes. Se actualiza al hacer commit desde magit.
+Marca en el margen las líneas añadidas, cambiadas y borradas respecto a git; se actualiza al guardar. Se actualiza al hacer commit desde magit.
 #+begin_src emacs-lisp
 (use-package diff-hl
   :ensure t
@@ -840,8 +852,9 @@ Marca en el margen las líneas añadidas, cambiadas y borradas respecto a git, t
   :hook ((magit-pre-refresh . diff-hl-magit-pre-refresh)
          (magit-post-refresh . diff-hl-magit-post-refresh))
   :config
-  (global-diff-hl-mode 1)
-  (diff-hl-flydiff-mode 1))
+  ;; Marks refresh on save, not on every keystroke (flydiff runs a diff each
+  ;; time Emacs is idle, which is noticeable on big files).
+  (global-diff-hl-mode 1))
 #+end_src
 ** Claude Code
 Claude Code dentro de Emacs, en una ventana a la derecha. Sabe qué fichero y qué selección tienes, y sus cambios se muestran como diff para aceptarlos o no.

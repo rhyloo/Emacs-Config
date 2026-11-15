@@ -32,6 +32,19 @@
                     (and (file-exists-p html) (with-temp-buffer (insert-file-contents html) (search-forward "language-mermaid" nil t) t)))
             out))
     (push (format "markdown html: %s" (string-trim (shell-command-to-string (concat markdown-command " < " (expand-file-name "test.md" func-dir) " | grep -c language-mermaid")))) out)
+    ;; A preview page that was closed must not break later updates.
+    (let* ((dead (make-process :name "dead" :command '("true")))
+           (_ (while (process-live-p dead) (accept-process-output dead 0.05)))
+           (stale (websocket-inner-create :conn dead :url "ws://closed" :ready-state 'open)))
+      (puthash markdown-preview--uuid stale markdown-preview--remote-clients)
+      (markdown-preview--send-preview markdown-preview--uuid)
+      (sit-for 0.5)
+      (push (format "preview dead-page: dropped=%s errors=%s"
+                    (null (gethash markdown-preview--uuid markdown-preview--remote-clients))
+                    (with-current-buffer "*Messages*"
+                      (save-excursion (goto-char (point-min))
+                                      (and (search-forward "====> Error" nil t) t))))
+            out))
     (markdown-preview-mode -1)
     ;; Files: dired must open through dirvish.
     (dired func-dir)
@@ -40,6 +53,11 @@
                   (key-binding (kbd "<f8>")))
           out)
     (push (format "git: diff-hl=%s" (bound-and-true-p global-diff-hl-mode)) out)
+    ;; Slow-path guard: git state per file in dirvish spawns a process per refresh.
+    (push (format "dirvish: vc-state=%s" (and (or (memq 'vc-state dirvish-attributes)
+                                                  (memq 'vc-state dirvish-side-attributes))
+                                              t))
+          out)
     ;; Terminal: ghostel must start a live shell with its native module.
     (let ((term (ghostel)))
       (push (format "terminal: ghostel-live=%s"
