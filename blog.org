@@ -734,7 +734,7 @@ Magit is a complete text-based user interface to Git.
 ** Markdown
 Edición de Markdown con vista previa en el navegador que se actualiza mientras escribes (como la de VSCode). Los bloques =```mermaid= se dibujan como diagramas.
 
-- =C-c C-c p= o =M-x markdown-preview-mode=: abre la vista previa en vivo.
+- =C-c C-c p= o =M-x markdown-preview-mode=: abre la vista previa en vivo. Con un Emacs compilado con xwidgets se abre dentro de Emacs, a la derecha; si no, en el navegador.
 - El HTML lo genera =python3 -m markdown= (ya instalado); no hace falta =pandoc=.
 #+begin_src emacs-lisp
 (use-package markdown-mode
@@ -768,7 +768,21 @@ Edición de Markdown con vista previa en el navegador que se actualiza mientras 
         '("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js")
         markdown-preview-script-oninit
         "mermaid.initialize({startOnLoad: false, theme: 'dark'});"
-        markdown-preview-script-onupdate my/mermaid-render-js))
+        markdown-preview-script-onupdate my/mermaid-render-js)
+  ;; With an xwidgets build, show the preview inside Emacs, in a window to the
+  ;; right, and keep the cursor in the Markdown buffer. Otherwise, the browser.
+  (when (featurep 'xwidget-internal)
+    (advice-add 'markdown-preview--open-browser-preview :around
+                (lambda (open-preview)
+                  (let ((browse-url-browser-function #'my/markdown-preview-in-emacs))
+                    (funcall open-preview))))))
+
+(defun my/markdown-preview-in-emacs (url &rest _)
+  "Open URL with xwidget-webkit in a window to the right of the current one."
+  (let ((source-window (selected-window)))
+    (select-window (split-window-right))
+    (xwidget-webkit-browse-url url t)
+    (select-window source-window)))
 #+end_src
 ** Ellama
 LLM local con Ollama. Se carga la primera vez que se usa un comando =ellama-*=, no al arrancar.
