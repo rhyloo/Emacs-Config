@@ -115,9 +115,9 @@
     (let ((size-line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
       (dired-subtree-insert)
       (forward-line 0)
-      (let* ((name (dired-move-to-filename))
-             (guided (seq-some (lambda (o) (string-match-p "│" (or (overlay-get o 'after-string) "")))
-                               (overlays-in (1- name) name))))
+      ;; Levels are coloured bands at the start of the line.
+      (let* ((prefix (get-char-property (point) 'line-prefix))
+             (guided (and prefix (plist-get (get-text-property 0 'face prefix) :background))))
         (push (format "dired-tree: folder-size=%s guide=%s mode-name=%s"
                       (and (string-match-p "\\b\\(29[0-9]\\|30[0-9]\\)K\\b" size-line) t)
                       (and guided t) mode-name)

@@ -1280,7 +1280,7 @@ window half drawn, so the refit itself runs right after, from a timer."
 Dired de siempre, con su barra inferior normal (hora, batería, columna...), más iconos y carpetas que se despliegan en su sitio.
 
 - =<f8>=: panel lateral con la carpeta del proyecto (vuelve a pulsarlo para cerrarlo). =RET= abre el fichero en la ventana principal.
-- =TAB=: desplegar o plegar una carpeta en su sitio; su contenido sale sangrado junto al nombre, con guías =│=.
+- =TAB=: desplegar o plegar una carpeta en su sitio; cada nivel se sangra al principio de la línea con una franja de color, como el YAML en VS Code.
 - Las carpetas muestran lo que ocupa su contenido (=du=, en segundo plano), no los 4K de la propia carpeta.
 - =(=: mostrar u ocultar permisos, tamaños y fechas.
 #+begin_src emacs-lisp
@@ -1298,9 +1298,8 @@ Dired de siempre, con su barra inferior normal (hora, batería, columna...), má
   :hook (dired-subtree-after-insert . my/dired-subtree-inserted)
   :custom
   (dired-subtree-use-backgrounds nil)
-  ;; Its indent goes at the start of the line, before the permissions, where
-  ;; it does not read as a tree; `my/dired-tree-guides' indents the names.
-  (dired-subtree-line-prefix ""))
+  ;; One coloured band per level at the start of the line.
+  (dired-subtree-line-prefix #'my/dired-tree-prefix))
 
 (with-eval-after-load 'dired
   ;; Directories first and human sizes; owner and group add nothing here.
@@ -1320,35 +1319,22 @@ Dired de siempre, con su barra inferior normal (hora, batería, columna...), má
 
 ;;;; Tree: subfolders opened with TAB
 
-(defun my/dired-tree-guides ()
-  "Indent the names of files inside opened subfolders, with │ guides.
-The indent joins the icon, so it lines up with the names, not the columns."
-  (save-excursion
-    (save-restriction
-      (widen)
-      (goto-char (point-min))
-      (while (not (eobp))
-        (when-let* ((depth (and (fboundp 'dired-subtree--get-ov)
-                                (when-let* ((ov (dired-subtree--get-ov)))
-                                  (overlay-get ov 'dired-subtree-depth))))
-                    (name (dired-move-to-filename)))
-          (let ((guide (propertize (apply #'concat (make-list depth "│ ")) 'face 'shadow))
-                (icon (seq-find (lambda (o) (overlay-get o 'nerd-icons-dired-overlay))
-                                (overlays-in (1- name) name))))
-            (if icon
-                (unless (overlay-get icon 'my/dired-guided)
-                  (overlay-put icon 'after-string (concat guide (overlay-get icon 'after-string)))
-                  (overlay-put icon 'my/dired-guided t))
-              (let ((ov (make-overlay (1- name) name)))
-                (overlay-put ov 'evaporate t)
-                (overlay-put ov 'after-string guide)))))
-        (forward-line 1)))))
+(defvar my/dired-tree-colors '("#4a4420" "#20442c" "#3c2448" "#203c4c")
+  "Background of each subfolder level, repeated after the last one.
+Dim tones, so the bands read as levels without hiding the text.")
+
+(defun my/dired-tree-prefix (depth)
+  "Indent for a subfolder at DEPTH: one coloured band per level."
+  (mapconcat (lambda (level)
+               (propertize "  " 'face
+                           `(:background ,(nth (mod (1- level) (length my/dired-tree-colors))
+                                               my/dired-tree-colors))))
+             (number-sequence 1 depth) ""))
 
 (defun my/dired-subtree-inserted ()
-  "Icons, guides and folder sizes for a subfolder just opened with TAB."
+  "Icons and folder sizes for a subfolder just opened with TAB."
   (when (bound-and-true-p nerd-icons-dired-mode)
     (nerd-icons-dired--refresh))
-  (my/dired-tree-guides)
   (when-let* ((ov (dired-subtree--get-ov)))
     (my/dired-dir-sizes (overlay-get ov 'dired-subtree-name))))
 
