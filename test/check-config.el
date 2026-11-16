@@ -202,11 +202,14 @@
                   (and (executable-find "claude") t)
                   claude-code-ide-terminal-backend)
           out)
-    ;; Active window contrast (applied in GUI; called here to check it).
-    (my/active-window-contrast)
-    (push (format "contrast: active=%s inactive=%s"
+    ;; Terminator colours (enabled only in GUI; enabled here to check them).
+    (enable-theme 'terminator)
+    (push (format "terminator: bg=%s fg=%s active=%s inactive=%s font-ok=%s"
+                  (face-attribute 'default :background)
+                  (face-attribute 'default :foreground)
                   (face-attribute 'mode-line :background)
-                  (face-attribute 'mode-line-inactive :background))
+                  (face-attribute 'mode-line-inactive :background)
+                  (and (member "JetBrains Mono" (split-string (shell-command-to-string "fc-list : family") "[\n,]")) t))
           out)
     ;; Static page with the same scripts as the live preview, for
     ;; check-config.sh to render in headless Chrome and look for diagrams.

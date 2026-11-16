@@ -28,7 +28,7 @@ grep -q "^preview dead-page: dropped=t errors=nil" "$work/report.txt" || { echo 
 grep -q "^inline-diagram: svg=t sized=t spaces=t hide-markup=t" "$work/report.txt" || { echo "FAIL: in-buffer diagrams"; exit 1; }
 grep -q "^reading-mode: read-only=t line-numbers=nil" "$work/report.txt" || { echo "FAIL: Markdown opens for reading"; exit 1; }
 grep -q "^table: rows=3 boxed=t fits=t drawn-while-reading=t revealed-inside=t drawn-outside=t" "$work/report.txt" || { echo "FAIL: drawn tables"; exit 1; }
-grep -q "^contrast: active=#007acc inactive=#2d2d2d" "$work/report.txt" || { echo "FAIL: active window contrast"; exit 1; }
+grep -q "^terminator: bg=#000000 fg=#d0d0d0 active=#3465a4 inactive=#1c1c1c font-ok=t" "$work/report.txt" || { echo "FAIL: terminator colours or font"; exit 1; }
 grep -q "^terminal: ghostel-live=t" "$work/report.txt" || { echo "FAIL: ghostel"; exit 1; }
 grep -q "^claude: key=claude-code-ide-menu cli=t backend=ghostel" "$work/report.txt" || { echo "FAIL: claude"; exit 1; }
 grep -q "^claude-mcp: setLevel=t unknown-method=caught-as-error" "$work/report.txt" || { echo "FAIL: claude MCP errors"; exit 1; }

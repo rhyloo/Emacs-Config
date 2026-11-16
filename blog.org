@@ -551,40 +551,95 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
   :config
   (when (display-graphic-p)
     (set-frame-parameter nil 'alpha-background 100)
-    (add-to-list 'default-frame-alist '(alpha-background . 100))))
+    (add-to-list 'default-frame-alist '(alpha-background . 100)))
+  (when (fboundp 'my/enable-terminator)
+    (my/enable-terminator)))
 
 (with-eval-after-load 'diff-mode
   (set-face-attribute 'diff-header nil :background "#2d2d2d")
   (set-face-attribute 'diff-file-header nil :background "#3a3a3a"))
 #+end_src
-Ventana activa bien visible: su línea de modo en el azul de la barra de estado
-de VSCode, las demás apagadas, y el texto de las ventanas inactivas sobre un
-fondo más claro y con menos brillo.
+Encima de vscode-dark-plus, una capa con los colores de mi terminal
+(Terminator): fondo negro, texto =#d0d0d0= y la paleta Tango brillante, para
+tener mucho contraste. La ventana activa se distingue de un vistazo: su línea
+de modo va en azul y las demás ventanas se apagan (=auto-dim-other-buffers=).
 #+begin_src emacs-lisp
-(defun my/active-window-contrast ()
-  "Make the selected window stand out from the others."
-  (set-face-attribute 'mode-line nil
-                      :background "#007acc" :foreground "#ffffff" :box nil)
-  (set-face-attribute 'mode-line-inactive nil
-                      :background "#2d2d2d" :foreground "#7a7a7a" :box nil)
-  (set-face-attribute 'vertical-border nil :foreground "#3c3c3c")
-  (when (facep 'auto-dim-other-buffers)
-    (set-face-attribute 'auto-dim-other-buffers nil
-                        :background "#2a2a2a" :foreground "#9a9a9a")))
+(deftheme terminator "Terminator colours (black, #d0d0d0, Tango) over vscode-dark-plus.")
+
+(let ((bg "#000000") (fg "#d0d0d0") (white "#eeeeec") (dim "#888a85")
+      (dark "#555753") (line "#1c1c1c") (sel "#3465a4") (inact "#121212")
+      (red "#ef2929") (green "#8ae234") (yellow "#fce94f") (blue "#729fcf")
+      (magenta "#ad7fa8") (cyan "#34e2e2") (orange "#c4a000"))
+  (custom-theme-set-faces
+   'terminator
+   `(default ((t (:background ,bg :foreground ,fg))))
+   `(cursor ((t (:background ,fg))))
+   `(fringe ((t (:background ,bg))))
+   `(region ((t (:background ,sel :foreground ,white :extend t))))
+   `(hl-line ((t (:background ,line :extend t))))
+   `(highlight ((t (:background ,sel :foreground ,white))))
+   `(vertical-border ((t (:foreground "#303030"))))
+   `(window-divider ((t (:foreground "#303030"))))
+   `(minibuffer-prompt ((t (:foreground ,cyan :weight bold))))
+   `(link ((t (:foreground ,blue :underline t))))
+   `(shadow ((t (:foreground ,dim))))
+   `(success ((t (:foreground ,green :weight bold))))
+   `(warning ((t (:foreground ,yellow :weight bold))))
+   `(error ((t (:foreground ,red :weight bold))))
+   ;; Active window: blue bar; the rest fade into the background.
+   `(mode-line ((t (:background ,sel :foreground "#ffffff" :box nil))))
+   `(mode-line-buffer-id ((t (:weight bold))))
+   `(mode-line-inactive ((t (:background ,line :foreground ,dark :box nil))))
+   `(line-number ((t (:background ,bg :foreground ,dark))))
+   `(line-number-current-line ((t (:background ,line :foreground ,yellow :weight bold))))
+   `(show-paren-match ((t (:background ,sel :foreground ,white :weight bold))))
+   `(show-paren-mismatch ((t (:background ,red :foreground ,white))))
+   `(isearch ((t (:background ,yellow :foreground ,bg :weight bold))))
+   `(lazy-highlight ((t (:background ,orange :foreground ,bg))))
+   ;; Code.
+   `(font-lock-comment-face ((t (:foreground ,dim :slant italic))))
+   `(font-lock-doc-face ((t (:foreground ,dim :slant italic))))
+   `(font-lock-string-face ((t (:foreground ,green))))
+   `(font-lock-keyword-face ((t (:foreground ,blue :weight bold))))
+   `(font-lock-builtin-face ((t (:foreground ,magenta))))
+   `(font-lock-function-name-face ((t (:foreground ,yellow))))
+   `(font-lock-variable-name-face ((t (:foreground ,white))))
+   `(font-lock-type-face ((t (:foreground ,cyan))))
+   `(font-lock-constant-face ((t (:foreground ,magenta))))
+   `(font-lock-number-face ((t (:foreground ,magenta))))
+   `(font-lock-preprocessor-face ((t (:foreground ,orange))))
+   `(font-lock-warning-face ((t (:foreground ,red :weight bold))))
+   ;; Org.
+   `(org-level-1 ((t (:foreground ,blue :weight bold :height 1.15))))
+   `(org-level-2 ((t (:foreground ,green :weight bold))))
+   `(org-level-3 ((t (:foreground ,yellow))))
+   `(org-level-4 ((t (:foreground ,cyan))))
+   `(org-level-5 ((t (:foreground ,magenta))))
+   `(org-block ((t (:background "#0c0c0c" :extend t))))
+   `(org-block-begin-line ((t (:foreground ,dark :background "#0c0c0c" :extend t))))
+   `(org-block-end-line ((t (:foreground ,dark :background "#0c0c0c" :extend t))))
+   `(org-code ((t (:foreground ,orange))))
+   `(org-todo ((t (:foreground ,red :weight bold))))
+   `(org-done ((t (:foreground ,green :weight bold))))
+   ;; Dimmed (not selected) windows.
+   `(auto-dim-other-buffers ((t (:background ,inact :foreground "#9a9a9a"))))))
+
+(defun my/enable-terminator ()
+  "Put the terminator layer on top of every other enabled theme."
+  (when (display-graphic-p)
+    (enable-theme 'terminator)))
+;; Elpaca may load vscode-dark-plus after this point; its :config calls
+;; `my/enable-terminator' again so this layer always ends up on top.
+(my/enable-terminator)
 
 (use-package auto-dim-other-buffers
   :ensure t
   :if (display-graphic-p)
   :demand t
   :config
-  ;; Dim only the text area; leave the fringe and line numbers alone.
   (setq auto-dim-other-buffers-dim-on-focus-out t
         auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
-  (auto-dim-other-buffers-mode 1)
-  (my/active-window-contrast))
-
-(when (display-graphic-p)
-  (my/active-window-contrast))
+  (auto-dim-other-buffers-mode 1))
 #+end_src
 ** Org-mode
 #+begin_src emacs-lisp
