@@ -202,68 +202,6 @@
                   (and (executable-find "claude") t)
                   claude-code-ide-terminal-backend)
           out)
-    ;; Interface: theme and own mode line.
-    (push (format "ui: theme=%s own-mode-line=%s renders=%s"
-                  (car custom-enabled-themes)
-                  (and (member '(:eval (my/ml-state)) (default-value 'mode-line-format)) t)
-                  (and (string-match-p (regexp-quote (buffer-name))
-                                       (format-mode-line mode-line-format))
-                       t))
-          out)
-    ;; Claude bridge, end to end: the real hook command, through emacsclient,
-    ;; back into this Emacs.  Each event waits for its effect before the next.
-    (let* ((cwd (file-name-as-directory func-dir))
-           (settings (my/claude-settings-file))
-           (send (lambda (alist done)
-                   (let ((payload (json-encode `((session_id . "probe") (cwd . ,cwd) ,@alist)))
-                         (deadline (+ (float-time) 10)))
-                     (with-temp-buffer
-                       (insert payload)
-                       (call-process-region (point-min) (point-max) shell-file-name
-                                            nil nil nil shell-command-switch
-                                            my/claude-hook-command))
-                     (while (and (not (funcall done)) (< (float-time) deadline))
-                       (accept-process-output nil 0.05))
-                     (funcall done))))
-           (seg (lambda () (substring-no-properties (or (my/claude-mode-line) ""))))
-           (r1 (funcall send '((hook_event_name . "SessionStart"))
-                        (lambda () (gethash "probe" my/claude-sessions))))
-           (r2 (funcall send '((hook_event_name . "UserPromptSubmit") (prompt . "corre los tests"))
-                        (lambda () (string-match-p "pensando" (funcall seg)))))
-           (r3 (funcall send '((hook_event_name . "PreToolUse") (tool_name . "Bash")
-                               (tool_input . ((command . "make test"))))
-                        (lambda () (string-match-p "Bash [0-9]+s #1" (funcall seg)))))
-           (r4 (funcall send '((hook_event_name . "Notification") (message . "Claude needs your permission"))
-                        (lambda () (string-match-p "PERMISO" (funcall seg)))))
-           (r5 (funcall send '((hook_event_name . "Stop"))
-                        (lambda () (string-match-p "listo" (funcall seg))))))
-      (push (format "claude-bridge: settings=%s start=%s prompt=%s tool=%s permission=%s stop=%s log=%s"
-                    (with-temp-buffer (insert-file-contents settings)
-                                      (and (search-forward "PreToolUse" nil t) t))
-                    (and r1 t) (and r2 t) (and r3 t) (and r4 t) (and r5 t)
-                    (with-current-buffer "*Claude actividad*"
-                      (and (string-match-p "make test" (buffer-string))
-                           (string-match-p "listo en" (buffer-string))
-                           t)))
-            out)
-      (funcall send '((hook_event_name . "SessionEnd"))
-               (lambda () (null (gethash "probe" my/claude-sessions)))))
-    ;; <f7> workspace, with a stand-in Claude session so no CLI starts.
-    (cl-letf (((symbol-function 'claude-code-ide-mcp--sessions-for-project) (lambda (_) '(fake)))
-              ((symbol-function 'claude-code-ide--visible-project-sessions) (lambda (_) '(fake)))
-              ((symbol-function 'claude-code-ide-toggle) #'ignore))
-      (let ((code (selected-window)))
-        (my/ai-workspace)
-        (let* ((zones (my/ai-workspace--windows))
-               (names (mapcar (lambda (w) (buffer-name (window-buffer w))) zones)))
-          (my/ai-workspace)
-          (push (format "workspace: key=%s zones=%d plan=%s log=%s focus-kept=%s closed=%s"
-                        (key-binding (kbd "<f7>")) (length zones)
-                        (and (cl-some (lambda (n) (string-suffix-p ".org" n)) names) t)
-                        (and (member "*Claude actividad*" names) t)
-                        (eq code (selected-window))
-                        (null (my/ai-workspace--windows)))
-                out))))
     ;; Static page with the same scripts as the live preview, for
     ;; check-config.sh to render in headless Chrome and look for diagrams.
     (with-temp-file (expand-file-name "mermaid.html" func-dir)

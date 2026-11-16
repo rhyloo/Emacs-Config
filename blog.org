@@ -408,96 +408,154 @@ To config battery display
 (unless (equal "Battery status not available" (battery)) ;;Show battery
   (display-battery-mode 1))    ; On laptops it's nice to know how much power you have
 #+end_src
-Una línea de modo propia, limpia y sin iconos: estado del buffer, nombre,
-posición y selección a la izquierda; proyecto, rama, modo, estado de Claude y
-hora a la derecha. El segmento de Claude se define en [[*Interfaz con Claude][Interfaz con Claude]].
+To add words and characters to modeline
 #+begin_src emacs-lisp
-(column-number-mode)
-(which-function-mode 1)
-
-(defvar-local my/ml--project 'unset
-  "Cached project name of this buffer, or nil when it has none.")
-
-(defun my/ml-project ()
-  "Name of the current project, computed once per buffer."
-  (when (eq my/ml--project 'unset)
-    (setq my/ml--project
-          (unless (file-remote-p default-directory)
-            (when-let* ((pr (project-current))) (project-name pr)))))
-  (when my/ml--project
-    (concat (propertize my/ml--project 'face 'mode-line-emphasis) "  ")))
-
-(defun my/ml-state ()
-  "Two characters telling whether the buffer is modified or read-only."
-  (cond (buffer-read-only (propertize "RO " 'face 'shadow))
-        ((and (buffer-modified-p) buffer-file-name)
-         (propertize "*  " 'face 'warning))
-        (t "   ")))
-
-(defun my/ml-region ()
-  "Words, characters and lines of the active region."
-  (when (use-region-p)
-    (let ((b (region-beginning)) (e (region-end)))
-      (format "  W:%d C:%d L:%d" (count-words-region b e) (- e b) (count-lines b e)))))
-
-(defun my/ml-vc ()
-  "Current branch, without the backend prefix."
-  (when (and vc-mode (stringp vc-mode))
-    (concat (propertize (replace-regexp-in-string "\\` *[A-Za-z]+[:@-]" "" vc-mode)
-                        'face 'shadow)
-            "  ")))
-
-(setq-default
- mode-line-format
- '("%e" mode-line-front-space
-   (:eval (my/ml-state))
-   mode-line-buffer-identification
-   "  " (:propertize "%l:%C" face shadow)
-   (:eval (my/ml-region))
-   mode-line-format-right-align
-   (:eval (my/ml-project))
-   (:eval (my/ml-vc))
-   mode-line-modes
-   (:eval (when (fboundp 'my/claude-mode-line) (my/claude-mode-line)))
-   "  " mode-line-misc-info
-   mode-line-end-spaces))
+(setq-default mode-line-format
+              (append mode-line-format
+                      (list
+                       '(:eval (if (use-region-p)
+                                   (format " W:%d C:%d L:%d"
+                                           (count-words-region (region-beginning) (region-end))
+                                           (- (region-end) (region-beginning))
+                                           (count-lines (region-beginning) (region-end)))
+                                 "")))))
+(column-number-mode)                                    ;; Show collumn in modeline
 #+end_src
-** Theme
-Modus (viene con Emacs): contraste alto pensado para leer horas, en GUI y en
-terminal. Sin bordes ni fondos en el margen, el marco se lee como una sola
-superficie. =spacious-padding= da aire alrededor de ventanas y líneas de modo.
-- =<f6>=: alterna entre claro y oscuro.
+Show function
 #+begin_src emacs-lisp
-(setq modus-themes-italic-constructs t
-      modus-themes-bold-constructs nil
-      modus-themes-mixed-fonts t
-      modus-themes-prompts '(bold)
-      modus-themes-headings '((1 . (1.3)) (2 . (1.15)) (t . (1.05)))
-      modus-themes-to-toggle '(modus-vivendi-tinted modus-operandi-tinted)
-      modus-themes-common-palette-overrides
-      '((border-mode-line-active unspecified)
-        (border-mode-line-inactive unspecified)
-        (fringe unspecified)
-        (bg-line-number-active unspecified)
-        (bg-line-number-inactive unspecified)
-        (fg-line-number-active fg-main)))
-(load-theme 'modus-vivendi-tinted t)
-(global-set-key (kbd "<f6>") #'modus-themes-toggle)
+(which-function-mode 1)
+(custom-set-faces
+ '(which-func
+   ((((class color)
+      (min-colors 88)
+      (background light))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class grayscale mono)
+      (background dark))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class color)
+      (background light))
+     (:inherit
+      (font-lock-function-name-face)))
+    (((class color)
+      (min-colors 88)
+      (background dark))
+     (:foreground "green"))
+    (((background dark))
+     (:foreground "red"))
+    (t
+     (:foreground "red")))))
+#+end_src
+*** Coding
+https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilationmode_config/
+#+begin_src emacs-lisp
+(setq compilation-auto-jump-to-first-error t)
+(setq compilation-scroll-output t)
+(setq compilation-max-output-line-length nil)
+(setq compilation-window-height 10)
+(setq compilation-finish-functions #'ar/compile-autoclose)
+(add-hook 'compilation-filter-hook 'ar/colorize-compilation-buffer)
+(add-hook 'compilation-mode-hook 'ct/create-proper-compilation-window)
+#+end_src
+*** Email
+#+begin_src emacs-lisp
+(setq gnus-home-directory user-emacs-directory)
+(setq mail-signature-file (expand-file-name ".signature" user-emacs-directory))
+(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
+#+end_src
+*** Tramp
+#+begin_src emacs-lisp
+;; https://coredumped.dev/2025/06/18/making-tramp-go-brrrr./
+(setq remote-file-name-inhibit-cache nil)
+(setq shell-history-file-name t)
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+                    vc-ignore-dir-regexp
+                    tramp-file-name-regexp))
+(setq tramp-copy-size-limit (* 1024 1024) ;; 1MB
+      tramp-verbose 2)
+(setq remote-file-name-inhibit-locks t
+      tramp-use-scp-direct-remote-copying t
+      remote-file-name-inhibit-auto-save-visited t)
 
-(use-package spacious-padding
-  :ensure t
-  :if (display-graphic-p)
+(connection-local-set-profile-variables
+ 'remote-direct-async-process
+ '((tramp-direct-async-process . t)))
+
+(connection-local-set-profiles
+ '(:application tramp :protocol "scp")
+ 'remote-direct-async-process)
+
+(setq magit-tramp-pipe-stty-settings 'pty)
+
+(with-eval-after-load 'tramp
+  (with-eval-after-load 'compile
+    (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
+
+(add-hook 'shell-mode-hook 'my-shell-mode-setup-function)
+#+end_src
+** Keybindings
+#+begin_src emacs-lisp
+;; Navegación entre ventanas estilo tmux: Ctrl+Alt+flechas
+(global-set-key (kbd "C-c <left>")  'windmove-left)
+(global-set-key (kbd "C-c <right>") 'windmove-right)
+(global-set-key (kbd "C-c  <up>")    'windmove-up)
+(global-set-key (kbd "C-c <down>")  'windmove-down)
+
+(global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
+(global-set-key (kbd "<f5>") 'my/reload-emacs-configuration)
+(global-set-key (kbd "<f6>") 'recompile)
+(global-set-key (kbd "<f9>") 'my/get-pwd)
+(global-set-key (kbd "\C-c M-+") 'my/create-temp)
+
+(global-set-key (kbd "C-c l") 'counsel-locate)
+(global-set-key (kbd "C-x q") 'project-compile)
+(global-set-key (kbd "C-x k") 'kill-current-buffer)
+(global-set-key (kbd "C-c k") 'kill-buffer-and-window)
+(global-set-key (kbd "C-c a") 'org-agenda)
+(global-set-key (kbd "M-+") 'dired-create-empty-file)
+(global-set-key (kbd "C-c t") #'my/shell-here)
+(global-set-key (kbd "C-c T") #'my/shell-remote)
+(global-set-key (kbd "C-c s") #'my/switch-shell)
+(global-set-key (kbd "C-c i") #'counsel-imenu)
+(global-set-key (kbd "C-c j") #'counsel-file-jump)
+#+end_src
+* Packages
+** Use-package 
+Since I use =use-package= and =elpaca= for package management, I want to speed up the configuration loading process by deferring all packages.
+#+begin_src emacs-lisp
+(setq use-package-always-ensure nil
+      use-package-always-defer t) 
+#+end_src
+** EMACS
+#+begin_src emacs-lisp
+(use-package emacs
   :demand t
   :init
-  (setq spacious-padding-widths
-        '(:internal-border-width 16 :header-line-width 4 :mode-line-width 6
-          :tab-width 4 :right-divider-width 24 :scroll-bar-width 0
-          :fringe-width 8)
-        ;; Mode lines as thin lines instead of filled bars.
-        spacious-padding-subtle-frame-lines
-        '(:mode-line-active default :mode-line-inactive vertical-border))
+  (prefer-coding-system 'utf-8)
   :config
-  (spacious-padding-mode 1))
+  ;; Mantenemos tu preferencia local
+  (setq delete-by-moving-to-trash t)
+  :hook ((prog-mode text-mode conf-mode matlab-mode lisp-mode) . my/enable-line-numbers))
+#+end_src
+** Theme
+#+begin_src emacs-lisp
+(use-package vscode-dark-plus-theme
+  :ensure t
+  :demand t
+  :init
+  (when (display-graphic-p)
+    (load-theme 'vscode-dark-plus t))
+  :config
+  (when (display-graphic-p)
+    (set-frame-parameter nil 'alpha-background 100)
+    (add-to-list 'default-frame-alist '(alpha-background . 100))))
+
+(with-eval-after-load 'diff-mode
+  (set-face-attribute 'diff-header nil :background "#2d2d2d")
+  (set-face-attribute 'diff-file-header nil :background "#3a3a3a"))
 #+end_src
 ** Org-mode
 #+begin_src emacs-lisp
@@ -1859,10 +1917,6 @@ Claude Code dentro de Emacs, en una ventana a la derecha. Sabe qué fichero y qu
   (claude-code-ide-terminal-backend 'ghostel)
   (claude-code-ide-window-side 'right)
   (claude-code-ide-window-width 90)
-  ;; The global renderer is fullscreen (alt-screen), which leaves the
-  ;; terminal with no scrollback.  Inside Emacs use the classic renderer
-  ;; so ghostel-copy-mode (C-c C-t) can scroll and copy the output.
-  (claude-code-ide-cli-extra-flags "--settings '{\"tui\":\"default\"}'")
   :config
   ;; Let Claude use Emacs itself: xref, imenu, project files, diagnostics.
   (claude-code-ide-emacs-tools-setup)
@@ -1879,277 +1933,6 @@ Claude Code dentro de Emacs, en una ventana a la derecha. Sabe qué fichero y qu
                 (if (equal method "logging/setLevel")
                     (make-hash-table)
                   (funcall dispatch method params)))))
-#+end_src
-** Interfaz con Claude
-Emacs como espacio de trabajo compartido con Claude: siempre se ve qué está
-haciendo y dónde.
-
-- Claude Code avisa a Emacs de cada paso mediante sus /hooks/ (solo en las
-  sesiones abiertas desde Emacs, con =--settings=): pregunta recibida,
-  herramienta que ejecuta, permiso pendiente, turno terminado.
-- La línea de modo muestra el estado de la sesión del proyecto: =pensando 12s=,
-  =Bash 30s #4=, =PERMISO= o =listo=. Un clic en él muestra u oculta Claude.
-- =*Claude actividad*= guarda el registro de todo lo que hace.
-- =<f7>=: espacio de trabajo en tres zonas. Código a la izquierda; Claude y el
-  plan del proyecto (Org) a la derecha; actividad abajo. Otra vez =<f7>= lo
-  recoge.
-#+begin_src emacs-lisp
-;;;; Bridge: Claude Code hooks -> emacsclient -> this Emacs.
-(require 'cl-lib)
-(require 'server)
-(unless noninteractive
-  (unless (and (bound-and-true-p server-process) (process-live-p server-process))
-    ;; Another Emacs owns the default socket: use one of our own, so the
-    ;; hooks of the sessions started here always report back here.
-    (when (server-running-p)
-      (setq server-name (format "emacs-%d" (emacs-pid))))
-    (server-start))
-  (setenv "EMACS_CLAUDE_SOCKET" (expand-file-name server-name server-socket-dir)))
-
-(defconst my/claude-hook-command
-  (concat
-   "[ -n \"$EMACS_CLAUDE_SOCKET\" ] || exit 0; "
-   ;; The payload goes through a file: a Write payload can exceed the
-   ;; command-line size limit.  Emacs deletes the file after reading it.
-   "f=$(mktemp -t claude-hook.XXXXXX) && cat > \"$f\" || exit 0; "
-   ;; Detached, so Claude never waits on a busy Emacs.  Only this part goes
-   ;; to the background: a background `cat' would read an empty stdin.
-   "( timeout 5 emacsclient -s \"$EMACS_CLAUDE_SOCKET\" "
-   "--eval \"(my/claude-hook-file \\\"$f\\\")\" || rm -f \"$f\" ) "
-   "</dev/null >/dev/null 2>&1 &")
-  "Shell command every Claude Code hook runs to report to Emacs.")
-
-(defun my/claude-settings-file ()
-  "Write the Claude Code settings with the reporting hooks; return its path."
-  (let* ((file (no-littering-expand-var-file-name "claude/emacs-hooks.json"))
-         (hook `[((type . "command") (command . ,my/claude-hook-command))])
-         (plain `[((hooks . ,hook))])
-         (tools `[((matcher . "*") (hooks . ,hook))])
-         (json (json-encode
-                `((hooks . ((SessionStart . ,plain) (SessionEnd . ,plain)
-                            (UserPromptSubmit . ,plain) (Stop . ,plain)
-                            (Notification . ,plain)
-                            (PreToolUse . ,tools) (PostToolUse . ,tools)))))))
-    (make-directory (file-name-directory file) t)
-    (unless (and (file-exists-p file)
-                 (string= json (with-temp-buffer (insert-file-contents file)
-                                                 (buffer-string))))
-      (with-temp-file file (insert json)))
-    file))
-
-(setq claude-code-ide-cli-extra-flags
-      (concat "--settings " (shell-quote-argument (my/claude-settings-file))))
-
-;;;; State of each session, fed by the hooks.
-(defvar my/claude-sessions (make-hash-table :test 'equal)
-  "session_id -> plist (:state :tool :cwd :since :tools :last).")
-(defvar my/claude--ticker nil
-  "Timer that refreshes the mode line while a session is busy.")
-
-(defun my/claude-hook-file (file)
-  "Read the hook payload in FILE, delete it and handle it after returning.
-Called by emacsclient; returns at once so the hook never waits."
-  (let ((json (with-temp-buffer (insert-file-contents file) (buffer-string))))
-    (delete-file file)
-    (run-at-time 0 nil #'my/claude-hook-handle json))
-  t)
-
-(defun my/claude--short (s n)
-  "First line of S, cut to N characters."
-  (let ((line (car (split-string (or s "") "\n"))))
-    (if (> (length line) n) (concat (substring line 0 (1- n)) "~") line)))
-
-(defun my/claude--tool-summary (name input)
-  "One-line summary of tool NAME called with INPUT."
-  (let ((arg (or (alist-get 'command input)
-                 (when-let* ((f (alist-get 'file_path input)))
-                   (abbreviate-file-name f))
-                 (alist-get 'pattern input) (alist-get 'url input)
-                 (alist-get 'query input) (alist-get 'description input)
-                 (alist-get 'path input))))
-    (concat (string-remove-prefix "mcp__" name)
-            (when arg (concat "  " (my/claude--short (format "%s" arg) 100))))))
-
-(defun my/claude-hook-handle (json)
-  "Update the session state and the activity log from hook payload JSON."
-  (let* ((d (json-parse-string json :object-type 'alist
-                               :null-object nil :false-object nil))
-         (event (alist-get 'hook_event_name d))
-         (sid (alist-get 'session_id d))
-         (cwd (file-name-as-directory (expand-file-name (or (alist-get 'cwd d) "~"))))
-         (s (gethash sid my/claude-sessions (list :state 'idle :since (float-time) :tools 0)))
-         (now (float-time))
-         (busy-for (round (- now (plist-get s :since)))))
-    (setq s (plist-put s :cwd cwd))
-    (setq s (plist-put s :last now))
-    (pcase event
-      ("SessionStart"
-       (setq s (plist-put s :state 'idle))
-       (my/claude-log cwd "sesión iniciada" 'shadow))
-      ("SessionEnd"
-       (my/claude-log cwd "sesión cerrada" 'shadow)
-       (setq s nil))
-      ("UserPromptSubmit"
-       (setq s (plist-put (plist-put (plist-put s :state 'thinking) :since now) :tools 0))
-       (my/claude-log cwd (concat "> " (my/claude--short (alist-get 'prompt d) 120)) 'bold))
-      ("PreToolUse"
-       (setq s (plist-put s :state 'tool))
-       (setq s (plist-put s :tool (string-remove-prefix "mcp__" (alist-get 'tool_name d))))
-       (setq s (plist-put s :tools (1+ (plist-get s :tools))))
-       (my/claude-log cwd (concat "  " (my/claude--tool-summary
-                                         (alist-get 'tool_name d) (alist-get 'tool_input d)))
-                      'font-lock-function-name-face))
-      ("PostToolUse"
-       (setq s (plist-put s :state 'thinking)))
-      ("Notification"
-       (setq s (plist-put s :state 'waiting))
-       (let ((msg (or (alist-get 'message d) "Claude espera")))
-         (my/claude-log cwd (concat "! " msg) 'warning)
-         (unless (my/claude--visible-p cwd)
-           (message "Claude (%s): %s" (my/claude--project-name cwd) msg))))
-      ("Stop"
-       (setq s (plist-put s :state 'done))
-       (my/claude-log cwd (format "-- listo en %ds, %d %s" busy-for (plist-get s :tools)
-                                  (if (= 1 (plist-get s :tools)) "herramienta" "herramientas"))
-                      'success)
-       (unless (my/claude--visible-p cwd)
-         (message "Claude terminó en %s" (my/claude--project-name cwd)))))
-    (if s (puthash sid s my/claude-sessions) (remhash sid my/claude-sessions))
-    (my/claude--update-ticker)
-    (force-mode-line-update t)))
-
-(defun my/claude--busy-p (s)
-  (memq (plist-get s :state) '(thinking tool)))
-
-(defun my/claude--update-ticker ()
-  "Tick every second while some session is busy, so elapsed time moves."
-  (let ((busy (cl-some #'my/claude--busy-p (hash-table-values my/claude-sessions))))
-    (cond ((and busy (not my/claude--ticker))
-           (setq my/claude--ticker
-                 (run-at-time 1 1 (lambda () (force-mode-line-update t)
-                                    (my/claude--update-ticker)))))
-          ((and (not busy) my/claude--ticker)
-           (cancel-timer my/claude--ticker)
-           (setq my/claude--ticker nil)))))
-
-(defun my/claude--project-name (dir)
-  (file-name-nondirectory (directory-file-name dir)))
-
-(defun my/claude--visible-p (cwd)
-  "Non-nil when a Claude terminal for CWD is shown in some window."
-  (and (fboundp 'claude-code-ide-mcp--sessions-for-project)
-       (cl-some (lambda (session)
-                  (get-buffer-window (claude-code-ide-mcp-session-buffer session) t))
-                (ignore-errors (claude-code-ide-mcp--sessions-for-project cwd)))))
-
-(defun my/claude--session-for (dir)
-  "Most recently active session whose working directory contains DIR."
-  (let (best)
-    (maphash (lambda (_ s)
-               (when (and (string-prefix-p (plist-get s :cwd) dir)
-                          (or (null best) (> (plist-get s :last) (plist-get best :last))))
-                 (setq best s)))
-             my/claude-sessions)
-    best))
-
-(defvar my/claude-mode-line-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [mode-line mouse-1] #'claude-code-ide-toggle)
-    map))
-
-(defun my/claude-mode-line ()
-  "Mode line segment with the state of this project's Claude session."
-  (unless (zerop (hash-table-count my/claude-sessions))
-    (let* ((s (my/claude--session-for (expand-file-name default-directory)))
-           (secs (and s (round (- (float-time) (plist-get s :since)))))
-           (text
-            (if (null s)
-                (propertize (format "Claude:%d" (hash-table-count my/claude-sessions))
-                            'face 'shadow)
-              (pcase (plist-get s :state)
-                ('thinking (propertize (format "Claude pensando %ds" secs)
-                                       'face 'mode-line-emphasis))
-                ('tool (propertize (format "Claude %s %ds #%d" (plist-get s :tool)
-                                           secs (plist-get s :tools))
-                                   'face 'mode-line-emphasis))
-                ('waiting (propertize "Claude PERMISO" 'face '(:inherit error :weight bold)))
-                ('done (propertize "Claude listo" 'face 'success))
-                (_ (propertize "Claude" 'face 'shadow))))))
-      (concat "  " (propertize text 'mouse-face 'mode-line-highlight
-                               'help-echo "mouse-1: mostrar u ocultar Claude"
-                               'local-map my/claude-mode-line-map)))))
-
-;;;; Activity log.
-(define-derived-mode my/claude-log-mode special-mode "Claude-log"
-  "Activity of the Claude Code sessions started from Emacs."
-  (setq-local truncate-lines t))
-
-(defun my/claude-log-buffer ()
-  (or (get-buffer "*Claude actividad*")
-      (with-current-buffer (get-buffer-create "*Claude actividad*")
-        (my/claude-log-mode)
-        (current-buffer))))
-
-(defun my/claude-log (cwd text face)
-  "Append TEXT for the session working in CWD to the activity log."
-  (with-current-buffer (my/claude-log-buffer)
-    (let ((inhibit-read-only t))
-      (save-excursion
-        (goto-char (point-max))
-        (insert (propertize (format-time-string "%H:%M:%S  ") 'face 'shadow)
-                (propertize (format "%-14s" (my/claude--project-name cwd))
-                            'face 'font-lock-keyword-face)
-                (propertize text 'face face) "\n")
-        ;; Keep the last 2000 lines.
-        (when (> (count-lines (point-min) (point-max)) 2000)
-          (goto-char (point-min))
-          (forward-line 500)
-          (delete-region (point-min) (point))))
-      (dolist (w (get-buffer-window-list (current-buffer) nil t))
-        (set-window-point w (point-max))))))
-
-;;;; <f7>: three-zone workspace.
-(defun my/claude-plan-file (dir)
-  "Org plan of the project in DIR, created on first use."
-  (let ((file (no-littering-expand-var-file-name
-               (format "claude/plans/%s.org" (my/claude--project-name dir)))))
-    (unless (file-exists-p file)
-      (make-directory (file-name-directory file) t)
-      (with-temp-file file
-        (insert (format "#+title: Plan de %s\n\n* Objetivo\n\n* Tareas\n- [ ] \n"
-                        (my/claude--project-name dir)))))
-    file))
-
-(defun my/ai-workspace--windows ()
-  "Windows of the workspace's plan and activity zones in this frame."
-  (cl-remove-if-not (lambda (w) (window-parameter w 'my/ai-zone)) (window-list)))
-
-(defun my/ai-workspace ()
-  "Toggle the workspace: code | Claude over plan | activity below."
-  (interactive)
-  (require 'claude-code-ide)
-  (let* ((dir (claude-code-ide--get-working-directory))
-         (sessions (claude-code-ide-mcp--sessions-for-project dir))
-         (zones (my/ai-workspace--windows)))
-    (if zones
-        (progn
-          (mapc #'delete-window zones)
-          (when (claude-code-ide--visible-project-sessions dir)
-            (claude-code-ide-toggle)))
-      (let ((code (selected-window))
-            (plan (find-file-noselect (my/claude-plan-file dir))))
-        (cond ((null sessions) (claude-code-ide))
-              ((null (claude-code-ide--visible-project-sessions dir))
-               (claude-code-ide-toggle)))
-        (dolist (spec `((,plan (side . right) (slot . 10) (window-height . 0.3))
-                        (,(my/claude-log-buffer) (side . bottom) (slot . 0)
-                         (window-height . 8))))
-          (when-let* ((w (display-buffer-in-side-window (car spec) (cdr spec))))
-            (set-window-parameter w 'my/ai-zone t)
-            (set-window-parameter w 'no-delete-other-windows t)))
-        (select-window code)))))
-
-(global-set-key (kbd "<f7>") #'my/ai-workspace)
 #+end_src
 ** Ellama
 LLM local con Ollama. Se carga la primera vez que se usa un comando =ellama-*=, no al arrancar.
