@@ -1,7 +1,7 @@
 #+TITLE: Rhyloo's Emacs Configuration
 #+AUTHOR: Rhyloo
 #+DATE: [2022-12-26 Mon]
-#+LAST_MODIFIED: 2025-12-28 21:14:10
+#+LAST_MODIFIED: 2026-11-02 21:49:54
 #+STARTUP: hideblocks
 #+OPTIONS: broken-links:t htmlize-source:t ^:nil num:nil toc:1
 #+PROPERTY: header-args :results silent :tangle yes
@@ -34,20 +34,8 @@ Muestra un mensaje en el minibuffer indicando cuánto tiempo tomó iniciar Emacs
             (message "*** Emacs loaded in %s with %d garbage collections."
 	                   (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done)))
 #+end_src
-** Minimizar la recolección de basura durante el inicio
-Al aumentar el umbral de recolección de basura al valor máximo, se reduce la frecuencia de las recolecciones, acelerando así el proceso de inicialización.
-#+begin_src emacs-lisp
-;; From https://www.reddit.com/r/emacs/comments/3kqt6e/2_easy_little_known_steps_to_speed_up_emacs_start/
-(setq gc-cons-threshold most-positive-fixnum)
-(defvar default-file-name-handler-alist file-name-handler-alist)
-(setq file-name-handler-alist nil)
-
-;; Restaurar valores tras el inicio
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq gc-cons-threshold 16777216 ; 16mb
-                  file-name-handler-alist default-file-name-handler-alist)))
-#+end_src
+** Recolección de basura
+Se ajusta en =early-init.el=: sin recolecciones durante el arranque y 32 MB después. Así se configura en un único sitio.
 * Core
 ** Personal information
 #+begin_src emacs-lisp
@@ -59,6 +47,9 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 #+begin_src emacs-lisp
 (setq auth-sources '("~/.authinfo" "~/.authinfo.gpg" "~/.netrc" "~/.emacs.d/.authinfo"))
 (setq backup-directory-alist `(("." . "~/.cache/emacs/backups"))) ;;Backup directory
+(setq auto-save-file-name-transforms
+      '((".*" "~/.cache/emacs/autosaves/" t)))
+(make-directory "~/.cache/emacs/autosaves/" t)
 #+end_src
 ** Custom functions
 #+begin_src emacs-lisp
@@ -68,7 +59,7 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 
 (defun my/reload-emacs-configuration ()
   (interactive)
-  (load-file "~/.emacs.d/init.el"))
+  (load-file (expand-file-name "init.el" user-emacs-directory)))
 
 (defun my/get-pwd ()
   "Put the current file name (include directory) on the clipboard"
@@ -103,8 +94,9 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
   (set-buffer (find-file-noselect filename)))
 
 (defun my/enable-line-numbers ()
-  "Activar números de línea solo en GUI y modos específicos."
-  (when (display-graphic-p)
+  "Activar números de línea solo en GUI y modos específicos.
+Markdown se lee como un documento, así que va sin ellos."
+  (when (and (display-graphic-p) (not (derived-mode-p 'markdown-mode)))
     (display-line-numbers-mode 1)))
 
 (defun my/update-last-modified ()
@@ -216,7 +208,7 @@ Al aumentar el umbral de recolección de basura al valor máximo, se reduce la f
 
 (defun efs/org-babel-tangle-config ()
   (when (string-equal (buffer-file-name)
-                      (expand-file-name "~/.emacs.d/blog.org"))
+                      (expand-file-name "blog.org" user-emacs-directory))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
@@ -242,7 +234,15 @@ Here is configurations without package needed.
   (tool-bar-mode -1)                                    ;; Disable the toolbar
   (tooltip-mode -1)                                     ;; Disable tooltips
   (set-fringe-mode 3)                                   ;; Give some breathing room (borders)
-  (add-to-list 'default-frame-alist '(fullscreen . maximized)))
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  (let ((preferidas '("JetBrains Mono" "Iosevka" "Cascadia Code"
+                      "Fira Code" "DejaVu Sans Mono" "Menlo")))
+    (catch 'done
+      (dolist (f preferidas)
+        (when (member f (font-family-list))
+          (set-face-attribute 'default nil :font f :height 120)
+          (throw 'done f)))))
+  (setq-default line-spacing nil))
 
 (menu-bar-mode -1)                                      ;; Disable the menu bar terminal and display mode
 #+end_src
@@ -260,21 +260,109 @@ Here is configurations without package needed.
 (delete-selection-mode 1)                               ;; Let you select and replace with yank or write
 (add-hook 'prog-mode-hook #'subword-mode) 
 (add-hook 'org-mode-hook #'subword-mode)
+
+(setq-default tab-width 2)                           ;; Default to an indentation size of 2 spaces
+(setq-default indent-tabs-mode nil)                  ;; Use spaces instead of tabs for indentation
 #+end_src
 *** Shell
 #+begin_src emacs-lisp
 (add-hook 'shell-mode-hook
           (lambda () (local-set-key (kbd "C-l") #'comint-clear-buffer)))
+(with-eval-after-load 'shell
+  (define-key shell-mode-map (kbd "C-r") #'counsel-shell-history))
+
+(add-to-list 'display-buffer-alist
+             '("\\*shell"
+               (display-buffer-reuse-window display-buffer-in-side-window)
+               (side . bottom)
+               (slot . 0)
+               (window-height . 0.3)))
+
+(defun my/shell-here (&optional dir)
+  "Abrir una shell nombrada según el directorio (local o remoto vía Tramp)."
+  (interactive)
+  (let* ((dir (or dir default-directory))
+         (host (or (file-remote-p dir 'host) "local"))
+         (name (format "*shell:%s:%s*"
+                       host
+                       (file-name-nondirectory
+                        (directory-file-name dir)))))
+    (let ((default-directory dir))
+      ;; get-buffer-create + shell respeta display-buffer-alist
+      (shell (get-buffer-create name)))))
+
+(defun my/ssh-hosts-from-config ()
+  "Leer los nombres de Host definidos en ~/.ssh/config."
+  (let ((file (expand-file-name "~/.ssh/config"))
+        (hosts '()))
+    (when (file-readable-p file)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+        (while (re-search-forward "^[[:space:]]*Host[[:space:]]+\\(.+\\)$" nil t)
+          (dolist (h (split-string (match-string 1)))
+            ;; Ignorar patrones con comodines (Host *)
+            (unless (string-match-p "[*?]" h)
+              (push h hosts))))))
+    (delete-dups (nreverse hosts))))
+
+(defun my/shell-remote (host)
+  "Abrir una shell remota en un HOST de ~/.ssh/config, preguntando el path."
+  (interactive
+   (list (completing-read "Host SSH: " (my/ssh-hosts-from-config))))
+  (let ((path (read-string (format "Ruta en %s: " host)
+                           (format "/ssh:%s:~/" host))))
+    (my/shell-here path)))
+
+(defun my/switch-shell ()
+  "Saltar a una shell existente mostrando su directorio ACTUAL."
+  (interactive)
+  (let* ((shells (cl-remove-if-not
+                  (lambda (b) (string-prefix-p "*shell" (buffer-name b)))
+                  (buffer-list)))
+         ;; Construir "nombre  →  directorio-actual" en tiempo real
+         (candidates
+          (mapcar (lambda (b)
+                    (cons (format "%-30s %s"
+                                  (buffer-name b)
+                                  (with-current-buffer b default-directory))
+                          b))
+                  shells)))
+    (if candidates
+        (let ((choice (completing-read "Shell: " candidates)))
+          (pop-to-buffer (cdr (assoc choice candidates))))
+      (call-interactively #'my/shell-here))))
+
+(with-eval-after-load 'shell
+  (define-key shell-mode-map (kbd "C-r") #'counsel-shell-history))
+
+(with-eval-after-load 'tramp
+  ;; En sesiones remotas, usar bash interactivo como shell por defecto
+  (connection-local-set-profile-variables
+   'remote-bash
+   '((explicit-shell-file-name . "/bin/bash")
+     (explicit-bash-args . ("-i"))))
+  (connection-local-set-profiles
+   '(:application tramp)
+   'remote-bash))
+
+(add-hook 'shell-mode-hook
+          (lambda ()
+            ;; Seguir el directorio a partir del prompt
+            (shell-dirtrack-mode 1)))
 #+end_src
 *** Buffers
 #+begin_src emacs-lisp
 (global-auto-revert-mode 1)                          ;; Revert buffers when the underlying file has changed
-(setq global-auto-revert-non-file-buffers t)         ;; Revert Dired and other buffers
+(setq global-auto-revert-non-file-buffers nil)
+(add-hook 'dired-mode-hook #'auto-revert-mode)
+(setq auto-revert-verbose nil)                        ;; No "Reverting buffer" message on every refresh
 ;; (setq auto-revert-remote-files nil)                    ;; Revert buffer in remote (SLOW)
 
 #+end_src
 *** Dired
 #+begin_src emacs-lisp
+(setq create-lockfiles nil)
 (put 'dired-find-alternate-file 'disabled nil)
 (setq dired-dwim-target t)                             ;; Allow you move files splitting the window
 (setq dired-listing-switches "-la")
@@ -307,7 +395,6 @@ Here is configurations without package needed.
 (advice-add 'y-or-n-p :around #'y-or-n-p-with-return)
 (fset 'yes-or-no-p 'y-or-n-p)                           ;; Replace yes or no for y or n
 (setq enable-recursive-minibuffers t)
-(setq electric-pair-mode t)
 #+end_src
 *** Mode line
 To config time display
@@ -361,11 +448,6 @@ Show function
     (t
      (:foreground "red")))))
 #+end_src
-*** Writting
-#+begin_src emacs-lisp
-(setq-default tab-width 2)                           ;; Default to an indentation size of 2 spaces
-(setq-default indent-tabs-mode nil)                  ;; Use spaces instead of tabs for indentation
-#+end_src
 *** Coding
 https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilationmode_config/
 #+begin_src emacs-lisp
@@ -379,8 +461,8 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 #+end_src
 *** Email
 #+begin_src emacs-lisp
-(setq gnus-home-directory "~/.emacs.d/")
-(setq mail-signature-file "~/.emacs.d/.signature")
+(setq gnus-home-directory user-emacs-directory)
+(setq mail-signature-file (expand-file-name ".signature" user-emacs-directory))
 (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
 #+end_src
 *** Tramp
@@ -416,9 +498,10 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 #+end_src
 ** Keybindings
 #+begin_src emacs-lisp
+;; Navegación entre ventanas estilo tmux: Ctrl+Alt+flechas
 (global-set-key (kbd "C-c <left>")  'windmove-left)
 (global-set-key (kbd "C-c <right>") 'windmove-right)
-(global-set-key (kbd "C-c <up>")    'windmove-up)
+(global-set-key (kbd "C-c  <up>")    'windmove-up)
 (global-set-key (kbd "C-c <down>")  'windmove-down)
 
 (global-set-key (kbd "<f1>") 'my/find-emacs-configuration)
@@ -433,7 +516,11 @@ https://www.reddit.com/r/emacs/comments/1h2o8hr/share_your_mx_compile_compilatio
 (global-set-key (kbd "C-c k") 'kill-buffer-and-window)
 (global-set-key (kbd "C-c a") 'org-agenda)
 (global-set-key (kbd "M-+") 'dired-create-empty-file)
-
+(global-set-key (kbd "C-c t") #'my/shell-here)
+(global-set-key (kbd "C-c T") #'my/shell-remote)
+(global-set-key (kbd "C-c s") #'my/switch-shell)
+(global-set-key (kbd "C-c i") #'counsel-imenu)
+(global-set-key (kbd "C-c j") #'counsel-file-jump)
 #+end_src
 * Packages
 ** Use-package 
@@ -449,6 +536,7 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
   :init
   (prefer-coding-system 'utf-8)
   :config
+  ;; Mantenemos tu preferencia local
   (setq delete-by-moving-to-trash t)
   :hook ((prog-mode text-mode conf-mode matlab-mode lisp-mode) . my/enable-line-numbers))
 #+end_src
@@ -459,13 +547,30 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
   :demand t
   :init
   (when (display-graphic-p)
-    (load-theme 'vscode-dark-plus t)))
+    (load-theme 'vscode-dark-plus t))
+  :config
+  (when (display-graphic-p)
+    (set-frame-parameter nil 'alpha-background 100)
+    (add-to-list 'default-frame-alist '(alpha-background . 100))))
+
+(with-eval-after-load 'diff-mode
+  (set-face-attribute 'diff-header nil :background "#2d2d2d")
+  (set-face-attribute 'diff-file-header nil :background "#3a3a3a"))
 #+end_src
 ** Org-mode
 #+begin_src emacs-lisp
+;; Org de desarrollo (10.x) necesita el paquete compat, que viene incluido a
+;; partir de Emacs 30.  En Emacs 29 su compilación en Elpaca falla
+;; ("Cannot open load file: compat"), así que ahí se usa la última estable.
+(when (< emacs-major-version 30)
+  (add-hook 'elpaca-order-functions
+            (lambda (order)
+              (when (equal (plist-get order :package) "org")
+                '(:ref "release_9.8.12")))))
+
 (use-package org
   :ensure t
-  :demand t
+  :mode ("\\.org\\'" . org-mode)
   :bind (("C-c a" . org-agenda))
   :hook ((org-mode . (lambda () 
                        (display-line-numbers-mode -1)
@@ -480,7 +585,7 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
         org-return-follows-link t
         org-special-ctrl-a/e t
         org-hide-leading-stars t
-        org-fold-core-style 'overlays)
+        org-fold-core-style 'text-properties)
 
   ;; --- Images and Source Code ---
   (setq org-startup-with-inline-images nil
@@ -491,18 +596,19 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
         org-edit-src-content-indentation 1
         org-confirm-babel-evaluate nil)
 
-  ;; --- Keyword and states ---
-  (setq org-todo-keywords
-	      '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "|" "DONE(d)")
-	        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(w)")))
+;; --- Configuración Global de Org Keywords ---
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w)" "REVIEW(r)" "|" "DONE(d)")
+        (sequence "EXPERIMENTAL(e)" "FAIL(f)" "|" "WORKS(wo)")))
 
-  (setq org-todo-keyword-faces
-	      '(("IN-PROGRESS" . (:weight normal :box (:line-width 1 :color (\, yellow) :style nil) :foreground "yellow"))
-	        ("WAITING" . (:weight normal :box (:line-width 1 :color (\, pink) :style nil) :foreground "pink"))
-	        ("EXPERIMENTAL" . (:weight normal :box (:line-width 1 :color (\, white) :style nil) :foreground "white"))
-	        ("WORKS" . (:weight normal :box (:line-width 1 :color (\, green) :style nil) :foreground "green"))
-	        ("FAIL" . (:weight normal :box (:line-width 1 :color (\, red) :style nil) :foreground "red"))))  
-  
+(setq org-todo-keyword-faces
+      '(("IN-PROGRESS"  . (:weight bold :box (:line-width 1 :color "yellow") :foreground "yellow"))
+        ("WAITING"      . (:weight bold :box (:line-width 1 :color "pink") :foreground "pink"))
+        ("REVIEW"       . (:weight bold :box (:line-width 1 :color "violet") :foreground "violet"))
+        ("EXPERIMENTAL" . (:weight bold :box (:line-width 1 :color "white") :foreground "white"))
+        ("WORKS"        . (:weight bold :box (:line-width 1 :color "green") :foreground "green"))
+        ("FAIL"         . (:weight bold :box (:line-width 1 :color "red") :foreground "red"))))
+
   ;; --- Agenda Settings ---
   (setq org-agenda-files '("~/Documents/org-mode-files/Agenda.org")
         org-agenda-block-separator 61
@@ -522,6 +628,8 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
           '("mkdir -p build"
             "latexmk -f -pdf -%latex -shell-escape -interaction=nonstopmode -output-directory=%o/build %f"
             "mv %o/build/%b.pdf %O"))
+
+    (setq org-latex-listings (quote minted))
 
     (add-to-list 'org-latex-classes
                  '("reporti"
@@ -623,20 +731,40 @@ After testing these tools, I found them essential. As stated in their documentat
 ** Magit
 Magit is a complete text-based user interface to Git.
 #+begin_src emacs-lisp
-(use-package llama
-  :defer t
-  :ensure t)
+;; (use-package llama
+;;   :defer t
+;;   :ensure t)
+
+;; (use-package cond-let
+;;   :defer t
+;;   :ensure t)
 
 (use-package magit
   :ensure t
   :after (llama transient)
-  :bind
-  ("C-x g" . magit-status)
+  :bind (("C-x g" . magit-status)
+         :map magit-hunk-section-map
+         ("RET" . magit-diff-visit-file-other-window))
   :config
   (transient-append-suffix 'magit-merge "-s" '("-a" "Allow unrelated histories" "--allow-unrelated-histories"))
   (setq magit-auto-revert-mode t)
   (setq magit-auto-revert-immediately t)
-  (add-hook 'after-save-hook 'magit-after-save-refresh-status t))
+  (add-hook 'after-save-hook 'magit-after-save-refresh-status t)
+  (add-hook 'magit-diff-visit-file-hook
+            (lambda ()
+              (when (derived-mode-p 'org-mode)
+                (org-fold-show-context 'link-search)
+                (org-fold-show-entry)
+                (recenter)))))
+
+(use-package ediff
+  :ensure nil            ; ediff es built-in
+  :defer t
+  :config
+  (set-face-background 'ediff-current-diff-A "#553333")
+  (set-face-background 'ediff-current-diff-B "#335533")
+  (set-face-background 'ediff-fine-diff-A "#aa4444")
+  (set-face-background 'ediff-fine-diff-B "#44aa44"))
 #+end_src
 ** Minions
 #+begin_src emacs-lisp
@@ -649,15 +777,15 @@ Magit is a complete text-based user interface to Git.
 ** Undo-tree
 #+begin_src emacs-lisp
 (use-package undo-tree
-  :demand t
   :ensure t
-  :defer t
   :commands (global-undo-tree-mode)
   :init
   (add-hook 'find-file-hook #'my/enable-undo-tree-once)
   :custom
   (undo-tree-visualizer-diff t)
-  (undo-tree-history-directory-alist '(("." . "/tmp/")))
+  ;; Kept under the cache directory so undo history survives a reboot.
+  (undo-tree-history-directory-alist
+   `(("." . ,(no-littering-expand-var-file-name "undo-tree-hist/"))))
   (undo-tree-visualizer-timestamps t))
 #+end_src
 ** Coding
@@ -677,22 +805,93 @@ Magit is a complete text-based user interface to Git.
   :demand t
   :config (yas-global-mode 1))
 
+(setq tab-always-indent t)   ;; no 'complete: TAB indenta, no completa
+
 (use-package company
   :ensure t
   :demand t
   :init (global-company-mode 1)
   :config
-  (setq company-idle-delay 0
-        company-minimum-prefix-length 1))
+  (setq company-idle-delay 0.3
+        company-minimum-prefix-length 2
+        company-selection-wrap-around t
+        ;; Solo dispara al ESCRIBIR, nunca al moverse entre líneas.
+        ;; Lista explícita de comandos de inserción (incl. Org y C).
+        company-begin-commands '(self-insert-command
+                                 org-self-insert-command
+                                 c-electric-lt-gt
+                                 c-electric-colon
+                                 c-electric-slash))
+  ;; backends por defecto con red de seguridad para buffers no-LSP
+  ;; (setq company-backends
+  ;;       '((company-capf company-dabbrev-code company-keywords)
+  ;;         company-files
+  ;;         (company-dabbrev company-dabbrev-code)))
+  ;; (setq company-backends (delete 'company-clang company-backends))
+  )
+
+(defun my/org-mode-company-setup ()
+  (setq-local company-backends '(company-capf company-dabbrev))
+  (setq-local company-minimum-prefix-length 1)
+  (setq-local company-idle-delay 0.2))
+(add-hook 'org-mode-hook #'my/org-mode-company-setup)
 
 (use-package flycheck
   :ensure t
-  :demand t
-  :init (global-flycheck-mode 1))
+  :hook (prog-mode . flycheck-mode))
 
 ;; -----------------------------------------------------------------------------
 ;; MODOS DE LENGUAJE (Carga diferida automática para velocidad)
 ;; -----------------------------------------------------------------------------
+
+(add-to-list 'auto-mode-alist '("\\.h\\'"   . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-mode))
+
+(defun my/c-cpp-auto-bear ()
+  "Generate compile_commands.json using bear if missing."
+  (when (and (project-current)
+             (executable-find "bear"))
+    (let* ((root (project-root (project-current)))
+           (db   (expand-file-name "compile_commands.json" root)))
+      (unless (file-exists-p db)
+        (message "LSP: generating compile_commands.json (bear)")
+        (let ((default-directory root))
+          ;; async, non-blocking
+          (start-process
+           "bear-generate"
+           "*bear*"
+           "bear" "--" "make" "clean" "all"))))))
+
+(add-hook 'c-mode-hook   #'my/c-cpp-auto-bear)
+(add-hook 'c++-mode-hook #'my/c-cpp-auto-bear)
+
+(setq lsp-clients-clangd-args
+      '("--query-driver=/usr/bin/g++,/usr/bin/gcc,/usr/bin/clang++,/usr/bin/clang"
+        "--header-insertion=iwyu"
+        "--completion-style=detailed"
+        "--fallback-style=llvm"))
+
+(setq lsp-idle-delay 0.5
+      lsp-log-io nil                      ;; nunca dejes el log activo, mata el rendimiento
+      lsp-completion-provider :capf
+      gc-cons-threshold (* 100 1024 1024) ;; lsp genera mucha basura
+      read-process-output-max (* 1024 1024)) ;; 1MB, clave para LSP
+
+(setq lsp-completion-default-behavior :replace)
+(setq company-selection-changed-functions nil) ; Ensure clean selection
+(setq company-tooltip-align-annotations t)
+(setq lsp-completion-show-detail t)
+(setq lsp-completion-show-kind t)
+(setq lsp-completion-enable-additional-text-edit t)
+
+;; ;; Add these to your (use-package lsp-mode ...) :config section
+;; (setq lsp-completion-enable-additional-text-edit t)
+;; (setq lsp-completion-provider :capf)
+;; ;; This forces the backend to prioritize the "replace" range
+;; (advice-add 'company-capf--candidates :around 
+;;             (lambda (orig-fun &rest args)
+;;               (let ((lsp-completion-default-behavior :replace))
+;;                 (apply orig-fun args))))
 
 (use-package cc-mode
   :ensure nil
@@ -723,29 +922,1039 @@ Magit is a complete text-based user interface to Git.
 ;; LSP (Se activa por hooks, no necesita :demand t)
 ;; -----------------------------------------------------------------------------
 
+(defun my/lsp-mode-setup-completion ()
+  "Asegurar que company usa capf (LSP) en buffers LSP."
+  (setq-local company-backends '(company-capf)))
+
 (use-package lsp-mode
   :ensure t
   :hook ((c-mode . lsp)
          (c++-mode . lsp)
          (python-mode . lsp)
-         (sh-mode . lsp))
+         (sh-mode . lsp)
+         (lsp-completion-mode . my/lsp-mode-setup-completion))
+
   :config
   (setq lsp-enable-snippet t
-        lsp-keymap-prefix "C-c l"))
+        lsp-keymap-prefix "C-c l")
+  (setq lsp-enable-indentation nil)
+  (setq lsp-enable-on-type-formatting nil))
 
 (use-package lsp-ui
   :ensure t
   :commands lsp-ui-mode)
+
+(use-package robot-mode
+  :load-path "~/.cache/emacs/packages"
+  :mode "\\.robot\\'"
+  :hook (robot-mode . lsp) ; <--- Esto activa el soporte LSP al abrir el archivo
+  ;; :config
+  ;; Opcional: configurar el servidor si no lo encuentra en el PATH
+  ;; (setq lsp-robot-python-executable "python3")
+  )
 #+end_src
-* Finish startup optimization
-** Restaurar valores razonables tras el inicio
-Después de cargar Emacs, el umbral de recolección de basura se ajusta a 8 MB (2^23 bytes) para un uso general. El porcentaje de memoria adicional antes de forzar la recolección se establece en 0.5.
+* Testing Claude
 #+begin_src emacs-lisp
-(setq gc-cons-threshold (* 2 1000 1000)) ;; The default is 800 kilobytes. Measured in bytes.
-(setq gc-cons-percentage 0.5)
+(defun my/yaml-indent (&optional n)
+  "Indenta 2 espacios la región activa o la línea actual."
+  (interactive)
+  (let ((step (or n 2)))
+    (if (use-region-p)
+        (indent-rigidly (region-beginning) (region-end) step)
+      (indent-rigidly (line-beginning-position) (line-end-position) step))))
+
+(defun my/yaml-dedent (&optional n)
+  "Desindenta 2 espacios la región activa o la línea actual."
+  (interactive)
+  (my/yaml-indent (- (or n 2))))
+
+(use-package yaml-mode
+  :ensure t
+  :mode "\\.ya?ml\\'"
+  :bind (:map yaml-mode-map
+              ("TAB"       . my/yaml-indent)
+              ("<tab>"     . my/yaml-indent)
+              ("<backtab>" . my/yaml-dedent)   ;; Shift-TAB
+              ("S-TAB"     . my/yaml-dedent))
+  :hook (yaml-mode . (lambda ()
+                       (setq-local indent-tabs-mode nil)
+                       (setq-local yaml-indent-offset 2)
+                       (setq-local tab-width 2)
+                       (electric-indent-local-mode -1))))
+
+(use-package ansible
+  :ensure t
+  :hook (yaml-mode . ansible))
+
+(use-package jinja2-mode :ensure t)  ;; para plantillas .j2
+
+;; Guías verticales de indentación
+(use-package indent-bars
+  :ensure t
+  :hook ((yaml-mode yaml-ts-mode) . indent-bars-mode)
+  :config
+  (setq indent-bars-width-frac 0.15
+        indent-bars-pad-frac 0.2))
+
+(use-package hideshow
+  :ensure nil
+  :hook (prog-mode . hs-minor-mode)
+  :bind (:map hs-minor-mode-map
+              ("C-c f" . hs-toggle-hiding)
+              ("C-c F" . hs-hide-all)
+              ("C-c U" . hs-show-all)))
+
+;; Desactivar el doble buffer si ves artefactos de redibujado
+(add-to-list 'default-frame-alist '(inhibit-double-buffering . t))
+
+;; which-key: muestra las teclas disponibles tras un prefijo
+(use-package which-key
+  :ensure t
+  :demand t
+  :config
+  (setq which-key-idle-delay 1.5)
+  (which-key-mode 1))
+
+;; Built-ins de persistencia (no necesitan :ensure)
+(use-package savehist
+  :ensure nil
+  :demand t
+  :init (savehist-mode 1)
+  :config
+  (setq history-length 200
+        savehist-additional-variables '(kill-ring
+                                        search-ring
+                                        regexp-search-ring)))
+
+(use-package recentf
+  :ensure nil
+  :demand t
+  :init (recentf-mode 1)
+  :config
+  (setq recentf-max-saved-items 200
+        recentf-max-menu-items 25)
+  (setq recentf-auto-cleanup 'never)
+  :bind ("C-c r" . counsel-recentf))
+
+;; (use-package saveplace
+;;   :ensure nil
+;;   :demand t
+;;   :init (save-place-mode 1))
+
+;; -----------------------------------------------------------------------------
+;; IVY: enriquecido + ordenación por frecuencia
+;; -----------------------------------------------------------------------------
+
+(use-package ivy-rich
+  :ensure t
+  :after (ivy counsel)
+  :demand t
+  :init (ivy-rich-mode 1)
+  :config
+  (setq ivy-rich-path-style 'abbrev))
+
+(use-package ivy-prescient
+  :ensure t
+  :after (ivy counsel)
+  :demand t
+  :config
+  (setq ivy-prescient-retain-classic-highlighting t)
+  (ivy-prescient-mode 1)
+  (prescient-persist-mode 1))   ;; recuerda tus preferencias entre sesiones
+
+(setq ivy-re-builders-alist
+      '((swiper . ivy--regex-quote)
+        (t . ivy--regex-plus)))
+
+(use-package org-preview-html
+  :ensure (:repo "jakebox/org-preview-html"
+           :fetcher github
+           :files ("org-preview-html.el"))
+  :after org
+  :config
+  (setq org-preview-html-viewer 'browser
+        org-preview-html-refresh-configuration 'save))
 #+end_src
-** Recolección de basura periódica
-Ejecuta la recolección de basura cada 60 segundos mientras Emacs está inactivo para mantener la memoria optimizada sin interferir en las operaciones del usuario.
+** Forge
+Forge integra GitLab/GitHub con Magit: crear y revisar merge requests e issues sin salir de Emacs.
 #+begin_src emacs-lisp
-(run-with-idle-timer 60 t #'garbage-collect)
+(use-package forge
+  :ensure t
+  :after magit
+  :config
+  ;; Para GitLab self-hosted, descomenta y ajusta el dominio.
+  ;; Con gitlab.com no hace falta.
+  ;; (add-to-list 'forge-alist
+  ;;              '("gitlab.example.com"
+  ;;                "gitlab.example.com/api/v4"
+  ;;                "gitlab.example.com"
+  ;;                forge-gitlab-repository))
+  )
+
+;; Silenciar warnings de compilación nativa (docstrings largos de terceros)
+(setq native-comp-async-report-warnings-errors 'silent)
+;; y opcionalmente subir el umbral del buffer de warnings
+(setq warning-minimum-level :error)
+#+end_src
+** Atomic-Chrome
+#+begin_src emacs-lisp
+(use-package atomic-chrome
+  :ensure t
+  :defer t)
+#+end_src
+** Markdown
+Edición de Markdown con vista previa en el navegador que se actualiza mientras escribes (como la de VSCode). Los bloques =```mermaid= se dibujan como diagramas.
+
+- =C-c C-c p= o =M-x markdown-preview-mode=: abre la vista previa en vivo. Con un Emacs compilado con xwidgets se abre dentro de Emacs, a la derecha; si no, en el navegador.
+- El HTML lo genera =python3 -m markdown= (ya instalado); no hace falta =pandoc=.
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :ensure t
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :bind (:map markdown-mode-map ("C-c C-c p" . markdown-preview-mode))
+  :custom
+  (markdown-command "python3 -m markdown -x fenced_code -x tables -x toc")
+  (markdown-fontify-code-blocks-natively t)
+  ;; Through :custom, not setq: its setter rebuilds the heading faces.
+  (markdown-header-scaling t)
+  (markdown-header-scaling-values '(1.6 1.4 1.2 1.1 1.0 1.0)))
+
+(defconst my/mermaid-render-js
+  "document.querySelectorAll('code.language-mermaid').forEach(function (code) {
+     var div = document.createElement('div');
+     div.className = 'mermaid';
+     div.textContent = code.textContent;
+     code.parentNode.replaceWith(div);
+   });
+   mermaid.run({querySelector: '.mermaid', suppressErrors: true});"
+  "Turn ```mermaid code blocks into diagrams in the Markdown preview page.")
+
+(use-package markdown-preview-mode
+  :ensure t
+  :commands (markdown-preview-mode)
+  :config
+  (setq markdown-preview-delay-time 0.5
+        ;; Absolute path: keep the generated page out of the project directory.
+        markdown-preview-file-name
+        (expand-file-name "markdown-preview.html" temporary-file-directory)
+        markdown-preview-stylesheets
+        '("https://cdn.jsdelivr.net/npm/github-markdown-css@5.8.1/github-markdown-dark.min.css")
+        markdown-preview-javascript
+        '("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js")
+        markdown-preview-script-oninit
+        "mermaid.initialize({startOnLoad: false, theme: 'dark'});"
+        markdown-preview-script-onupdate my/mermaid-render-js)
+  ;; Closing or reloading the preview page leaves a dead connection behind;
+  ;; sending to it fails on every update (and the package's own error report
+  ;; breaks on any % in the page, hence "Not enough arguments for format
+  ;; string").  Drop dead connections first and skip when no page is open.
+  (advice-add 'markdown-preview--send-preview :around
+              (lambda (send uuid)
+                (markdown-preview--drop-closed-clients)
+                (when (gethash uuid markdown-preview--remote-clients)
+                  (funcall send uuid))))
+  ;; With an xwidgets build, show the preview inside Emacs, in a window to the
+  ;; right, and keep the cursor in the Markdown buffer. Otherwise, the browser.
+  (when (featurep 'xwidget-internal)
+    (advice-add 'markdown-preview--open-browser-preview :around
+                (lambda (open-preview)
+                  (let ((browse-url-browser-function #'my/markdown-preview-in-emacs))
+                    (funcall open-preview))))))
+
+(defun my/markdown-preview-in-emacs (url &rest _)
+  "Open URL with xwidget-webkit in a window to the right of the current one."
+  (let ((source-window (selected-window)))
+    (select-window (split-window-right))
+    (xwidget-webkit-browse-url url t)
+    (select-window source-window)))
+#+end_src
+*** Lectura y navegación
+- =olivetti=: en Markdown el texto se centra con un ancho cómodo de leer.
+- =M-i=: saltar a cualquier título del documento (o función, en código).
+#+begin_src emacs-lisp
+(use-package olivetti
+  :ensure t
+  :hook (markdown-mode . olivetti-mode)
+  :custom
+  (olivetti-body-width 130))
+
+(global-set-key (kbd "M-i") #'counsel-imenu)
+#+end_src
+*** Editar viendo el resultado
+El Markdown se edita casi como se ve publicado, al estilo de Obsidian: sin asteriscos ni almohadillas a la vista, títulos de varios tamaños, imágenes, y tablas y diagramas Mermaid dibujados en el propio buffer.
+
+- Los ficheros Markdown se abren en modo lectura: sin números de línea y con tablas y diagramas siempre dibujados. =C-x C-q= pasa a edición y vuelve a lectura.
+- En lectura el cursor recorre las tablas fila a fila y se oculta sobre las imágenes, donde parpadeaba como un bloque grande.
+- En edición, tablas y diagramas se ven dibujados; al entrar con el cursor aparece su Markdown para editarlo, y al salir se vuelven a dibujar. El fichero no cambia.
+- =C-c C-x C-m=: mostrar u ocultar las marcas (=**=, =#=, enlaces...).
+- =C-c C-x d=: volver a dibujar todo a mano.
+- Los diagramas los dibuja Chrome sin ventana con mermaid.js, descargado una vez a la caché; los ya dibujados se reutilizan.
+#+begin_src emacs-lisp
+(with-eval-after-load 'markdown-mode
+  ;; Buffer-local variables: `setq' here would only change the buffer that
+  ;; happened to be current when markdown-mode loaded.
+  (setq-default markdown-hide-markup t
+                markdown-hide-urls t)
+  (setq markdown-max-image-size '(900 . 600))
+  (add-hook 'markdown-mode-hook
+            (lambda ()
+              ;; Mostly read: open existing files read-only.  A new file
+              ;; is being written, so it starts editable.
+              (when (and buffer-file-name (file-exists-p buffer-file-name))
+                (read-only-mode 1))
+              (when (display-graphic-p)
+                (markdown-display-inline-images)
+                (my/md-live-mode 1)))))
+
+(defvar my/mermaid-js-url
+  "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
+  "mermaid.js release used to draw diagrams; downloaded once to the cache.")
+
+(defvar my/mermaid-chrome (or (executable-find "google-chrome")
+                              (executable-find "chromium")
+                              (executable-find "chromium-browser"))
+  "Headless browser that draws the diagrams.")
+
+(defun my/mermaid--dir ()
+  "Cache directory for mermaid.js and drawn diagrams."
+  (let ((dir (no-littering-expand-var-file-name "mermaid/")))
+    (make-directory dir t)
+    dir))
+
+(defun my/mermaid--js ()
+  "Local copy of mermaid.js, downloaded the first time it is needed."
+  (let ((file (expand-file-name "mermaid.min.js" (my/mermaid--dir))))
+    (unless (file-exists-p file)
+      (message "Descargando mermaid.js (solo la primera vez)...")
+      (url-copy-file my/mermaid-js-url file t))
+    file))
+
+(defun my/mermaid--blocks ()
+  "Mermaid blocks in the buffer as a list of (START END SOURCE).
+START is the opening fence and END the end of the closing one."
+  (save-excursion
+    (goto-char (point-min))
+    (let (blocks)
+      (while (re-search-forward "^```mermaid[ \t]*\n\\(\\(?:.*\n\\)*?\\)```[ \t]*$" nil t)
+        (push (list (match-beginning 0) (match-end 0) (match-string-no-properties 1)) blocks))
+      (nreverse blocks))))
+
+(defun my/mermaid--svg-file (source)
+  "Cache file for the diagram drawn from SOURCE."
+  (expand-file-name (concat (secure-hash 'sha1 source) ".svg") (my/mermaid--dir)))
+
+(defun my/mermaid--page (sources)
+  "HTML page that draws SOURCES and leaves the SVGs, base64 JSON, in #out.
+Labels are drawn as plain SVG text: Emacs's SVG renderer cannot show the
+HTML labels mermaid uses by default."
+  (concat
+   "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+   (format "<script src='file://%s'></script></head><body><pre id='out'></pre><script>"
+           (my/mermaid--js))
+   "mermaid.initialize({startOnLoad:false, theme:'dark', htmlLabels:false,"
+   " flowchart:{htmlLabels:false}, securityLevel:'strict'});"
+   (format "const sources = %s;" (json-encode (vconcat sources)))
+   "(async () => { const svgs = [];"
+   " for (let i = 0; i < sources.length; i++) {"
+   "  try { const svg = (await mermaid.render('m' + i, sources[i])).svg;"
+   ;; Emacs needs a real size (mermaid says width=100%) and kept spaces
+   ;; between the words, which it otherwise drops from SVG text.
+   "   const box = svg.match(/viewBox=\"[-0-9.]+ [-0-9.]+ ([0-9.]+) ([0-9.]+)\"/);"
+   "   svgs.push(svg.replace(/^<svg /, '<svg xml:space=\"preserve\" '"
+   "     + (box ? 'width=\"' + box[1] + '\" height=\"' + box[2] + '\" ' : ''))"
+   "     .replace(/ width=\"100%\"/, '')); }"
+   "  catch (e) { svgs.push(null); } }"
+   " const json = JSON.stringify(svgs);"
+   " document.getElementById('out').textContent ="
+   "   btoa(String.fromCharCode(...new TextEncoder().encode(json))); })();"
+   "</script></body></html>"))
+
+(defun my/mermaid--draw (sources done)
+  "Draw SOURCES in headless Chrome, save each SVG, then call DONE in Emacs."
+  (let* ((page (make-temp-file "mermaid" nil ".html" (my/mermaid--page sources)))
+         ;; Own throwaway profile: with the default one, a Chrome you already
+         ;; have open can grab the request and the headless one never ends.
+         (profile (make-temp-file "mermaid-chrome" t))
+         (out (generate-new-buffer " *mermaid-chrome*")))
+    (make-process
+     :name "mermaid" :buffer out :noquery t :connection-type 'pipe
+     :command (list my/mermaid-chrome "--headless=new" "--disable-gpu"
+                    (concat "--user-data-dir=" profile)
+                    "--allow-file-access-from-files" "--virtual-time-budget=10000"
+                    "--dump-dom" (concat "file://" page))
+     :sentinel
+     (lambda (proc _event)
+       (unless (process-live-p proc)
+         (let ((svgs (with-current-buffer out
+                       (goto-char (point-min))
+                       (when (re-search-forward "<pre id=\"out\">\\([A-Za-z0-9+/=]+\\)</pre>" nil t)
+                         (json-parse-string
+                          (decode-coding-string (base64-decode-string (match-string 1)) 'utf-8)
+                          :null-object nil)))))
+           (cl-loop for source in sources
+                    for svg across (or svgs [])
+                    when svg do (with-temp-file (my/mermaid--svg-file source) (insert svg)))
+           (kill-buffer out)
+           (delete-file page)
+           (delete-directory profile t)
+           (funcall done)))))))
+
+(defun my/md-live--text-width (win)
+  "Pixels available for text in WIN: its body minus the line numbers.
+An image wider than this cannot be wrapped and Emacs stops drawing the
+rest of the window."
+  (- (window-body-width win t)
+     (with-selected-window win
+       (if (bound-and-true-p display-line-numbers-mode) (line-number-display-width t) 0))))
+
+(defun my/md-live--char-width ()
+  "Pixel width of a character in this buffer, with its text scale (C-x C-+).
+`frame-char-width' ignores the scale, so after shrinking the text tables
+came out with too few columns, and after enlarging it with too many."
+  (if-let* ((win (get-buffer-window (current-buffer) t)))
+      (window-font-width win)
+    (frame-char-width)))
+
+(defun my/mermaid--max-width ()
+  "Widest a diagram may be: the text column, or its window if narrower.
+Computed from the text width, not the selected window: when a file is
+opened the diagrams are placed before the buffer is in its window."
+  (let ((text (* (if (bound-and-true-p olivetti-mode) olivetti-body-width fill-column)
+                 (my/md-live--char-width)))
+        (win (get-buffer-window (current-buffer) t)))
+    (round (* 0.95 (if win (min text (my/md-live--text-width win)) text)))))
+
+;;;; Live view: blocks shown drawn, source revealed under the cursor
+
+(defvar-local my/md-live--revealed nil
+  "Drawn block whose Markdown is shown because the cursor is inside it.
+A block is the list of its overlays: one for a diagram, one per line for
+a table.")
+
+(defun my/md-live--put (start end display kind)
+  "Draw DISPLAY over START..END, a block of KIND (`table' or `diagram')."
+  (let ((ov (make-overlay start end nil t nil)))
+    (overlay-put ov 'my/md-live kind)
+    (overlay-put ov 'my/md-live-display display)
+    (overlay-put ov 'evaporate t)
+    ;; The block it belongs to; a table regroups its line overlays.
+    (overlay-put ov 'my/md-live-block (list ov))
+    (my/md-live--draw ov)
+    ov))
+
+(defun my/md-live--draw (ov)
+  "Show OV's drawing instead of its Markdown."
+  (overlay-put ov 'display (overlay-get ov 'my/md-live-display))
+  ;; The block starts with markup that markdown-mode hides, and a display
+  ;; on invisible text is never shown.  An overlay value wins over the text
+  ;; property; this symbol is not in the invisibility spec, so it shows.
+  (overlay-put ov 'invisible 'my/md-live-shown))
+
+(defun my/md-live--reveal (ov)
+  "Show OV's Markdown so it can be edited."
+  (overlay-put ov 'display nil)
+  (overlay-put ov 'invisible nil))
+
+(defun my/md-live--at-point ()
+  "Drawn block containing point, if any, as the list of its overlays."
+  (when-let* ((ov (seq-find (lambda (o) (and (overlay-get o 'my/md-live)
+                                             (<= (overlay-start o) (point) (overlay-end o))))
+                            (overlays-in (line-beginning-position) (line-end-position)))))
+    (overlay-get ov 'my/md-live-block)))
+
+(defun my/md-live--update ()
+  "Reveal the block under the cursor; redraw the one it just left.
+A read-only buffer is only being read, so everything stays drawn."
+  (let ((here (unless buffer-read-only (my/md-live--at-point))))
+    (unless (eq here my/md-live--revealed)
+      (when (seq-some #'overlay-buffer my/md-live--revealed)
+        (mapc #'my/md-live--draw (seq-filter #'overlay-buffer my/md-live--revealed))
+        ;; It may have been edited while revealed.
+        (my/md-live-refresh))
+      (mapc #'my/md-live--reveal here)
+      (setq my/md-live--revealed here))))
+
+(defvar-local my/md-live--cursor-hidden nil
+  "Non-nil while the cursor is hidden because it sits on an image.")
+
+(defun my/md-live--cursor ()
+  "Keep the cursor usable over drawn blocks.
+On an image it is a big blinking box, so it is hidden.  On a drawn table
+row it goes to the row's start, where it shows, and line moves become
+logical: a visual move inside a row drawn on several lines stays put."
+  (let* ((display (get-char-property (point) 'display))
+         (on-image (and (consp display) (eq (car display) 'image)))
+         (row (seq-find (lambda (o) (and (eq (overlay-get o 'my/md-live) 'table)
+                                         (overlay-get o 'display)))
+                        (overlays-in (line-beginning-position) (line-end-position)))))
+    (cond ((and on-image (not my/md-live--cursor-hidden))
+           (setq-local cursor-type nil my/md-live--cursor-hidden t))
+          ((and my/md-live--cursor-hidden (not on-image))
+           (kill-local-variable 'cursor-type)
+           (setq my/md-live--cursor-hidden nil)))
+    (if row
+        (progn (goto-char (overlay-start row))
+               (setq-local line-move-visual nil))
+      (kill-local-variable 'line-move-visual))))
+
+;;;; Diagrams
+
+(defun my/mermaid--show ()
+  "Draw every Mermaid block that has a diagram ready."
+  (remove-overlays (point-min) (point-max) 'my/md-live 'diagram)
+  (pcase-dolist (`(,start ,end ,source) (my/mermaid--blocks))
+    (let ((file (my/mermaid--svg-file source)))
+      (when (file-exists-p file)
+        (my/md-live--put start end
+                         (create-image file 'svg nil
+                                       :max-width (my/mermaid--max-width)
+                                       :ascent 'center)
+                         'diagram)))))
+
+(defun my/mermaid-refresh ()
+  "Draw the Mermaid blocks that changed and show all diagrams in the buffer."
+  (if (not my/mermaid-chrome)
+      (message "Para ver los diagramas hace falta Google Chrome o Chromium")
+    (let* ((buf (current-buffer))
+           (missing (seq-uniq (seq-remove (lambda (s) (file-exists-p (my/mermaid--svg-file s)))
+                                          (mapcar #'caddr (my/mermaid--blocks))))))
+      (if (null missing)
+          (my/mermaid--show)
+        (my/mermaid--draw missing
+                          (lambda ()
+                            (when (buffer-live-p buf)
+                              (with-current-buffer buf
+                                (my/mermaid--show)
+                                (setq my/md-live--revealed nil)
+                                (my/md-live--update)))))))))
+
+;;;; Tables
+
+(defun my/md-table--regions ()
+  "Markdown tables as (START . END), whole lines, outside code blocks."
+  (save-excursion
+    (goto-char (point-min))
+    (let (tables)
+      (while (re-search-forward "^[ \t]*|" nil t)
+        (let ((start (line-beginning-position)))
+          (forward-line 1)
+          (if (and (looking-at "^[ \t]*|?[ \t]*:?-+:?[ \t]*|")
+                   (not (markdown-code-block-at-pos start)))
+              (progn
+                (while (looking-at "^[ \t]*|") (forward-line 1))
+                (push (cons start (1- (point))) tables))
+            (goto-char (line-end-position)))))
+      (nreverse tables))))
+
+(defun my/md-table--clean (cell)
+  "CELL as plain text: no emphasis marks, code ticks or link targets."
+  (thread-last cell
+               (replace-regexp-in-string "\\[\\([^]]*\\)\\]([^)]*)" "\\1")
+               (replace-regexp-in-string "\\*\\*\\|__\\|`" "")
+               string-trim))
+
+(defun my/md-table--rows (start end)
+  "Rows of the table in START..END as lists of cells, separator dropped."
+  (let (rows)
+    (dolist (line (split-string (buffer-substring-no-properties start end) "\n" t))
+      (unless (string-match-p "^[ \t]*|?[ \t:|-]*-[ \t:|-]*$" line)
+        (let* ((l (string-trim line))
+               (l (string-remove-suffix "|" (string-remove-prefix "|" l)))
+               (l (replace-regexp-in-string "\\\\|" "\x1" l)))
+          (push (mapcar (lambda (c) (my/md-table--clean (subst-char-in-string ?\x1 ?| c)))
+                        (split-string l "|"))
+                rows))))
+    (nreverse rows)))
+
+(defun my/md-table--wrap (text width)
+  "TEXT broken into lines of at most WIDTH columns, at spaces if possible."
+  (let (lines (line ""))
+    (dolist (word (split-string text " " t))
+      (while (> (string-width word) width)
+        (unless (string-empty-p line) (push line lines) (setq line ""))
+        (push (truncate-string-to-width word width) lines)
+        (setq word (substring word (length (truncate-string-to-width word width)))))
+      (cond ((string-empty-p line) (setq line word))
+            ((<= (+ (string-width line) 1 (string-width word)) width)
+             (setq line (concat line " " word)))
+            (t (push line lines) (setq line word))))
+    (nreverse (if (string-empty-p line) (or lines '("")) (cons line lines)))))
+
+(defun my/md-table--box-chars ()
+  "Box-drawing characters if the font draws them one column wide, else ASCII.
+When the font lacks them Emacs borrows them from another font, usually
+wider, and the borders no longer line up with the text."
+  (let* ((box "─═│┌┬┐╞╪╡├┼┤└┴┘")
+         (one (string-pixel-width "x")))
+    (if (cl-every (lambda (c) (= (string-pixel-width (string c)) one)) box)
+        box
+      "-=|+++++++++++++")))
+
+(defun my/md-table--render (rows width)
+  "Draw ROWS (first one is the header) with box lines in WIDTH columns.
+Columns shrink, widest first, until the table fits; cells wrap inside them.
+Returns one drawing per line of the Markdown table: the header with the top
+border, the header separator, then each row with the border below it."
+  (let* ((ncol (apply #'max (mapcar #'length rows)))
+         (rows (mapcar (lambda (r) (append r (make-list (- ncol (length r)) ""))) rows))
+         (widths (cl-loop for i below ncol
+                          collect (max 1 (apply #'max (mapcar (lambda (r) (string-width (nth i r))) rows)))))
+         (budget (- width (1+ (* 3 ncol))))
+         (box (my/md-table--box-chars))
+         (bar (string (aref box 2))))
+    (while (and (> (apply #'+ widths) budget) (> (apply #'max widths) 6))
+      (let ((i (cl-position (apply #'max widths) widths)))
+        (setf (nth i widths) (1- (nth i widths)))))
+    (cl-flet ((border (l m r fill)
+                (propertize (concat l (mapconcat (lambda (w) (make-string (+ w 2) fill)) widths m) r "\n")
+                            'face 'shadow))
+              (row (cells face)
+                (let* ((wrapped (cl-mapcar #'my/md-table--wrap cells widths))
+                       (height (apply #'max (mapcar #'length wrapped))))
+                  (mapconcat
+                   (lambda (k)
+                     (concat (propertize bar 'face 'shadow)
+                             (mapconcat (lambda (i)
+                                          (concat " " (propertize (truncate-string-to-width
+                                                                   (or (nth k (nth i wrapped)) "")
+                                                                   (nth i widths) nil ?\s)
+                                                                  'face face)
+                                                  " " (propertize bar 'face 'shadow)))
+                                        (number-sequence 0 (1- ncol)) "")
+                             "\n"))
+                   (number-sequence 0 (1- height)) ""))))
+      (cl-flet ((c (i) (string (aref box i))))
+        (let ((middle (border (c 9) (c 10) (c 11) (aref box 0)))
+              (bottom (border (c 12) (c 13) (c 14) (aref box 0))))
+          (mapcar (lambda (chunk) (string-trim-right chunk "\n"))
+                  (append
+                   (list (concat (border (c 3) (c 4) (c 5) (aref box 0))
+                                 (row (car rows) 'bold))
+                         (if (cdr rows) (border (c 6) (c 7) (c 8) (aref box 1)) bottom))
+                   (cl-loop for (r . more) on (cdr rows)
+                            collect (concat (row r 'default) (if more middle bottom))))))))))
+
+(defun my/md-table--lines (start end)
+  "Lines in START..END as (BEG . END) pairs, without their newlines."
+  (save-excursion
+    (goto-char start)
+    (let (lines)
+      (while (< (point) end)
+        (push (cons (point) (line-end-position)) lines)
+        (forward-line 1))
+      (nreverse lines))))
+
+(defun my/md-table--show ()
+  "Draw every table in the buffer.
+Each Markdown line gets the drawing of its own row, so the cursor and the
+scroll go through the table row by row instead of jumping over it."
+  (remove-overlays (point-min) (point-max) 'my/md-live 'table)
+  (let ((width (1- (/ (my/mermaid--max-width) (my/md-live--char-width)))))
+    (pcase-dolist (`(,start . ,end) (my/md-table--regions))
+      (let ((rows (my/md-table--rows start end)))
+        (when rows
+          (let ((chunks (my/md-table--render rows width))
+                (lines (my/md-table--lines start end)))
+            ;; Unstyled parts of a display string take the face of the text
+            ;; they cover, here markdown's table/code face, with another
+            ;; font and width; force the normal font on the whole drawing.
+            (dolist (chunk chunks)
+              (add-face-text-property 0 (length chunk) '(:inherit default) t chunk))
+            ;; Lines and rows match unless the table has stray separator
+            ;; lines; then the whole table is one drawing.
+            (unless (= (length chunks) (length lines))
+              (setq chunks (list (string-join chunks "\n"))
+                    lines (list (cons start end))))
+            (let ((block (cl-mapcar (lambda (line chunk)
+                                      (my/md-live--put (car line) (cdr line) chunk 'table))
+                                    lines chunks)))
+              (dolist (ov block) (overlay-put ov 'my/md-live-block block)))))))))
+
+;;;; Mode
+
+(defun my/md-live-refresh ()
+  "Redraw tables now and diagrams that changed (in the background)."
+  (interactive)
+  (my/md-table--show)
+  (my/mermaid-refresh)
+  (setq my/md-live--revealed nil)
+  (my/md-live--update))
+
+(defvar-local my/md-live--width nil
+  "Window width, in pixels, the drawings were last fitted to.")
+
+(defun my/md-live--fit (&optional window)
+  "Refit images, tables and diagrams when WINDOW's width changes.
+Runs when the buffer is shown in a window or that window is resized (a side
+panel opening, Claude's window, a split), so nothing is ever cut off.
+Emacs passes the window; its buffer need not be the current one.  These
+hooks run in the middle of redisplay, where swapping images leaves the
+window half drawn, so the refit itself runs right after, from a timer."
+  (when-let* ((win (if (windowp window) window (get-buffer-window (current-buffer))))
+              (width (my/md-live--text-width win))
+              (buf (window-buffer win)))
+    (unless (eql width (buffer-local-value 'my/md-live--width buf))
+      (with-current-buffer buf (setq my/md-live--width width))
+      (run-at-time 0 nil #'my/md-live--refit buf width))))
+
+(defun my/md-live--rescale ()
+  "Redraw for the new text scale."
+  (setq my/md-live--width nil)
+  (my/md-live--fit))
+
+(defun my/md-live--refit (buf width)
+  "Redraw BUF's images, tables and diagrams for a window WIDTH pixels wide."
+  (when (buffer-live-p buf)
+    (with-current-buffer buf
+      (setq-local markdown-max-image-size (cons (round (* 0.95 width)) 600))
+      (markdown-remove-inline-images)
+      (markdown-display-inline-images)
+      (my/md-table--show)
+      (my/mermaid--show)
+      (setq my/md-live--revealed nil)
+      (my/md-live--update))))
+
+(define-minor-mode my/md-live-mode
+  "Show Markdown tables and Mermaid diagrams drawn; edit them in place."
+  :lighter nil
+  (if my/md-live-mode
+      (progn
+        (add-hook 'post-command-hook #'my/md-live--update nil t)
+        (add-hook 'post-command-hook #'my/md-live--cursor nil t)
+        ;; Switching between reading and editing hides or shows the block
+        ;; under the cursor right away.
+        (add-hook 'read-only-mode-hook #'my/md-live--update nil t)
+        (add-hook 'after-save-hook #'my/md-live-refresh nil t)
+        (add-hook 'window-size-change-functions #'my/md-live--fit nil t)
+        (add-hook 'window-buffer-change-functions #'my/md-live--fit nil t)
+        ;; A new text scale changes how many columns fit even when the
+        ;; window keeps its width.
+        (add-hook 'text-scale-mode-hook #'my/md-live--rescale nil t)
+        (local-set-key (kbd "C-c C-x d") #'my/md-live-refresh)
+        (my/md-live-refresh))
+    (remove-hook 'post-command-hook #'my/md-live--update t)
+    (remove-hook 'post-command-hook #'my/md-live--cursor t)
+    (kill-local-variable 'cursor-type)
+    (kill-local-variable 'line-move-visual)
+    (remove-hook 'read-only-mode-hook #'my/md-live--update t)
+    (remove-hook 'after-save-hook #'my/md-live-refresh t)
+    (remove-hook 'window-size-change-functions #'my/md-live--fit t)
+    (remove-hook 'window-buffer-change-functions #'my/md-live--fit t)
+    (remove-hook 'text-scale-mode-hook #'my/md-live--rescale t)
+    (remove-overlays (point-min) (point-max) 'my/md-live)))
+#+end_src
+** Ficheros: dired con panel lateral
+Dired de siempre, con su barra inferior normal (hora, batería, columna...), y carpetas que se despliegan en su sitio. Sin iconos: nerd-icons necesita la fuente "Symbols Nerd Font" y sin ella salen cuadros.
+
+- =<f8>=: panel lateral con la carpeta del proyecto (vuelve a pulsarlo para cerrarlo). =RET= abre el fichero en la ventana principal.
+- =TAB=: desplegar o plegar una carpeta en su sitio; su contenido cuelga de ella con una línea =│= de color justo debajo de ella, un color por nivel.
+- Las carpetas muestran lo que ocupa su contenido (=du=, en segundo plano), no los 4K de la propia carpeta.
+- =(=: mostrar u ocultar permisos, tamaños y fechas.
+#+begin_src emacs-lisp
+(use-package dired-subtree
+  :ensure t
+  :after dired
+  :bind (:map dired-mode-map ("TAB" . dired-subtree-toggle))
+  :hook (dired-subtree-after-insert . my/dired-subtree-inserted)
+  :custom
+  (dired-subtree-use-backgrounds nil)
+  ;; Its indent goes at the start of the line, before the permissions;
+  ;; `my/dired-tree-guides' draws the tree next to the names instead.
+  (dired-subtree-line-prefix ""))
+
+(with-eval-after-load 'dired
+  ;; Directories first and human sizes; owner and group add nothing here.
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  (add-hook 'dired-after-readin-hook #'my/dired-dir-sizes t)
+  ;; A revert (also the automatic one when the folder changes) redraws the
+  ;; icons, which carry the tree guides; put the guides back after them.
+  (add-hook 'dired-after-readin-hook #'my/dired-tree-guides t)
+  ;; The mode line showed every ls switch; the name and the sort are enough.
+  (advice-add 'dired-sort-set-mode-line :override #'my/dired-mode-line))
+
+(defun my/dired-mode-line ()
+  "Mode name for dired: \"Dired\", or \"Dired por fecha\" when sorted by time."
+  (when (eq major-mode 'dired-mode)
+    (setq mode-name (if (string-match-p "\\(?:\\`\\| \\)-[^- ]*t" dired-actual-switches)
+                        "Dired por fecha"
+                      "Dired"))
+    (force-mode-line-update)))
+
+;;;; Tree: subfolders opened with TAB
+
+(defvar my/dired-tree-colors '("#e5c07b" "#98c379" "#c678dd" "#61afef")
+  "Colour of the guide line of each subfolder level, repeated after the last.")
+
+(defun my/dired--name-column ()
+  "Column where names start in the folder's own listing (not a subfolder)."
+  (save-excursion
+    (goto-char (point-min))
+    (let (column)
+      (while (and (not column) (not (eobp)))
+        (when (and (not (dired-subtree--get-ov)) (dired-move-to-filename))
+          (setq column (current-column)))
+        (forward-line 1))
+      column)))
+
+(defun my/dired-tree-guides ()
+  "Hang the contents of opened subfolders from their folder.
+Each level adds a │ in its own colour right under the icon of the folder
+it belongs to; the icon and name follow.  Subfolder listings have their
+own column widths, so the guides are aligned to the main listing's names."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (remove-overlays (point-min) (point-max) 'my/dired-guide-own t)
+      ;; Nothing to hang until dired-subtree is loaded (first TAB).
+      (when-let* ((_ (featurep 'dired-subtree))
+                  (base (my/dired--name-column)))
+        (goto-char (point-min))
+        (while (not (eobp))
+          (when-let* ((ov (dired-subtree--get-ov))
+                      (depth (overlay-get ov 'dired-subtree-depth))
+                      (name (dired-move-to-filename)))
+            (let* ((guides (mapconcat
+                            (lambda (level)
+                              (propertize "│ " 'face
+                                          `(:foreground ,(nth (mod (1- level) (length my/dired-tree-colors))
+                                                              my/dired-tree-colors))))
+                            (number-sequence 1 depth) ""))
+                   (prefix (concat (propertize " " 'display `(space :align-to ,base)) guides))
+                   ;; The icon is an after-string at the same spot; two
+                   ;; after-strings have no reliable order, so the guides
+                   ;; go inside the icon's, kept apart to redo them.
+                   (icon (seq-find (lambda (o) (overlay-get o 'nerd-icons-dired-overlay))
+                                   (overlays-in (1- name) name)))
+                   (guide (or icon (let ((o (make-overlay (1- name) name)))
+                                     (overlay-put o 'my/dired-guide-own t)
+                                     (overlay-put o 'evaporate t)
+                                     o)))
+                   (own (or (overlay-get guide 'my/dired-icon)
+                            (overlay-get guide 'after-string) "")))
+              (overlay-put guide 'my/dired-icon own)
+              (overlay-put guide 'my/dired-guide t)
+              (overlay-put guide 'after-string (concat prefix (if icon own "")))))
+          (forward-line 1))))))
+
+(defun my/dired-subtree-inserted ()
+  "Icons, guides and folder sizes for a subfolder just opened with TAB."
+  (when (bound-and-true-p nerd-icons-dired-mode)
+    (nerd-icons-dired--refresh))
+  ;; Before the guides: they line up with the names, which this moves.
+  (my/dired--fix-size-column)
+  (my/dired-tree-guides)
+  (when-let* ((ov (dired-subtree--get-ov)))
+    (my/dired-dir-sizes (overlay-get ov 'dired-subtree-name))))
+
+;;;; Folder sizes
+
+(defvar-local my/dired--du nil
+  "Running du for the folder of this dired buffer.")
+
+(defconst my/dired--size-re
+  "[-dl][-rwxsStT]\\{9\\}[.+@]?[ \t]+[0-9]+[ \t]+[^ \t]+\\([ \t]+[^ \t]+\\)"
+  "Permissions, links and owner; group 1 is the blank before the size and the size.")
+
+(defconst my/dired--size-width 5
+  "Widest size du -h writes, as in \"1023K\" or \"9,5G\".")
+
+(defun my/dired--fix-size-column ()
+  "Leave room in the size column for any du size, so names never move.
+The sizes du brings later are wider than the 4K or 3 that ls shows for a
+folder; written over a narrow column they pushed the name to the right.
+Each new listing (the folder, or a subfolder opened with TAB) is widened
+by the same amount on every line, keeping ls's alignment; lines already
+done are marked and left alone."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (with-silent-modifications
+        (let (lines)
+          (goto-char (point-min))
+          (while (not (eobp))
+            (when (and (not (get-text-property (line-beginning-position) 'my/dired-size-room))
+                       (re-search-forward my/dired--size-re (line-end-position) t))
+              (push (cons (copy-marker (match-beginning 1)) (copy-marker (match-end 1))) lines))
+            (forward-line 1))
+          (when lines
+            (let ((extra (max 0 (- (1+ my/dired--size-width)
+                                   (apply #'min (mapcar (lambda (l) (- (cdr l) (car l))) lines))))))
+              (dolist (l lines)
+                (goto-char (car l))
+                (insert (make-string extra ?\s))
+                (put-text-property (line-beginning-position) (1+ (line-beginning-position))
+                                   'my/dired-size-room t)
+                (set-marker (car l) nil)
+                (set-marker (cdr l) nil)))))))))
+
+(defun my/dired-dir-sizes (&optional dir)
+  "Show, for each folder in DIR, the size of what it holds.
+ls gives a folder's own size (4K), which says nothing.  du can take a
+while on big folders, so it runs in the background and the sizes appear
+when it ends.  DIR defaults to the folder of this buffer; remote folders
+are skipped."
+  (let ((buf (current-buffer))
+        ;; Not `dired-current-directory': after a revert the cursor can be
+        ;; inside an opened subfolder, and that is what it returns.
+        (dir (expand-file-name (or dir default-directory))))
+    (my/dired--fix-size-column)
+    (unless (file-remote-p dir)
+      (let* ((out (generate-new-buffer " *dired-du*"))
+             (proc
+              (make-process
+               :name "dired-du" :buffer out :noquery t
+               ;; Unreadable folders only print errors; their size stays as is.
+               :command (list "sh" "-c" "du -h -d 1 -- \"$1\" 2>/dev/null" "sh" dir)
+               :sentinel
+               (lambda (proc _event)
+                 (unless (process-live-p proc)
+                   (let ((sizes (make-hash-table :test #'equal)))
+                     (with-current-buffer out
+                       (goto-char (point-min))
+                       (while (re-search-forward "^\\([^\t]+\\)\t\\(.+\\)$" nil t)
+                         (puthash (directory-file-name (match-string 2)) (match-string 1) sizes)))
+                     (kill-buffer out)
+                     (when (buffer-live-p buf)
+                       (with-current-buffer buf (my/dired--put-sizes sizes)))))))))
+        ;; A new listing of the whole folder replaces the previous run.
+        (when (string= dir (expand-file-name default-directory))
+          (when (process-live-p my/dired--du) (delete-process my/dired--du))
+          (setq my/dired--du proc))))))
+
+(defun my/dired--put-sizes (sizes)
+  "Write the folder SIZES (path -> size) in the size column of each folder."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (with-silent-modifications
+        (while (not (eobp))
+          (when-let* ((file (dired-get-filename nil t))
+                      (size (gethash (directory-file-name file) sizes)))
+            (beginning-of-line)
+            ;; Right-aligned in the room `my/dired--fix-size-column' left, so
+            ;; the line keeps its length and the name stays where it was.
+            (when (re-search-forward my/dired--size-re (line-end-position) t)
+              (let ((old (match-string 1)))
+                ;; string-trim runs a regexp: keep the size match for replace-match.
+                (unless (save-match-data (string= (string-trim old) size))
+                  (replace-match (string-pad size (max (length old) (1+ (length size))) nil t)
+                                 t t nil 1)))))
+          (forward-line 1))))))
+
+(defvar my/files-side-width 35
+  "Width, in columns, of the side panel opened with F8.")
+
+(defun my/files-side--root ()
+  "Folder for the side panel: the project of the current file, or its folder."
+  (if-let* ((project (project-current)))
+      (project-root project)
+    default-directory))
+
+(defun my/files-side--open-file ()
+  "Open the file at point in the main window; folders open in the panel."
+  (interactive)
+  (let ((file (dired-get-file-for-visit)))
+    (if (file-directory-p file)
+        (dired-find-alternate-file)
+      (select-window (or (get-mru-window nil nil t) (next-window)))
+      (find-file file))))
+
+(defun my/files-side ()
+  "Show or hide a dired panel on the left with the current project."
+  (interactive)
+  (if-let* ((win (seq-find (lambda (w) (window-parameter w 'my/files-side))
+                           (window-list))))
+      (delete-window win)
+    (let* ((buf (dired-noselect (my/files-side--root)))
+           (win (display-buffer-in-side-window
+                 buf `((side . left) (slot . 0) (window-width . ,my/files-side-width)
+                       (preserve-size . (t . nil))
+                       (window-parameters . ((no-delete-other-windows . t)
+                                             (my/files-side . t)))))))
+      (with-current-buffer buf
+        (dired-hide-details-mode 1)
+        (local-set-key (kbd "RET") #'my/files-side--open-file))
+      (select-window win))))
+
+(global-set-key (kbd "<f8>") #'my/files-side)
+#+end_src
+** Git: diff-hl
+Marca en el margen las líneas añadidas, cambiadas y borradas respecto a git; se actualiza al guardar. Se actualiza al hacer commit desde magit.
+#+begin_src emacs-lisp
+(use-package diff-hl
+  :ensure t
+  :demand t
+  :hook ((magit-pre-refresh . diff-hl-magit-pre-refresh)
+         (magit-post-refresh . diff-hl-magit-post-refresh))
+  :config
+  ;; Marks refresh on save, not on every keystroke (flydiff runs a diff each
+  ;; time Emacs is idle, which is noticeable on big files).
+  (global-diff-hl-mode 1))
+#+end_src
+** Claude Code
+Claude Code dentro de Emacs, en una ventana a la derecha. Sabe qué fichero y qué selección tienes, y sus cambios se muestran como diff para aceptarlos o no.
+
+- =C-c C-'=: menú de Claude (abrir, continuar, enviar la selección...).
+- El terminal es =ghostel= (motor de Ghostty): es el que mejor pinta la interfaz de Claude. La primera vez descarga su módulo nativo precompilado.
+#+begin_src emacs-lisp
+(use-package ghostel
+  :ensure t
+  :commands (ghostel)
+  :init
+  ;; Outside the package tree, so a package rebuild never pulls the module
+  ;; out from under a running Emacs.
+  (setq ghostel-module-directory (no-littering-expand-var-file-name "ghostel/")
+        ghostel-module-auto-install 'download))
+
+(use-package claude-code-ide
+  :ensure (:host github :repo "manzaltu/claude-code-ide.el")
+  :bind ("C-c C-'" . claude-code-ide-menu)
+  :custom
+  (claude-code-ide-terminal-backend 'ghostel)
+  (claude-code-ide-window-side 'right)
+  (claude-code-ide-window-width 90)
+  :config
+  ;; Let Claude use Emacs itself: xref, imenu, project files, diagnostics.
+  (claude-code-ide-emacs-tools-setup)
+  ;; Two upstream bugs in its MCP tools server, seen as "Method not found"
+  ;; and "peculiar error" in *Messages*:
+  ;; - It advertises the logging capability, so Claude calls logging/setLevel,
+  ;;   which it does not implement.  Answer it with an empty result.
+  ;; - `json-rpc-error' is never declared, so the error it signals for any
+  ;;   other unknown method escapes every handler and Claude gets no reply.
+  ;;   Declared as an `error', the server's generic handler answers it.
+  (define-error 'json-rpc-error "JSON-RPC error")
+  (advice-add 'claude-code-ide-mcp-http-server--dispatch :around
+              (lambda (dispatch method params)
+                (if (equal method "logging/setLevel")
+                    (make-hash-table)
+                  (funcall dispatch method params)))))
+#+end_src
+** Ellama
+LLM local con Ollama. Se carga la primera vez que se usa un comando =ellama-*=, no al arrancar.
+#+begin_src emacs-lisp
+(use-package ellama
+  :ensure t
+  :commands (ellama-chat ellama-ask-about ellama-code-review ellama-transient-main-menu)
+  :config
+  (require 'llm-ollama)
+  (setopt ellama-provider
+          (make-llm-ollama
+           :chat-model "deepseek-r1:14b"
+           :default-chat-non-standard-params
+           '(("num_ctx" . 8192))))
+  (ellama-setup-agentic-coding))
+#+end_src
+
+** Recolección de basura: gcmh
+Recolecta cuando Emacs está ocioso y deja el umbral alto mientras trabajas.
+#+begin_src emacs-lisp
+(use-package gcmh
+  :ensure t
+  :demand t
+  :config (gcmh-mode 1))
 #+end_src
