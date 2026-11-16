@@ -202,6 +202,12 @@
                   (and (executable-find "claude") t)
                   claude-code-ide-terminal-backend)
           out)
+    ;; Active window contrast (applied in GUI; called here to check it).
+    (my/active-window-contrast)
+    (push (format "contrast: active=%s inactive=%s"
+                  (face-attribute 'mode-line :background)
+                  (face-attribute 'mode-line-inactive :background))
+          out)
     ;; Static page with the same scripts as the live preview, for
     ;; check-config.sh to render in headless Chrome and look for diagrams.
     (with-temp-file (expand-file-name "mermaid.html" func-dir)

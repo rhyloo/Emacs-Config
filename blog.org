@@ -557,6 +557,35 @@ Since I use =use-package= and =elpaca= for package management, I want to speed u
   (set-face-attribute 'diff-header nil :background "#2d2d2d")
   (set-face-attribute 'diff-file-header nil :background "#3a3a3a"))
 #+end_src
+Ventana activa bien visible: su línea de modo en el azul de la barra de estado
+de VSCode, las demás apagadas, y el texto de las ventanas inactivas sobre un
+fondo más claro y con menos brillo.
+#+begin_src emacs-lisp
+(defun my/active-window-contrast ()
+  "Make the selected window stand out from the others."
+  (set-face-attribute 'mode-line nil
+                      :background "#007acc" :foreground "#ffffff" :box nil)
+  (set-face-attribute 'mode-line-inactive nil
+                      :background "#2d2d2d" :foreground "#7a7a7a" :box nil)
+  (set-face-attribute 'vertical-border nil :foreground "#3c3c3c")
+  (when (facep 'auto-dim-other-buffers)
+    (set-face-attribute 'auto-dim-other-buffers nil
+                        :background "#2a2a2a" :foreground "#9a9a9a")))
+
+(use-package auto-dim-other-buffers
+  :ensure t
+  :if (display-graphic-p)
+  :demand t
+  :config
+  ;; Dim only the text area; leave the fringe and line numbers alone.
+  (setq auto-dim-other-buffers-dim-on-focus-out t
+        auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+  (auto-dim-other-buffers-mode 1)
+  (my/active-window-contrast))
+
+(when (display-graphic-p)
+  (my/active-window-contrast))
+#+end_src
 ** Org-mode
 #+begin_src emacs-lisp
 ;; Org de desarrollo (10.x) necesita el paquete compat, que viene incluido a
